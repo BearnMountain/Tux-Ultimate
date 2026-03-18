@@ -1,0 +1,74 @@
+# Project Settings
+EXE_NAME  := Tux-Ultimate
+SRC_DIR   := src
+BUILD_DIR := build
+EXT_DIR   := external
+SDL_DIR   := $(EXT_DIR)/SDL
+
+# Compiler & Flags
+CC      := gcc
+CFLAGS  := -Wall -Wextra -MMD -MP -Iinclude -I$(EXT_DIR) -I$(EXT_DIR)/stb -I$(SDL_DIR)/include
+LDFLAGS := -L$(BUILD_DIR)/sdl_lib -lSDL3 -lpthread -lm
+
+# Detect OS for parallel builds and library extensions
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Darwin)
+    NPROC := $(shell sysctl -n hw.ncpu)
+    LIB_EXT := dylib
+else
+    NPROC := $(shell nproc)
+    LIB_EXT := so
+endif
+
+# Mode Logic
+MODE ?= debug
+ifeq ($(MODE), release)
+    CFLAGS += -O3 -DNDEBUG
+    TARGET_DIR := $(BUILD_DIR)/release
+else
+    CFLAGS += -g -O0 -DDEBUG
+    TARGET_DIR := $(BUILD_DIR)/debug
+endif
+
+# Files
+SRCS := $(wildcard $(SRC_DIR)/*.c) $(EXT_DIR)/stb/stb_truetype.c
+OBJS := $(patsubst %.c, $(TARGET_DIR)/%.o, $(notdir $(SRCS)))
+DEPS := $(OBJS:.o=.d)
+TARGET := $(TARGET_DIR)/$(EXE_NAME)
+
+# vpath tells Make where to look for source files if they aren't in the current dir
+vpath %.c $(SRC_DIR) $(EXT_DIR)/stb
+
+.PHONY: all clean run shaders sdl_vendor
+
+all: sdl_vendor shaders $(TARGET)
+
+# Compile SDL3 using CMake (Only once)
+sdl_vendor:
+	@if [ ! -f $(BUILD_DIR)/sdl_lib/libSDL3.$(LIB_EXT) ]; then \
+		echo "Building SDL3 vendor library..."; \
+		cmake -S $(SDL_DIR) -B $(BUILD_DIR)/sdl_build -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF; \
+		cmake --build $(BUILD_DIR)/sdl_build -j$(NPROC); \
+		mkdir -p $(BUILD_DIR)/sdl_lib; \
+		cp $(BUILD_DIR)/sdl_build/libSDL3* $(BUILD_DIR)/sdl_lib/; \
+	fi
+
+shaders:
+	@python3 compile_shaders.py
+
+$(TARGET): $(OBJS)
+	@mkdir -p $(dir $@)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS) -Wl,-rpath,'@loader_path/../sdl_lib'
+
+# Pattern rule for objects
+$(TARGET_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+-include $(DEPS)
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+run: all
+	./$(TARGET)
