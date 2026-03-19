@@ -1,2 +1,11 @@
 build/
 external/
+compile_commands.json
+
+src/engine/audio.h
+src/engine/input.c
+src/engine/input.h
+src/engine/physics.h
+src/engine/world.h
+src/game/entity.h
+src/net/
