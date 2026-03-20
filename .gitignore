@@ -2,14 +2,4 @@ build/
 external/SDL
 compile_commands.json
 
-src/engine/audio.h
-src/engine/input.c
-src/engine/input.h
-src/engine/physics.h
-src/engine/world.h
-src/engine/ui.h
-src/engine/ui.c
-src/game/entity.h
-src/net/
-
 *.spv

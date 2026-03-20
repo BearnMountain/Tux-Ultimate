@@ -41,8 +41,13 @@ TARGET := $(TARGET_DIR)/$(EXE_NAME)
 all: sdl_vendor shaders $(TARGET)
 
 sdl_vendor:
+	@if [ ! -d $(SDL_DIR) ]; then \
+		echo "Cloning SDL3 repository..."; \
+		git clone https://github.com/libsdl-org/SDL.git $(SDL_DIR); \
+	else \
+		echo "SDL3 already cloned."; \
+	fi
 	@if [ ! -f $(BUILD_DIR)/sdl_lib/libSDL3.$(LIB_EXT) ]; then \
-		echo "Building SDL3 vendor library..."; \
 		cmake -S $(SDL_DIR) -B $(BUILD_DIR)/sdl_build -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF; \
 		cmake --build $(BUILD_DIR)/sdl_build -j$(NPROC); \
 		mkdir -p $(BUILD_DIR)/sdl_lib; \
