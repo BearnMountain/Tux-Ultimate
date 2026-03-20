@@ -4,8 +4,6 @@
 #include "src/util/defines.h"
 #include "src/util/config.h"
 
-#define SHADER_DIR(path, format_name) "shaders/" XSTR(path) XSTR(format_name)
-
 SDL_GPUShader* load_shader(const char* path) {
     // get shader stage
     SDL_GPUShaderStage stage;
@@ -37,13 +35,15 @@ SDL_GPUShader* load_shader(const char* path) {
 	}
 
 	size_t shader_size;
-	void* code = SDL_LoadFile(SHADER_DIR(path, format_name), &shader_size);
+    char format_buffer[512];
+    snprintf(format_buffer, sizeof(format_buffer), "build/debug/shaders/%s.%s", path, format_name);
+	void* code = SDL_LoadFile(format_buffer, &shader_size);
 
 	SDL_GPUShader* shader = SDL_CreateGPUShader(frame_data.device, &(SDL_GPUShaderCreateInfo) {
 		.code = (Uint8*)code,
 		.code_size = shader_size,
 		.entrypoint = format_entrypoint,
-		.format = SDL_GPU_SHADERFORMAT_SPIRV,
+		.format = format,
 		.stage = stage,
 		.num_samplers = 0,
 		.num_storage_buffers = 0,

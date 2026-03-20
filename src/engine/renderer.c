@@ -27,7 +27,7 @@ void renderer_init(SDL_Window* window) {
 	}
 	SDL_ClaimWindowForGPUDevice(frame_data.device, window);
 
-	frame_data.pipeline = gpu_pipeline_load("shaders/rect.frag.hlsl", "shaders/rect.vert.hlsl");
+	frame_data.pipeline = gpu_pipeline_load("rect.vert.hlsl", "rect.frag.hlsl");
 	if (!frame_data.pipeline) {
 		log_err("failed to load pipeline: %s", SDL_GetError());
 		return;
@@ -86,6 +86,17 @@ void renderer_frame(void) {
 		NULL
 	);
 
+    // bind the pipeline
+    SDL_BindGPUGraphicsPipeline(render_pass, frame_data.pipeline);
+
+    // bind the vertex buffer
+    SDL_GPUBufferBinding bufferBindings[1];
+    bufferBindings[0].buffer = gpu_buffer_container.vertex_buffer[0]; // index 0 is slot 0 in this example
+    bufferBindings[0].offset = 0; // start from the first byte
+
+    SDL_BindGPUVertexBuffers(render_pass, 0, bufferBindings, 1); // bind one buffer starting from slot 0
+
+    SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
 
 	SDL_EndGPURenderPass(render_pass);
 	if(!SDL_SubmitGPUCommandBuffer(cmd_buffer)) {
