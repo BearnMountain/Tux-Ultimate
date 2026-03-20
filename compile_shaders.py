@@ -1,25 +1,43 @@
 #!/opt/homebrew/bin/python3
-
 import os
 import subprocess
+import platform
+import sys
 
 SHADERS_SRC = "src/shaders"
 SHADERS_OUT = "build/debug/shaders"
+SYSTEM = platform.system()
+SHADER_FORMAT = ".hlsl"  # Fix: was .glsl
 
-SHADER_FORMAT = ".glsl"
+if not os.path.exists(SHADERS_SRC):
+    sys.exit(1)
+
+if not os.path.exists(SHADERS_OUT):
+    os.makedirs(SHADERS_OUT)
 
 def compile_shaders():
-    if not os.path.exists(SHADERS_OUT):
-        os.makedirs(SHADERS_OUT)
-
     for file in os.listdir(SHADERS_SRC):
-        if file.endswith(".vert" + SHADER_FORMAT) or file.endswith(".frag" + SHADER_FORMAT):
-            input_path = os.path.join(SHADERS_SRC, file)
-            output_path = os.path.join(SHADERS_OUT, file + ".spv")
-            
-            print(f"Compiling {file}...")
-            # Using glslangValidator or dxc
-            subprocess.run(["glslangValidator", "-V", input_path, "-o", output_path])
+        if not file.endswith(".vert" + SHADER_FORMAT) and not file.endswith(".frag" + SHADER_FORMAT):
+            continue
+
+        src_path = os.path.join(SHADERS_SRC, file)
+        out_path = os.path.join(SHADERS_OUT, file)
+
+        # finds proper cross compilation file extension
+        if SYSTEM == "Windows":
+            out_path = os.path.join(SHADERS_OUT, file + ".dxil")
+        elif SYSTEM == "Linux":
+            out_path = os.path.join(SHADERS_OUT, file + ".spv")
+        elif SYSTEM == "Darwin":
+            out_path = os.path.join(SHADERS_OUT, file + ".msl")
+
+        print("COMPILING SHADER: " + src_path)
+        # compiles shaders
+        subprocess.run([
+            "shadercross", 
+            src_path,
+            "-o", out_path
+        ])
 
 if __name__ == "__main__":
     compile_shaders()

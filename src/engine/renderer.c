@@ -1,6 +1,8 @@
 #include "renderer.h"
 #include "src/util/logger.h"
 #include "src/engine/gpu_pipeline.h"
+#include "src/util/config.h"
+
 #include <stdlib.h>
 
 struct {
@@ -16,10 +18,21 @@ FrameData frame_data = {0};
 void renderer_init(SDL_Window* window) {
 	// initialize renderer global state
 	frame_data.window = window;
-	frame_data.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, NULL);
-	frame_data.pipeline = gpu_pipeline_load("shader/rect.frag.glsl.spv", "shader/rect.vert.glsl.spv");
 
+	// selecting GPU Device
+	frame_data.device = SDL_CreateGPUDevice(config.shader_format, DEBUG, NULL);
+	if (!frame_data.device) {
+		log_err("failed to select a gpu device: %s", SDL_GetError());
+		return;
+	}
 	SDL_ClaimWindowForGPUDevice(frame_data.device, window);
+
+	frame_data.pipeline = gpu_pipeline_load("shaders/rect.frag.hlsl", "shaders/rect.vert.hlsl");
+	if (!frame_data.pipeline) {
+		log_err("failed to load pipeline: %s", SDL_GetError());
+		return;
+	}
+
 }
 
 void renderer_uninit(void) {

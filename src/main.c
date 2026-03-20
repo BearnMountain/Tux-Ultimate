@@ -65,6 +65,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 	switch (event->type) {
 		case SDL_EVENT_KEY_DOWN: {
 			input_handle(event->key.key);
+			if (event->key.key == SDLK_Q || event->key.key == SDLK_ESCAPE) {
+				return SDL_APP_SUCCESS;
+			}
 		}
 		default: break;
 	}

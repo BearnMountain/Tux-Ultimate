@@ -2,8 +2,9 @@
 #include "renderer.h"
 #include "src/util/logger.h"
 #include "src/util/defines.h"
+#include "src/util/config.h"
 
-#define SHADER_DIR(path) "shaders/" XSTR(path)
+#define SHADER_DIR(path, format_name) "shaders/" XSTR(path) XSTR(format_name)
 
 SDL_GPUShader* load_shader(const char* path) {
     // get shader stage
@@ -16,31 +17,27 @@ SDL_GPUShader* load_shader(const char* path) {
     }
 
 	// get shader format that is compiled on different platforms
-	SDL_GPUShaderFormat format = SDL_GetGPUShaderFormats(frame_data.device);
-	char* format_name = "spv";
-	char* format_entrypoint = "main";
-	// if (format & SDL_GPU_SHADERFORMAT_SPIRV) {
-	// 	format = SDL_GPU_SHADERFORMAT_SPIRV;
-	// 	format_name = "spv";
-	// 	format_entrypoint = "main";
-	// } else if (format & SDL_GPU_SHADERFORMAT_DXIL) { 
-	// 	format = SDL_GPU_SHADERFORMAT_DXIL;
-	// 	log_warn("not implemented");
-	// 	return NULL;
-	// } else if (format & SDL_GPU_SHADERFORMAT_MSL) {
-	// 	format = SDL_GPU_SHADERFORMAT_MSL;
-	// 	format_name = "msl";
-	// 	format_entrypoint = "main0";
-	// 	return NULL;
-	// }  else {
-	// 	log_err("dont support any shader formats supplied");
-	// 	return NULL;
-	// }
-	(void)format_name;
-	(void)format; // todo
+	// SDL_GPUShaderFormat format = SDL_GetGPUShaderFormats(frame_data.device);
+	SDL_GPUShaderFormat format = config.shader_format;
+	char* format_name;
+	char* format_entrypoint;
+	if (format & SDL_GPU_SHADERFORMAT_SPIRV) {
+		format = SDL_GPU_SHADERFORMAT_SPIRV;
+		format_name = "spv";
+		format_entrypoint = "main";
+	} else if (format & SDL_GPU_SHADERFORMAT_DXIL) { 
+		log_warn("not implemented");
+		return NULL;
+	} else if (format & SDL_GPU_SHADERFORMAT_MSL) {
+		format_name = "msl";
+		format_entrypoint = "main0";
+	}  else {
+		log_err("doesnt support any shader formats supplied");
+		return NULL;
+	}
 
 	size_t shader_size;
-	void* code = SDL_LoadFile(SHADER_DIR(path), &shader_size);
+	void* code = SDL_LoadFile(SHADER_DIR(path, format_name), &shader_size);
 
 	SDL_GPUShader* shader = SDL_CreateGPUShader(frame_data.device, &(SDL_GPUShaderCreateInfo) {
 		.code = (Uint8*)code,
@@ -67,6 +64,7 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* 
 	SDL_GPUShader* vertex_shader = load_shader(vertex_path);
 	SDL_GPUShader* fragment_shader = load_shader(fragment_path);
 	if (!vertex_shader || !fragment_shader) {
+		log_err("failed to load shaders: %s & %s", vertex_path, fragment_path);
 		return NULL;
 	}
 
