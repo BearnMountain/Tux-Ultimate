@@ -29,11 +29,14 @@ void log_category(LOG_TYPE type, const char* message, ...) {
 			break;
 	}
     vfprintf(stderr, message, args);
+
 #if DEBUG
     if (type != LOG_INFO) {
-        fprintf(stderr, " (%s:%d)", file, line);
+        fprintf(stderr, "\n\t(%s:%d)", file, line);
     }
 #endif
+
+
     fputs("\n", stderr);
 
 	va_end(args);

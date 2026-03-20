@@ -12,4 +12,7 @@ typedef float     f32;
 typedef double    f64;
 typedef u8        b8;
 
+#define STR(x) #x
+#define XSTR(x) STR(x)
+
 #endif
