@@ -1,5 +1,5 @@
 build/
-external
+external/SDL
 compile_commands.json
 
 src/engine/audio.h

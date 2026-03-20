@@ -40,8 +40,6 @@ TARGET := $(TARGET_DIR)/$(EXE_NAME)
 
 all: sdl_vendor shaders $(TARGET)
 
-
-
 sdl_vendor:
 	@if [ ! -f $(BUILD_DIR)/sdl_lib/libSDL3.$(LIB_EXT) ]; then \
 		echo "Building SDL3 vendor library..."; \
