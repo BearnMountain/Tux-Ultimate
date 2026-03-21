@@ -7,7 +7,7 @@ import sys
 SHADERS_SRC = "src/shaders"
 SHADERS_OUT = "build/debug/shaders"
 SYSTEM = platform.system()
-SHADER_FORMAT = ".hlsl"  # Fix: was .glsl
+SHADER_FORMAT = ".glsl"  # Fix: was .glsl
 
 if not os.path.exists(SHADERS_SRC):
     sys.exit(1)
