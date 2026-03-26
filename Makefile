@@ -7,7 +7,7 @@ SDL_DIR   := $(EXT_DIR)/SDL
 
 # Compiler & Flags
 CC      := gcc
-CFLAGS  := -Wall -Wextra -MMD -MP -I. -Iinclude -I$(EXT_DIR) -I$(EXT_DIR)/stb -I$(SDL_DIR)/include
+CFLAGS  := -g -O0 -Wall -Wextra -MMD -MP -I. -Iinclude -I$(EXT_DIR) -I$(EXT_DIR)/stb -I$(SDL_DIR)/include
 LDFLAGS := -L$(BUILD_DIR)/sdl_lib -lSDL3 -lpthread -lm
 
 # Detect OS

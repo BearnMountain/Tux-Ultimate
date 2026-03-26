@@ -15,7 +15,6 @@ typedef struct {
 static AppInfo app_info = {0};
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
-	(void)appstate;
 	(void)argc;
 	(void)argv;
 
@@ -31,6 +30,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 		log_err("failed to initialize SDL: %s", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
+	
+	// have appstate target app_info
+	*appstate = &app_info;
 
 	// intializes renderer
 	renderer_init(app_info.window);
@@ -79,7 +81,7 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 	(void)appstate;
 	(void)result;
 
-	SDL_DestroyWindow(app_info.window);
 	renderer_uninit();
+	SDL_DestroyWindow(app_info.window);
 	SDL_Quit();
 }

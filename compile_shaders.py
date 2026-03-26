@@ -23,15 +23,23 @@ def compile_shaders():
         src_path = os.path.join(SHADERS_SRC, file)
         out_path = os.path.join(SHADERS_OUT, file)
 
+        subprocess.run([
+            "glslc",
+            src_path,
+            "-o", out_path + ".spv"
+        ])
+
+        src_path = out_path + ".spv"
+        print("COMPILING SHADER: " + src_path)
+
         # finds proper cross compilation file extension
         if SYSTEM == "Windows":
-            out_path = os.path.join(SHADERS_OUT, file + ".dxil")
+            out_path = os.path.join(out_path, ".dxil")
         elif SYSTEM == "Linux":
-            out_path = os.path.join(SHADERS_OUT, file + ".spv")
+            sys.exit(1)
         elif SYSTEM == "Darwin":
-            out_path = os.path.join(SHADERS_OUT, file + ".msl")
+            out_path = os.path.join(out_path, ".msl")
 
-        print("COMPILING SHADER: " + src_path)
         # compiles shaders
         subprocess.run([
             "shadercross", 

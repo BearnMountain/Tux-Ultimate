@@ -36,16 +36,20 @@ void renderer_init(SDL_Window* window) {
 }
 
 void renderer_uninit(void) {
-	SDL_DestroyGPUDevice(frame_data.device);
-	gpu_pipeline_unload(frame_data.pipeline);
+	SDL_WaitForGPUIdle(frame_data.device);
 
+	// releases gpu resources
 	for (u32 i = 0; i < gpu_buffer_container.buffer_count; i++) {
 		SDL_ReleaseGPUBuffer(frame_data.device, gpu_buffer_container.vertex_buffer[i]);
 		SDL_ReleaseGPUTransferBuffer(frame_data.device, gpu_buffer_container.transfer_buffer[i]);
 	}
+	gpu_pipeline_unload(frame_data.pipeline);
 
-	free(gpu_buffer_container.vertex_buffer);
-	free(gpu_buffer_container.transfer_buffer);
+	// free(gpu_buffer_container.vertex_buffer);
+	// free(gpu_buffer_container.transfer_buffer);
+
+	// destroy device
+	SDL_DestroyGPUDevice(frame_data.device);
 }
 
 void renderer_frame(void) {
@@ -159,41 +163,3 @@ void renderer_submit_triangle(Vertex v[3], SDL_FColor color) {
 	
 	renderer_upload_vertices(v, 3);
 }
-
-// void renderer_submit_square(f32 x, f32 y, f32, w, f32 h) {
-// 	(void)x;
-// 	(void)y;
-// 	(void)w;
-//
-// 	printf("not implemeneted: %f", h);
-// }
-// void renderer_submit_vertices(void) {}
-// void renderer_submit_mesh(void) {}
-// void renderer_submit_sprite(void) {}
-
-
-// PlatformFrameData platform_wait_for_frame() {
-//     PlatformFrameData ret = {0};
-//
-//     // get command buffer
-//     ret.cmd = SDL_AcquireGPUCommandBuffer(platform.gpu);
-//     if (!ret.cmd) {
-//         log_err("Failed to acquire command buffer: %s", SDL_GetError());
-//     }
-//
-//     // get swapchain texture
-//     if (!SDL_WaitAndAcquireGPUSwapchainTexture(ret.cmd, platform.window, &ret.swapchain_texture, NULL, NULL)) {
-//         log_err("Failed to acquire swapchain texture: %s", SDL_GetError());
-//     }
-//
-//     return ret;
-// }
-//
-// void platform_submit_frame(PlatformFrameData frame) {
-//
-//     // submit command buffer
-//     if (!SDL_SubmitGPUCommandBuffer(frame.cmd)) {
-//         log_err("Failed to submit gpu command buffer: %s", SDL_GetError());
-//     }
-//
-
