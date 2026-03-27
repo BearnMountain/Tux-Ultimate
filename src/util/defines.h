@@ -15,4 +15,12 @@ typedef u8        b8;
 #define STR(x) #x
 #define XSTR(x) STR(x)
 
+#ifndef true
+#define true 1
+#endif
+
+#ifndef false
+#define false 0
+#endif
+
 #endif
