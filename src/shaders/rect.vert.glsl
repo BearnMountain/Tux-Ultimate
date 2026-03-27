@@ -1,19 +1,12 @@
-struct VSInput
-{
-    float3 a_pos : POSITION;
-    float4 a_clr : COLOR0;
-};
+#version 460
 
-struct VSOutput
-{
-    float4 position : SV_Position;
-    float4 v_clr    : COLOR0;
-};
 
-VSOutput main(VSInput input)
-{
-    VSOutput output;
-    output.position = float4(input.a_pos, 1.0);
-    output.v_clr = input.a_clr;
-    return output;
+void main() {
+	if (gl_VertexIndex == 0) {
+		gl_Position = vec4(-0.5, -0.5, 0, 1);
+	} else if (gl_VertexIndex == 1) {
+		gl_Position = vec4(0, 0.5, 0, 1);
+	} else if (gl_VertexIndex == 2) {
+		gl_Position = vec4(0.5, -0.5, 0, 1);
+	}
 }

@@ -18,6 +18,10 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	(void)argc;
 	(void)argv;
 
+#if DEBUG
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+#endif
+
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		log_err("failed to initalize SDL: %s", SDL_GetError());
 		return SDL_APP_FAILURE;

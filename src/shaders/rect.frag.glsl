@@ -1,9 +1,7 @@
-struct PSInput
-{
-    float4 v_clr : COLOR0;
-};
+#version 460
 
-float4 main(PSInput input) : SV_Target0
-{
-    return input.v_clr;
+layout (location = 0) out vec4 color;
+
+void main() {
+	color = vec4(1,0,0,1);
 }
