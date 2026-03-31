@@ -1,0 +1,8 @@
+[general] # general information
+fullscreen = true
+width = 800
+height = 600
+
+[audio]
+volume = 50
+audio_shot = "res/audio/shot"
