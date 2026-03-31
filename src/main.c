@@ -1,4 +1,3 @@
-#include "src/util/defines.h"
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -6,6 +5,8 @@
 #include "engine/input.h"
 #include "engine/renderer.h"
 #include "util/logger.h"
+#include "src/util/config.h"
+#include "src/util/defines.h"
 
 typedef struct {
 	SDL_Window* window;
@@ -17,6 +18,8 @@ static AppInfo app_info = {0};
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	(void)argc;
 	(void)argv;
+
+	config_init();
 
 #if DEBUG
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
@@ -85,6 +88,7 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 	(void)appstate;
 	(void)result;
 
+	config_save();
 	renderer_uninit();
 	SDL_DestroyWindow(app_info.window);
 	SDL_Quit();
