@@ -5,6 +5,10 @@
 #include "src/util/defines.h"
 
 typedef struct {
+	const char* path;
+} AudioPath;
+
+typedef struct {
 	// platform dependent constants
 	SDL_GPUShaderFormat shader_format;	
 
@@ -15,7 +19,7 @@ typedef struct {
 
 	// audio options
 	f32 volume;
-	char* audio_shot; // all paths are defined in config for general sounds
+	AudioPath audio_shot; // all paths are defined in config for general sounds
 } Config;
 
 extern Config config;

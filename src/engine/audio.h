@@ -11,17 +11,19 @@
  */
 
 #include "src/util/defines.h"
-
-// DEFINED AUDIO CLIPS
-#define AUDIO_BASIC_ "res/audio/basic.mp3"
+#include "src/util/config.h"
 
 typedef u32 Audio_ID;
 
-void audio_init();
-void audio_uninit();
+void audio_init(void);
+void audio_uninit(void);
 
 // playing sounds
-Audio_ID audio_oneshot();
-Audio_ID auido_loop();
+// - all audio clips must come from 'src/util/config.h' config global variable
+// - no custom paths as they must all be defined within the configuration file
+Audio_ID audio_oneshot(AudioPath audio_clip);
+Audio_ID auido_loop(AudioPath audio_clip);
+void audio_stop(Audio_ID id);
+
 
 #endif
