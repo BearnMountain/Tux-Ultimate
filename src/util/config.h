@@ -4,9 +4,7 @@
 #include "SDL3/SDL_gpu.h"
 #include "src/util/defines.h"
 
-typedef struct {
-	const char* path;
-} AudioPath;
+typedef const char* AudioPath;
 
 typedef struct {
 	// platform dependent constants
@@ -18,7 +16,7 @@ typedef struct {
 	u32 width;
 
 	// audio options
-	f32 volume;
+	// - ONLY AUDIO.C SHOULD ACCESS THESE PATHS
 	AudioPath audio_shot; // all paths are defined in config for general sounds
 } Config;
 

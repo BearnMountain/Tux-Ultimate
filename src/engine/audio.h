@@ -15,15 +15,30 @@
 
 typedef u32 Audio_ID;
 
+/*
+	Stores all playable audio clips:
+	- file paths should be stored inside 'resources/config.toml' file
+*/
+
+typedef enum {
+	AUDIO_PROFILE_MAIN_MENU,
+	AUDIO_PROFILE_SELECTION_SCREEN,
+	AUDIO_PROFILE_TUX
+} AudioProfile;
+
+typedef enum {
+	AUDIO_PLAYLIST_BACKGROUND_MUSIC
+} AudioPlaylist;
+
 void audio_init(void);
 void audio_uninit(void);
 
 // playing sounds
 // - all audio clips must come from 'src/util/config.h' config global variable
 // - no custom paths as they must all be defined within the configuration file
-Audio_ID audio_oneshot(AudioPath audio_clip);
-Audio_ID auido_loop(AudioPath audio_clip);
-void audio_stop(Audio_ID id);
+Audio_ID audio_oneshot(AudioPlaylist clip);
+Audio_ID audio_loop(AudioPlaylist clip);
+void audio_stop(Audio_ID id); // requires ID returned from above funcs
 
 
 #endif

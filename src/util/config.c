@@ -9,7 +9,6 @@ Config config = {
 	.fullscreen = false,
 	.height = 800,
 	.width = 600,
-	.volume = 50,
 	.audio_shot = "res/audio/shot.mp4"
 };
 
@@ -32,7 +31,6 @@ ConfigKey cfg_keys[] = {
     { "fullscreen",     CFG_BOOL,  &((Config*)0)->fullscreen },
     { "width",          CFG_INT,   &((Config*)0)->width      },
     { "height",         CFG_INT,   &((Config*)0)->height     },
-    { "volume",         CFG_FLOAT, &((Config*)0)->volume     },
     { "audio_shot",     CFG_FLOAT, &((Config*)0)->audio_shot },
 };
 
@@ -112,10 +110,8 @@ void config_init(void) {
 			line_start = i + 1;
 		}
 	}
-
-	memcpy(config, tmp_config, sizeof(Config));
 }
 
 void config_save(void) {
-
+	log_warn("not implemented yet");
 }

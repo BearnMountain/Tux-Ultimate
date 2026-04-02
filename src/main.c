@@ -1,3 +1,4 @@
+#include "src/engine/audio.h"
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -20,12 +21,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	(void)argv;
 
 	config_init();
+	audio_init();
 
 #if DEBUG
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
 #endif
 
-	if (!SDL_Init(SDL_INIT_VIDEO)) {
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
 		log_err("failed to initalize SDL: %s", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
@@ -88,6 +90,7 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 	(void)appstate;
 	(void)result;
 
+	audio_uninit();
 	config_save();
 	renderer_uninit();
 	SDL_DestroyWindow(app_info.window);

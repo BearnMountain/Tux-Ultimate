@@ -11,9 +11,18 @@
 // - 
 struct {
 	ma_engine engine;
+	ma_resource_manager resource_manager;
 	SDL_AudioDeviceID device;
 	SDL_AudioSpec spec;
 } audio_playlist = { 0 };
+
+/*
+
+	ma_sound_init_from_file to ma_sound array
+	ma_sound_init_copy to copy from sound array, then start and unit after finished and free
+	- ma_sound_at_end callback func that can have ma_sound_uninit and free(instace) to get rid of copy
+
+   */
 
 #define CHANNELS 2
 #define SAMPLE_RATE 48000
@@ -32,6 +41,10 @@ void data_callback(void* user_data, ma_uint8* stream, u32 stream_len) {
 	);
 }
 
+void load_sounds(void) {
+
+}
+
 void audio_init() {
 	// init mini audio
 	ma_engine_config engine_cfg = ma_engine_config_init();
@@ -45,6 +58,7 @@ void audio_init() {
 	}
 
 	// init sdl audio
+	// SDL_InitSubSystem(SDL_INIT_AUDIO);
 	SDL_zero(audio_playlist.spec);
 	audio_playlist.spec.freq = SAMPLE_RATE;
 	audio_playlist.spec.format = SDL_AUDIO_F32;
@@ -68,16 +82,17 @@ void audio_uninit() {
 		SDL_CloseAudioDevice(audio_playlist.device);
 	}
 	ma_engine_uninit(&audio_playlist.engine);
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
 // playing sounds
-Audio_ID audio_oneshot(AudioPath path) {
+Audio_ID audio_oneshot(AudioPlaylist clip) {
     ma_sound* sound = malloc(sizeof(ma_sound));
     if (!sound) return 0;
 
     if (ma_sound_init_from_file(
             &audio_playlist.engine,
-            path.path,
+            path,
             MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION,
             NULL,
             NULL,
@@ -91,7 +106,7 @@ Audio_ID audio_oneshot(AudioPath path) {
     return (Audio_ID)(uintptr_t)sound;
 }
 
-Audio_ID audio_loop() {
+Audio_ID audio_loop(AudioPlaylist clip) {
 
 
 	return 0;
