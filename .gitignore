@@ -1,5 +1,7 @@
 build/
 external/SDL
 compile_commands.json
+.DS_Store
 
 *.spv
+src/testing

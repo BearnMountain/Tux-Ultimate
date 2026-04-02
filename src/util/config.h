@@ -17,7 +17,9 @@ typedef struct {
 
 	// audio options
 	// - ONLY AUDIO.C SHOULD ACCESS THESE PATHS
-	AudioPath audio_shot; // all paths are defined in config for general sounds
+	AudioPath audio_jump; // all paths are defined in config for general sounds
+	AudioPath audio_punch; 
+	AudioPath audio_main_menu; 
 } Config;
 
 extern Config config;

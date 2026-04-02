@@ -5,4 +5,5 @@ height = 600
 
 [audio]
 volume = 50
-audio_shot = "res/audio/shot"
+audio_jump = "res/audio/generc_jump.mp3"
+audio_punch = "res/audio/generc_punch.mp3"

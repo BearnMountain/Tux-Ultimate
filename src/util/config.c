@@ -9,7 +9,9 @@ Config config = {
 	.fullscreen = false,
 	.height = 800,
 	.width = 600,
-	.audio_shot = "res/audio/shot.mp4"
+	.audio_jump = "resources/audio/generic_jump.mp3",
+	.audio_punch = "resources/audio/generic_punch.mp3",
+	.audio_main_menu = "resources/audio/generic_menu.mp3"
 };
 
 // simplifying settings 
@@ -31,7 +33,9 @@ ConfigKey cfg_keys[] = {
     { "fullscreen",     CFG_BOOL,  &((Config*)0)->fullscreen },
     { "width",          CFG_INT,   &((Config*)0)->width      },
     { "height",         CFG_INT,   &((Config*)0)->height     },
-    { "audio_shot",     CFG_FLOAT, &((Config*)0)->audio_shot },
+    { "audio_shot",     CFG_FLOAT, &((Config*)0)->audio_jump },
+    { "audio_punch",     CFG_FLOAT, &((Config*)0)->audio_punch },
+    { "audio_main_menu",     CFG_FLOAT, &((Config*)0)->audio_main_menu },
 };
 
 #define CFG_KEY_COUNT (sizeof(cfg_keys)/sizeof(cfg_keys[0]))

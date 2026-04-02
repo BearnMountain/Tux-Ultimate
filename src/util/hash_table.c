@@ -136,7 +136,7 @@ static b8 hash_table_expand(HashTable* table) {
     for (size_t i = 0; i < table->capacity; i++) {
         HashTable_entry entry = table->entries[i];
         if (entry.key != NULL) {
-            HashTable_set_entry(new_entries, new_capacity, entry.key,
+            hash_table_set_entry(new_entries, new_capacity, entry.key,
                          entry.value, NULL);
         }
     }
@@ -162,7 +162,7 @@ const char* hash_table_set(HashTable* table, const char* key, void* value) {
     }
 
     // Set entry and update length.
-    return HashTable_set_entry(table->entries, table->capacity, key, value,
+    return hash_table_set_entry(table->entries, table->capacity, key, value,
                         &table->length);
 }
 

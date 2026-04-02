@@ -11,7 +11,6 @@
  */
 
 #include "src/util/defines.h"
-#include "src/util/config.h"
 
 typedef u32 Audio_ID;
 
@@ -20,18 +19,27 @@ typedef u32 Audio_ID;
 	- file paths should be stored inside 'resources/config.toml' file
 */
 
+/*
+   Each profile coorelates to particular game character or stage of the game/map
+   - allows sound queueing and preloading of assets to not overburden system
+   */
 typedef enum {
+	AUDIO_PROFILE_EMPTY,
 	AUDIO_PROFILE_MAIN_MENU,
 	AUDIO_PROFILE_SELECTION_SCREEN,
 	AUDIO_PROFILE_TUX
 } AudioProfile;
 
 typedef enum {
-	AUDIO_PLAYLIST_BACKGROUND_MUSIC
+	AUDIO_PLAYLIST_BACKGROUND_MUSIC,
+	AUDIO_PLAYLIST_TUX_JUMP,
+	AUDIO_PLAYLIST_TUX_PUNCH
 } AudioPlaylist;
 
 void audio_init(void);
 void audio_uninit(void);
+void audio_load_profile(AudioProfile profile);
+void audio_unload_profile(AudioProfile profile);
 
 // playing sounds
 // - all audio clips must come from 'src/util/config.h' config global variable
