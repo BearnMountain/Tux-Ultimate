@@ -3,3 +3,5 @@ external/SDL
 compile_commands.json
 
 *.spv
+testing/
+.DS_Store
