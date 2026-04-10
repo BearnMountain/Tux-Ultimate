@@ -123,12 +123,14 @@ def write_ninja():
             shader_out.append(spv)
             shader_out.append(refl)
 
-            if PLATFORM == "Win32":
-                dxil_shader = spv.stem + ".dxil"
-                ninja.write(f"build {dxil_shader}: shader {spv}")
-            if PLATFORM == "Darwin":
-                msl_shader = spv.stem + ".msl"
-                ninja.write(f"build {msl_shader}: shader {spv}")
+            if SHADER_FMT == "dxil":
+                dxil_shader = SHADER_OUT / (shader.stem + ".dxil")
+                ninja.write(f"build {dxil_shader}: shader {spv}\n")
+                shader_out.append(dxil_shader)
+            if SHADER_FMT == "msl":
+                msl_shader = SHADER_OUT / (spv.stem + ".msl")
+                ninja.write(f"build {msl_shader}: shader {spv}\n")
+                shader_out.append(msl_shader)
 
         # linking everything together
         ninja.write(

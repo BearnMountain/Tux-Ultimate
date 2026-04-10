@@ -27,7 +27,7 @@ void renderer_init(SDL_Window* window) {
 	}
 	SDL_ClaimWindowForGPUDevice(frame_data.device, window);
 
-	frame_data.pipeline = gpu_pipeline_load("rect.vert.hlsl", "rect.frag.hlsl");
+	frame_data.pipeline = gpu_pipeline_load("rect.vert.glsl", "rect.frag.glsl");
 	if (!frame_data.pipeline) {
 		log_err("failed to load pipeline: %s", SDL_GetError());
 		return;

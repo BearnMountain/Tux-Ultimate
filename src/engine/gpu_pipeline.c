@@ -34,9 +34,15 @@ SDL_GPUShader* load_shader(const char* path) {
 		return NULL;
 	}
 
+	// removes .glsl from path
+	char base[512];
+	strcpy(base, path);
+	char* dot = strstr(base, ".glsl");
+	*dot = '\0';
+
 	size_t shader_size;
     char format_buffer[512];
-    snprintf(format_buffer, sizeof(format_buffer), "build/debug/shaders/%s.%s", path, format_name);
+    snprintf(format_buffer, sizeof(format_buffer), SHADER_DIR"%s.%s", base, format_name);
 	void* code = SDL_LoadFile(format_buffer, &shader_size);
 
 	SDL_GPUShader* shader = SDL_CreateGPUShader(frame_data.device, &(SDL_GPUShaderCreateInfo) {

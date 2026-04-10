@@ -13,6 +13,8 @@ typedef struct {
 	u32 height;
 	u32 width;
 
+	// graphics
+
 	// audio options
 	f32 volume;
 	char* audio_shot; // all paths are defined in config for general sounds
