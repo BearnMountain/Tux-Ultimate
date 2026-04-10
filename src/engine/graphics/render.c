@@ -1,6 +1,6 @@
-#include "renderer.h"
+#include "render.h"
 #include "src/util/logger.h"
-#include "src/engine/gpu_pipeline.h"
+#include "src/engine/graphics/gpu_pipeline.h"
 #include "src/util/config.h"
 
 #include <stdlib.h>

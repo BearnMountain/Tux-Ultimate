@@ -2,7 +2,7 @@
 #include "src/util/logger.h"
 #include <stdlib.h>
 
-#define CONFIG_FILE_PATH "resources/config.toml"
+#define CONFIG_FILE_PATH "res/config.toml"
 
 Config config = {
 	.shader_format = SDL_GPU_SHADERFORMAT_MSL, // should be forcefully updated by SDL_GetGPUShaderFormat()

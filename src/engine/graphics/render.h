@@ -1,5 +1,5 @@
-#ifndef RENDERER_H_
-#define RENDERER_H_
+#ifndef RENDER_H_
+#define RENDER_H_
 
 #include "SDL3/SDL_gpu.h"
 #include "src/util/defines.h"

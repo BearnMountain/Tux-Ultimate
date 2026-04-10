@@ -3,7 +3,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "engine/input.h"
-#include "engine/renderer.h"
+#include "engine/graphics/render.h"
 #include "util/logger.h"
 #include "src/util/config.h"
 #include "src/util/defines.h"

@@ -33,6 +33,7 @@ CFLAGS = [
     "-std=c17",
     "-Iinclude",
     "-Ilib/stb",
+    "-Ilib/cgltf",
     "-Ilib/clay",
 ]
 LDFLAGS = [
