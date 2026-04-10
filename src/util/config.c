@@ -112,8 +112,6 @@ void config_init(void) {
 			line_start = i + 1;
 		}
 	}
-
-	memcpy(config, tmp_config, sizeof(Config));
 }
 
 void config_save(void) {

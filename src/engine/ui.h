@@ -2,7 +2,7 @@
 #define UI_H_
 
 #include "SDL3/SDL_events.h"
-#include "external/clay.h"
+#include "clay.h"
 
 void ui_init(void);
 void ui_uninit(void);

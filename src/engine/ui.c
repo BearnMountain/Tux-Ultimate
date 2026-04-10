@@ -1,5 +1,5 @@
 #include "ui.h"
-#include "external/clay.h"
+#include "clay.h"
 
 void ui_init(void) {
 

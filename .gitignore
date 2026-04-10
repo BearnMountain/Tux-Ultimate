@@ -1,7 +1,9 @@
 build/
-external/SDL
-compile_commands.json
+compile_flags.txt
+lib/SDL
+build.ninja
 
-*.spv
+# for testing purposes
 testing/
+
 .DS_Store
