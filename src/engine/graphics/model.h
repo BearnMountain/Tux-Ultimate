@@ -47,6 +47,9 @@ typedef struct {
 Model* model_create(const char* path);
 void model_destroy(Model* model);
 
+// placeholder for now
+void model_animate(Model* model, f32 time);
+
 
 /*
 void model_animate_run(Model m)

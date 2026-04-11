@@ -3,10 +3,9 @@
 # chose build options
 # - release: creates release build
 # - debug: builds and runs with debug flag
-# - build: just builds all .c files
+# - build: builds binary
 # - clean: cleans up everything
-# - shaders: builds shaders into platform specific formats
-# - vendor: installs all libs that are vendor for static linking
+# - TODO vendor: installs all libs that are vendor for static linking
 
 import subprocess
 import shutil
@@ -35,6 +34,7 @@ CFLAGS = [
     "-Ilib/stb",
     "-Ilib/cgltf",
     "-Ilib/clay",
+    "-I./"
 ]
 LDFLAGS = [
 ]
