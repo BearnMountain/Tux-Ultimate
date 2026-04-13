@@ -15,6 +15,8 @@ typedef struct {
 
 	// graphics
 
+	// character loading
+
 	// audio options
 	f32 volume;
 	char* audio_shot; // all paths are defined in config for general sounds
