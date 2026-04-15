@@ -6,11 +6,16 @@ layout (location = 2) in vec2 in_uv;
 layout (location = 5) in ivec4 bone_ids;
 layout (location = 6) in vec4 weights;
 
-uniform mat4 mvp; // mvp calculated on cpu
+layout (set = 1, binding = 0) uniform CameraUBO {
+	mat4 mvp; // mvp calculated on cpu
+};
 
 const int MAX_BONES = 100;
 const int MAX_BONE_INFLUENCE = 4; // good enough for 4x4 matrix
-uniform mat4 final_bones_matrice[MAX_BONES];
+
+layout (set = 1, binding = 1) uniform BonesUBO {
+	mat4 final_bones_matrice[MAX_BONES];
+};
 
 layout (location = 0) out vec2 out_uv;
 

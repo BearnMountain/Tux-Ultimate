@@ -1,129 +1,139 @@
 #include "gpu_pipeline.h"
-#include "render.h"
 #include "src/util/logger.h"
 #include "src/util/defines.h"
-#include "src/util/config.h"
+#include "src/util/resource_loader.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-SDL_GPUShader* load_shader(const char* path) {
-    // get shader stage
-    SDL_GPUShaderStage stage;
-    if (strstr(path, "vert") != NULL) stage = SDL_GPU_SHADERSTAGE_VERTEX;
-    else if (strstr(path, "frag") != NULL) stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-    else {
-        log_err("Could not determine shader type for: %s", path);
-		return NULL;
-    }
-
-	// get shader format that is compiled on different platforms
-	// SDL_GPUShaderFormat format = SDL_GetGPUShaderFormats(frame_data.device);
-	SDL_GPUShaderFormat format = config.shader_format;
-	char* format_name;
-	char* format_entrypoint;
-	if (format & SDL_GPU_SHADERFORMAT_SPIRV) {
-		format = SDL_GPU_SHADERFORMAT_SPIRV;
-		format_name = "spv";
-		format_entrypoint = "main";
-	} else if (format & SDL_GPU_SHADERFORMAT_DXIL) { 
-		log_warn("not implemented");
-		return NULL;
-	} else if (format & SDL_GPU_SHADERFORMAT_MSL) {
-		format_name = "msl";
-		format_entrypoint = "main0";
-	}  else {
-		log_err("doesnt support any shader formats supplied");
-		return NULL;
-	}
-
-	// removes .glsl from path
-	char base[512];
-	strcpy(base, path);
-	char* dot = strstr(base, ".glsl");
-	*dot = '\0';
-
-	size_t shader_size;
-    char format_buffer[512];
-    snprintf(format_buffer, sizeof(format_buffer), SHADER_DIR"%s.%s", base, format_name);
-	void* code = SDL_LoadFile(format_buffer, &shader_size);
-
-	SDL_GPUShader* shader = SDL_CreateGPUShader(frame_data.device, &(SDL_GPUShaderCreateInfo) {
-		.code = (Uint8*)code,
-		.code_size = shader_size,
-		.entrypoint = format_entrypoint,
-		.format = format,
-		.stage = stage,
-		.num_samplers = 0,
-		.num_storage_buffers = 0,
-		.num_storage_textures = 0,
-		.num_uniform_buffers = 0
-	});
-	if (!shader) {
-		log_err("failed to load gpu shader %s: %s", path, SDL_GetError());
-	}
-
-	SDL_free(code);
-
-	return shader;
-}
-
-SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* fragment_path) {
+SDL_GPUGraphicsPipeline* gpu_pipeline_load(SDL_GPUDevice* device, const char* vertex_path, const char* fragment_path, SDL_GPUTextureFormat color_format, SDL_GPUTextureFormat depth_format) {
 	// grab respective shaders
-	SDL_GPUShader* vertex_shader = load_shader(vertex_path);
-	SDL_GPUShader* fragment_shader = load_shader(fragment_path);
+	SDL_GPUShader* vertex_shader = resourse_load_shader(device, vertex_path);
+	SDL_GPUShader* fragment_shader = resourse_load_shader(device, fragment_path);
 	if (!vertex_shader || !fragment_shader) {
 		log_err("failed to load shaders: %s & %s", vertex_path, fragment_path);
 		return NULL;
 	}
 
-	SDL_GPUVertexBufferDescription vert_buffer_description = {
-		.slot = 0,
-		.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
-		.instance_step_rate = 0,
-		.pitch = sizeof(Vertex)
-	};
+	// getting vertex attributes from json
+	char json_file[512];
+	snprintf(json_file, sizeof(json_file), SHADER_DIR"%s.json", vertex_path);
+	char* json_attr = resourse_load_file(json_file);
+/*
+    Uint32 location;                    
+    Uint32 buffer_slot;                 
+    SDL_GPUVertexElementFormat format;  
+    Uint32 offset;                      
+*/
 
-	// describe the vertex attribute
-	SDL_GPUVertexAttribute vertexAttributes[2];
+	u32 attribute_count = 0;
+	char* start_of_attr = strstr(json_attr, "inputs") + 6; // start of array
+	if (!start_of_attr) { // should always have inputs even without them
+		log_warn("json file incorrect: %s", json_attr);
+		return NULL;
+	}
+	for (; start_of_attr != '\0'; start_of_attr++) {
+		if (start_of_attr == '{') {
+			attribute_count++;
+		} else if (start_of_attr == ']') {
+			break; // end of inputs array
+		}
+	}
 
-	// a_position
-	vertexAttributes[0].buffer_slot = 0; // fetch data from the buffer at slot 0
-	vertexAttributes[0].location = 0; // layout (location = 0) in shader
-	vertexAttributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3; //vec3
-	vertexAttributes[0].offset = 0; // start from the first byte from current buffer position
+	// fills out attributes
+	SDL_GPUVertexAttribute attributes[attribute_count];
+	u32 attr_offset[attribute_count]; 
 
-	// a_color
-	vertexAttributes[1].buffer_slot = 0; // use buffer at slot 0
-	vertexAttributes[1].location = 1; // layout (location = 1) in shader
-	vertexAttributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; // vec4
-	vertexAttributes[1].offset = sizeof(float) * 3; // 4th float from current buffer position
-	
-	SDL_GPUColorTargetDescription clr_target_description = {
-		.format = SDL_GetGPUSwapchainTextureFormat(frame_data.device, frame_data.window)
-	};
+	char* attr_set = json_attr;
+	for (u32 i = 0; i < attribute_count; i++) {
+		char* type = NULL;
+		u32 location = 0;
+		attr_set = strstr(attr_set, "type") + 5; // goes to next set
 
-	// create pipeline
-	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {
+		// grabs type
+		for (char* k = attr_set; *k != '\0'; k++) {
+			if (*k == '"') { // finds opening quote
+				for (char* j = k + 1; *j != '\0'; j++) {
+					if (*j == '"') { // finds closing quote
+						*j = '\0';
+						type = k+1; // sets type as a string with null terminator
+						attr_set = j+1;
+						break;
+					}
+				}
+			}
+		}
+
+		// grabs location
+		attr_set = strstr(attr_set, "location") + 8;
+		for (char* k = attr_set; *k != '\0'; k++) {
+			if (*k == ':') { // finds surround area
+				for (char* j = k + 1; *j != '\0'; j++) {
+					if (*j == '}') {
+						*j = '\0';
+						location = atoi(k + 1);
+						attr_set = j + 1;
+						break;
+					}
+				}
+			}
+		}
+
+		attributes[i].buffer_slot = 0; // only every one, only one struct per shader
+		attributes[i].location = location;
+
+		// gets format
+		if (!strncmp(type, "int", 3)) {
+			if (*(type+3) == '4') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT4; attr_offset[location] = 4 * sizeof(int); }
+			else if (*(type+3) == '3') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT3; attr_offset[location] = 3 * sizeof(int); } 
+			else if (*(type+3) == '2') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT2; attr_offset[location] = 2 * sizeof(int); }
+			else { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT; attr_offset[location] = sizeof(int); }
+		} else if (!strncmp(type, "float", 5)) {
+			if (*(type+5) == '4') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; attr_offset[location] = 4 * sizeof(float); }
+			else if (*(type+5) == '3') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3; attr_offset[location] = 3 * sizeof(float); }
+			else if (*(type+5) == '2') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attr_offset[location] = 2 * sizeof(float); }
+			else { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT; attr_offset[location] = sizeof(float); }		
+		} else {
+			log_warn("not implemented yet, change for primitive support: %s", type);
+			return NULL;
+		}
+
+	}
+
+	// setting attribute offset
+	for (u32 i = 0; i < attribute_count; i++) {
+		u32 sum = 0;
+		for (u32 j = 0; j < attributes[i].location; j++) {
+			sum += attr_offset[j];
+		}
+		attributes[i].offset = sum;
+	}
+
+
+
+	SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(device, &(SDL_GPUGraphicsPipelineCreateInfo) {
 		.vertex_shader = vertex_shader,
 		.fragment_shader = fragment_shader,
-		.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-		.vertex_input_state.num_vertex_buffers = 1,
-		.vertex_input_state.vertex_buffer_descriptions = &vert_buffer_description,
-		.vertex_input_state.num_vertex_attributes = 2,
-		.vertex_input_state.vertex_attributes = vertexAttributes,
-		.target_info.num_color_targets = 1,
-		.target_info.color_target_descriptions = &clr_target_description
-	};
+	});
 
-	SDL_GPUGraphicsPipeline* gpu_pipeline = SDL_CreateGPUGraphicsPipeline(frame_data.device, &pipeline_info);
-	SDL_ReleaseGPUShader(frame_data.device, vertex_shader);
-	SDL_ReleaseGPUShader(frame_data.device, fragment_shader);
-	if (!gpu_pipeline) {
+
+	SDL_ReleaseGPUShader(device, vertex_shader);
+	SDL_ReleaseGPUShader(device, fragment_shader);
+	if (!pipeline) {
 		log_err("failed to create gpu_pipeline");
 		return NULL;
 	}
 
-	return gpu_pipeline;
+	return pipeline;
 }
 
-void gpu_pipeline_unload(SDL_GPUGraphicsPipeline* pipeline) {
-	SDL_ReleaseGPUGraphicsPipeline(frame_data.device, pipeline);
+void gpu_pipeline_unload(SDL_GPUDevice* device, SDL_GPUGraphicsPipeline* pipeline) {
+	SDL_ReleaseGPUGraphicsPipeline(device, pipeline);
 }
+
+
+/*
+
+   { "samplers": 0, "storage_textures": 0, "storage_buffers": 0, "uniform_buffers": 2, 
+   "inputs": [], "outputs": [{ "name": "out_uv", "type": "float2", "location": 0 }] }
+
+   */

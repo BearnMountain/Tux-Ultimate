@@ -1,6 +1,7 @@
 #include "config.h"
 #include "src/util/logger.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 #define CONFIG_FILE_PATH "res/config.toml"
 
@@ -51,9 +52,9 @@ static char* trim(char* s) { // null terminated strings
 }
 
 void config_init(void) {
-	// platform dependencies
 	Config tmp_config;
-	// SDL_GPUShaderFormat format = SDL_GetGPUShaderFormat(frame_data.device);
+
+	// platform dependencies
 #if defined(__APPLE__) 
 	tmp_config.shader_format = SDL_GPU_SHADERFORMAT_MSL;
 #elif defined(_WIN32)
@@ -62,56 +63,59 @@ void config_init(void) {
 	tmp_config.shader_format = SDL_GPU_SHADERFORMAT_SPIRV;
 #endif
 
-	FILE* file = fopen(CONFIG_FILE_PATH, "r");
-	if (!file) {
-		log_err("failed to load custom config: %s", CONFIG_FILE_PATH);
-		return;
-	}
+	log_warn("not implemented");
+	// FILE* file = fopen(CONFIG_FILE_PATH, "r");
+	// if (!file) {
+	// 	log_err("failed to load custom config: %s", CONFIG_FILE_PATH);
+	// 	return;
+	// }
+	//
+	// fseek(file, 0, SEEK_END);
+	// size_t size = ftell(file);
+	// rewind(file);
+	//
+	// char* buffer = (char*)malloc(size);
+	// fread(buffer, sizeof(char), size, file);
+	//
+	// size_t cfg_index = 0;
+	// size_t line_start = 0;
+	// for (size_t i = line_start; i < size; i++) {
+	// 	if (buffer[i] == '\n') {
+	// 		char str[i - line_start];
+	// 		memcpy(str, buffer + line_start, i - line_start);
+	// 		str[i-line_start] = '\0';
+	//
+	// 		// cleaning up buffered line
+	// 		char* comment = strstr(str, "#");
+	// 		if (comment) *comment = '\0';
+	// 		trim(str);
+	//
+	// 		// removes useless lines
+	// 		if (i - line_start == 0 || str[0] == '[') {
+	// 			line_start = i + 1;
+	// 			continue;
+	// 		}
+	//
+	// 		// seperates both the key and value to be compared and stored in tmp config
+	// 		char* delimiter = strstr(str, "=");
+	// 		if (delimiter) *delimiter = '\0';
+	// 		trim(str);
+	// 		trim(delimiter + 1);
+	//
+	// 		if (!strcmp(cfg_keys[cfg_index].key, str)) {
+	// 			log_info("%s", delimiter + 1);
+	// 			cfg_index++;
+	// 		} else {
+	// 			log_warn("config incorrect order, please visit \"https://github.com/BearnMountain/Tux-Ultimate\" for correct format.");
+	// 			log_warn("failed at: %s", delimiter + 1);
+	// 			return;
+	// 		}
+	//
+	// 		line_start = i + 1;
+	// 	}
+	// }
 
-	fseek(file, 0, SEEK_END);
-	size_t size = ftell(file);
-	rewind(file);
-
-	char* buffer = (char*)malloc(size);
-	fread(buffer, sizeof(char), size, file);
-
-	size_t cfg_index = 0;
-	size_t line_start = 0;
-	for (size_t i = line_start; i < size; i++) {
-		if (buffer[i] == '\n') {
-			char str[i - line_start];
-			memcpy(str, buffer + line_start, i - line_start);
-			str[i-line_start] = '\0';
-
-			// cleaning up buffered line
-			char* comment = strstr(str, "#");
-			if (comment) *comment = '\0';
-			trim(str);
-
-			// removes useless lines
-			if (i - line_start == 0 || str[0] == '[') {
-				line_start = i + 1;
-				continue;
-			}
-
-			// seperates both the key and value to be compared and stored in tmp config
-			char* delimiter = strstr(str, "=");
-			if (delimiter) *delimiter = '\0';
-			trim(str);
-			trim(delimiter + 1);
-
-			if (!strcmp(cfg_keys[cfg_index].key, str)) {
-				log_info("%s", delimiter + 1);
-				cfg_index++;
-			} else {
-				log_warn("config incorrect order, please visit \"https://github.com/BearnMountain/Tux-Ultimate\" for correct format.");
-				log_warn("failed at: %s", delimiter + 1);
-				return;
-			}
-
-			line_start = i + 1;
-		}
-	}
+	memcpy(&config, &tmp_config, sizeof(Config));
 }
 
 void config_save(void) {
