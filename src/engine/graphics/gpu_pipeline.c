@@ -1,14 +1,15 @@
 #include "gpu_pipeline.h"
+#include "src/engine/graphics/render.h"
 #include "src/util/logger.h"
 #include "src/util/defines.h"
 #include "src/util/resource_loader.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-SDL_GPUGraphicsPipeline* gpu_pipeline_load(SDL_GPUDevice* device, const char* vertex_path, const char* fragment_path, SDL_GPUTextureFormat color_format, SDL_GPUTextureFormat depth_format) {
+SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* fragment_path, SDL_GPUTextureFormat color_format, SDL_GPUTextureFormat depth_format) {
 	// grab respective shaders
-	SDL_GPUShader* vertex_shader = resourse_load_shader(device, vertex_path);
-	SDL_GPUShader* fragment_shader = resourse_load_shader(device, fragment_path);
+	SDL_GPUShader* vertex_shader = resourse_load_shader(frame_data.device, vertex_path);
+	SDL_GPUShader* fragment_shader = resourse_load_shader(frame_data.device, fragment_path);
 	if (!vertex_shader || !fragment_shader) {
 		log_err("failed to load shaders: %s & %s", vertex_path, fragment_path);
 		return NULL;
@@ -17,7 +18,7 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(SDL_GPUDevice* device, const char* ve
 	// getting vertex attributes from json
 	char json_file[512];
 	snprintf(json_file, sizeof(json_file), SHADER_DIR"%s.json", vertex_path);
-	char* json_attr = resourse_load_file(json_file);
+	char* json_attr = resource_load_file(json_file, NULL);
 /*
     Uint32 location;                    
     Uint32 buffer_slot;                 
@@ -31,10 +32,10 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(SDL_GPUDevice* device, const char* ve
 		log_warn("json file incorrect: %s", json_attr);
 		return NULL;
 	}
-	for (; start_of_attr != '\0'; start_of_attr++) {
-		if (start_of_attr == '{') {
+	for (; *start_of_attr != '\0'; start_of_attr++) {
+		if (*start_of_attr == '{') {
 			attribute_count++;
-		} else if (start_of_attr == ']') {
+		} else if (*start_of_attr == ']') {
 			break; // end of inputs array
 		}
 	}
@@ -110,14 +111,30 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(SDL_GPUDevice* device, const char* ve
 
 
 
-	SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(device, &(SDL_GPUGraphicsPipelineCreateInfo) {
+	SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(frame_data.device, &(SDL_GPUGraphicsPipelineCreateInfo) {
 		.vertex_shader = vertex_shader,
 		.fragment_shader = fragment_shader,
+		.vertex_input_state = (SDL_GPUVertexInputState){
+			.num_vertex_buffers = 1,
+			.vertex_buffer_descriptions = (SDL_GPUVertexBufferDescription[]) {{
+				.slot = 0,
+				.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
+				.instance_step_rate = 0,
+			}},
+			.num_vertex_attributes = attribute_count,
+			.vertex_attributes = attributes
+		},
+		.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+		.target_info = {
+			.num_color_targets = 1,
+			.color_target_descriptions = (SDL_GPUColorTargetDescription[]) {{
+				.format = SDL_GetGPUSwapchainTextureFormat(frame_data.device, frame_data.window)
+			}}
+		}
 	});
 
-
-	SDL_ReleaseGPUShader(device, vertex_shader);
-	SDL_ReleaseGPUShader(device, fragment_shader);
+	SDL_ReleaseGPUShader(frame_data.device, vertex_shader);
+	SDL_ReleaseGPUShader(frame_data.device, fragment_shader);
 	if (!pipeline) {
 		log_err("failed to create gpu_pipeline");
 		return NULL;
@@ -126,14 +143,7 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(SDL_GPUDevice* device, const char* ve
 	return pipeline;
 }
 
-void gpu_pipeline_unload(SDL_GPUDevice* device, SDL_GPUGraphicsPipeline* pipeline) {
-	SDL_ReleaseGPUGraphicsPipeline(device, pipeline);
+void gpu_pipeline_unload(SDL_GPUGraphicsPipeline* pipeline) {
+	SDL_ReleaseGPUGraphicsPipeline(frame_data.device, pipeline);
 }
 
-
-/*
-
-   { "samplers": 0, "storage_textures": 0, "storage_buffers": 0, "uniform_buffers": 2, 
-   "inputs": [], "outputs": [{ "name": "out_uv", "type": "float2", "location": 0 }] }
-
-   */

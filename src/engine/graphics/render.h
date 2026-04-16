@@ -7,6 +7,7 @@
 #include "lib/gltf/gltf.h"
 
 // all data for gpu and rendering is stored here
+// global for use of all files inside graphics/*
 typedef struct {
 	SDL_Window* window;
 	SDL_GPUDevice* device;

@@ -25,7 +25,6 @@ void renderer_init(SDL_Window* window) {
 	}
 	SDL_ClaimWindowForGPUDevice(frame_data.device, window);
 
-	frame_data.pipeline = gpu_pipeline_load("rect.vert.glsl", "rect.frag.glsl");
 	if (!frame_data.pipeline) {
 		log_err("failed to load pipeline: %s", SDL_GetError());
 		return;
@@ -154,9 +153,13 @@ GPUMesh render_upload_mesh(const cgltf_primitive* prim) {
 	size_t vertex_count = pos->count;
 	ShaderVertex* vertices = (ShaderVertex*)malloc(sizeof(ShaderVertex) * vertex_count);
 
-	f32* pos = accessor_ptr
+	//f32* pos = accessor_ptr
 
 	free(vertices);
+
+	GPUMesh mesh = {0};
+
+	return mesh;
 }
 
 
