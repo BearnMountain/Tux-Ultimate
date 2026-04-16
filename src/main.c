@@ -11,6 +11,9 @@
 typedef struct {
 	SDL_Window* window;
 	u32 width, height;
+
+	// multiplayer
+	b8 enet_initialized;
 } AppInfo;
 
 static AppInfo app_info = {0};

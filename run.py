@@ -23,7 +23,7 @@ SRC_DIR    = Path("src")
 LIB_DIR    = Path("lib")
 SHADER_DIR = Path("res/shaders")
 
-LIBS       = "sdl3 cglm"
+LIBS       = "sdl3 cglm libenet"
 
 CC         = os.getenv("CC", "clang")
 PLATFORM   = "linux" if sys.platform.startswith("linux") else sys.platform # linux, win32, darwin

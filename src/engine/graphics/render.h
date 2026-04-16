@@ -11,7 +11,6 @@
 typedef struct {
 	SDL_Window* window;
 	SDL_GPUDevice* device;
-	SDL_GPUGraphicsPipeline* pipeline;
 	SDL_GPUCommandBuffer* cmd;
 	SDL_GPUTexture* swapchain_texture;
 	u32 window_width, window_height;
