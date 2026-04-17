@@ -1,3 +1,4 @@
+#include "enet/enet.h"
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -23,6 +24,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	(void)argv;
 
 	config_init();
+	enet_initialize();
 
 #if DEBUG
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
@@ -79,6 +81,7 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 	(void)appstate;
 	(void)result;
 
+	enet_deinitialize();
 	config_save();
 	render_uninit();
 	SDL_DestroyWindow(app_info.window);

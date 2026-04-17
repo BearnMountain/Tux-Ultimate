@@ -18,8 +18,8 @@ typedef struct {
 	PacketType type;
 	u32 tick;
 	char* data;
-	u32 data_len;
-} CompressedPacket;
+	u32 data_len; // will be compressed
+} NetPacket;
 
 
 #endif
