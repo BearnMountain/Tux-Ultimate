@@ -21,5 +21,7 @@ typedef struct {
 	u32 data_len; // will be compressed
 } NetPacket;
 
+// data is copied over, input arr can be discarded
+NetPacket* packet_create_input(char* input_arr, u32 dat_len);
 
 #endif

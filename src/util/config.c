@@ -11,7 +11,8 @@ Config config = {
 	.height = 800,
 	.width = 600,
 	.volume = 50,
-	.audio_shot = "res/audio/shot.mp4"
+	.audio_shot = "res/audio/shot.mp4",
+	.game_tick = 0
 };
 
 // simplifying settings 

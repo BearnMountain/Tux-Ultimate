@@ -1,6 +1,7 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
+#include "src/net/shared/packet_queue.h"
 #define SERVER_MAX_CLIENTS 8
 #define SERVER_MAX_CHANNELS 2
 #define SERVER_PORT 2760
@@ -43,7 +44,6 @@ server -> client : gamestate snapshot(position, health, )
 typedef struct {
 	// enet required info
 	ENetAddress address;
-	ENetHost* server;
 
 	// server thread 
 	SDL_Thread* thread;
@@ -54,7 +54,7 @@ typedef struct {
 	ENetPeer* connected_clients[SERVER_MAX_CLIENTS];
 
 	// storage of incoming packets
-	// PacketQueue queue;
+	PacketQueue queue;
 
 	// server info
 	u32 tick;
@@ -67,7 +67,8 @@ typedef struct {
 
 // only one instance per process
 // - creates threaded server
-b8 server_create(ServerCreateInfo info);
-b8 server_destroy(void);
+// - all operations are handled by the server
+b8 server_start(ServerCreateInfo info);
+b8 server_stop(void);
 
 #endif

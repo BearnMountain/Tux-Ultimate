@@ -20,6 +20,9 @@ typedef struct {
 	// audio options
 	f32 volume;
 	char* audio_shot; // all paths are defined in config for general sounds
+
+	// global information
+	u32 game_tick;
 } Config;
 
 extern Config config;
