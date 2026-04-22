@@ -98,10 +98,11 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 				case SDLK_4:
 					client_disconnect();
 					break;
-				case SDLK_5:
-					NetPacket* packet = packet_create_input("hello there", 11);
+				case SDLK_5: {
+					NetPacket* packet = packet_create_input((u8*)"hello there", 11);
 					client_send_packet(packet, true);
 					break;
+				}
 			}
 		}
 		default: break;
@@ -113,6 +114,10 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 	(void)appstate;
 	(void)result;
+
+	// for networking
+	client_disconnect();
+	server_stop();
 
 	enet_deinitialize();
 	config_save();

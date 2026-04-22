@@ -1,5 +1,6 @@
 #include "server.h"
 #include "src/util/logger.h"
+#include <SDL3/SDL_timer.h>
 
 static Server server = {0};
 
@@ -21,13 +22,15 @@ int threaded_server(void* data) {
 	while (SDL_GetAtomicInt(&server.running)) {
 		while (enet_host_service(host, &event, SERVER_POLL_TIMEOUT_MS) > 0) {
 			switch (event.type) {
-				case ENET_EVENT_TYPE_CONNECT:
+				case ENET_EVENT_TYPE_CONNECT: {
 					char ip[64];
 					enet_address_get_host_ip(&event.peer->address, ip, sizeof(ip));
 					i32 slot = -1;
 					for (i32 i = 0; i < (i32)server.max_clients; i++)
-						if (server.connected_clients[i] == NULL)
+						if (server.connected_clients[i] == NULL) {
 							slot = i;
+							break;
+						}
 
 					if (slot < 0) {
 						log_warn("client %s tried to connect but server is full", ip);
@@ -41,24 +44,26 @@ int threaded_server(void* data) {
 					log_info("client connected from %s (slot %d)", ip, slot);
 
 					break;
-				case ENET_EVENT_TYPE_DISCONNECT:
+				}
+				case ENET_EVENT_TYPE_DISCONNECT: {
 					for (i32 i = 0; i < (i32)server.max_clients; i++) {
 						if (event.peer == server.connected_clients[i]) {
 							log_info("client disconnected (slot %d)", i);
-							server.connected_clients[slot] = NULL;
+							server.connected_clients[i] = NULL;
 						}
 					}
 					event.peer->data = NULL;
 
 					break;
-				case ENET_EVENT_TYPE_RECEIVE: 
+				}
+				case ENET_EVENT_TYPE_RECEIVE: {
 					NetPacket* packet = packet_deserialize(event.packet, true);
 					if (packet) {
 						queue_push(&server.queue, packet);
 						log_info("recieved packet");
 					}
 					break;
-					
+				}	
 				case ENET_EVENT_TYPE_NONE:
 					log_warn("server error with event");
 					break;
@@ -81,12 +86,12 @@ int threaded_server(void* data) {
 			server.connected_clients[i] = NULL;
 		}
 	}
+	enet_host_flush(host);
+	SDL_Delay(50); // gives time for graceful disconnection
 
 	enet_host_service(host, &event, 100);
 	enet_host_destroy(host);
 	log_info("server thread shutting down");
-
-	enet_host_destroy(host);
 
 	return 0;
 }
@@ -121,10 +126,12 @@ b8 server_start(ServerCreateInfo info) {
 
 	server.address.host = ENET_HOST_ANY;
 	server.address.port = info.port;
+	server.max_clients = info.max_clients;
+	log_info("initializing server on %d:%d", server.address.host, server.address.port);
 
 	ENetHost* host = enet_host_create(
 		&server.address,
-		server.max_clients,
+		info.max_clients,
 		SERVER_MAX_CHANNELS,
 		0,
 		0
@@ -153,9 +160,12 @@ b8 server_stop(void) {
 		log_warn("cant stop unitialized server");
 		return false;
 	}
+
 	// server should clean itself up on its own thread, only running should 
 	// be accessible from outside
 	SDL_SetAtomicInt(&server.running, false);
+	SDL_WaitThread(server.thread, NULL);
+	server.thread = NULL;
 
 	return true;
 }

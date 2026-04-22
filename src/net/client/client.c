@@ -23,11 +23,11 @@ int client_thread(void* arg) {
 					if (packet) {
 						queue_push(&client.queue, packet);
 					}
-					enet_packet_destroy(event.packet);
+					break;
 				}
 				case ENET_EVENT_TYPE_CONNECT: {
 					log_info("client: connect event on listener thread");
-					SDL_SetAtomicInt(&client.connected, 1);
+					SDL_SetAtomicInt(&client.connected, true);
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT: {
@@ -43,6 +43,31 @@ int client_thread(void* arg) {
 	}
 
 	log_info("disconnected from server");
+
+	enet_peer_disconnect(client.server, 0);
+
+	u64 deadline = SDL_GetTicks() + 1000;
+    while (SDL_GetTicks() < deadline) {
+        if (enet_host_service(host, &event, (u32)(deadline - SDL_GetTicks())) > 0) {
+            if (event.type == ENET_EVENT_TYPE_RECEIVE) {
+                enet_packet_destroy(event.packet);
+            } else if (event.type == ENET_EVENT_TYPE_DISCONNECT) {
+                log_info("client: clean disconnect acknowledged");
+                client.server = NULL;
+                break;
+            }
+        }
+    }
+
+    if (client.server) {
+        log_warn("client disconnect wasn't graceful, forcing reset");
+        enet_peer_reset(client.server);
+        client.server = NULL;
+    }
+
+    enet_host_destroy(host);
+    queue_clear(&client.queue);
+	log_info("thread shut down");
 
 	return 0;
 }
@@ -67,6 +92,7 @@ b8 client_connect(ClientCreateInfo info) {
 		log_err("client failed to initialize with enet");
 		return false;
 	}
+	client.address.port = info.port;
 	if (enet_address_set_host(&client.address, info.host_name) != 0) {
 		log_err("client could not resolve hostname '%s'", info.host_name);
 		enet_host_destroy(client.net_manager);
@@ -119,31 +145,9 @@ b8 client_disconnect() {
 		return false;
 	}
 
-	enet_peer_disconnect(client.server, 0);
-
-
-	// gives server time to acknowledge disconnection
-	ENetEvent event;
-	b8 clean_disconnect = false;
-	u64 deadline = SDL_GetTicks() + 100;
-	while (SDL_GetTicks() < deadline) {
-		client.server = enet_host_connect(client.net_manager, &client.address, (size_t)(deadline - SDL_GetTicks()), 1);
-		if (event.type == ENET_EVENT_TYPE_RECEIVE) {
-			enet_packet_destroy(event.packet);
-		} else if (event.type == ENET_EVENT_TYPE_DISCONNECT) {
-			clean_disconnect = true;
-			break;
-		}
-	}
-
-	if (!clean_disconnect) {
-		log_warn("client disconnect wasn't graceful, forcing reset");
-		enet_peer_reset(client.server);
-	}
-
 	SDL_SetAtomicInt(&client.connected, false);
-	client.server = NULL;
-	queue_clear(&client.queue);
+	SDL_WaitThread(client.thread, NULL);
+	client.thread = NULL;
 	return true;
 }
 
