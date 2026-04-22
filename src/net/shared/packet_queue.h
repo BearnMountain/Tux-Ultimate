@@ -15,8 +15,10 @@ typedef struct PacketQueue {
     pthread_mutex_t mutex;
 } PacketQueue;
 
+// static allocation, you create dynamic version
 void queue_init(PacketQueue* q);
 void queue_push(PacketQueue* q, NetPacket* packet);
 NetPacket* queue_pop(PacketQueue* q);
+void queue_clear(PacketQueue* q);
 
 #endif

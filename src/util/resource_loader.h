@@ -7,6 +7,6 @@
 #define SHADER_DIR "build/shaders/"
 
 char* resource_load_file(const char* path, u32* size); 
-SDL_GPUShader* resourse_load_shader(SDL_GPUDevice* device, const char* path); // pass in shaders name: rect.frag
+SDL_GPUShader* resource_load_shader(SDL_GPUDevice* device, const char* path); // pass in shaders name: rect.frag
 
 #endif

@@ -19,7 +19,7 @@ int client_thread(void* arg) {
 		do {
 			switch (event.type) {
 				case ENET_EVENT_TYPE_RECEIVE: {
-					NetPacket* packet = packet_create_input((u8*)event.packet->data, (u32)event.packet->dataLength);
+					NetPacket* packet = packet_deserialize(event.packet, true);
 					if (packet) {
 						queue_push(&client.queue, packet);
 					}
@@ -67,15 +67,13 @@ b8 client_connect(ClientCreateInfo info) {
 		log_err("client failed to initialize with enet");
 		return false;
 	}
-	if (enet_address_set_host(&client.address, info.server_address) != 0) {
-		log_err("client could not resolve hostname '%d'", info.server_address.host);
+	if (enet_address_set_host(&client.address, info.host_name) != 0) {
+		log_err("client could not resolve hostname '%s'", info.host_name);
 		enet_host_destroy(client.net_manager);
 		client.net_manager = NULL;
 		queue_clear(&client.queue);
 		return false;
 	}
-	client.address.port = info.server_address.port;
-	client.address.host = info.server_address.host;
 
 	// connecting to server
 	client.server = enet_host_connect(client.net_manager, &client.address, CLIENT_MAX_CHANNELS, 0);
@@ -92,18 +90,18 @@ b8 client_connect(ClientCreateInfo info) {
 	b8 handshake = false;
 	if (enet_host_service(client.net_manager, &event, CLIENT_POLL_TIMEOUT_MS) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
 		handshake = true;
-		log_info("client succefully connected to %d:%d", info.server_address.host, info.server_address.port);
+		log_info("client succefully connected to %s:%d", info.host_name, info.port);
 	} else {
-		log_err("handshake with server timed out connecting to %d:%d", info.server_address.host, info.server_address.port);
+		log_err("handshake with server timed out connecting to %s:%d", info.host_name, info.port);
 		enet_peer_reset(client.server);
 		client.server = NULL;
 		enet_host_destroy(client.net_manager);
-		client.host = NULL;
+		client.net_manager = NULL;
 		queue_clear(&client.queue);
 		return false;
 	}
 
-	SDL_SetAtomicInt(&client.connected, true);
+	SDL_SetAtomicInt(&client.connected, handshake);
 
 	client.thread = SDL_CreateThread(client_thread, "clientthread", client.net_manager);
 	if (!client.thread) {
@@ -129,8 +127,7 @@ b8 client_disconnect() {
 	b8 clean_disconnect = false;
 	u64 deadline = SDL_GetTicks() + 100;
 	while (SDL_GetTicks() < deadline) {
-		u32 ret = enet_host_connect(client.server, &event, deadline - SDL_GetTicks());
-		if (ret <= 0) break;
+		client.server = enet_host_connect(client.net_manager, &client.address, (size_t)(deadline - SDL_GetTicks()), 1);
 		if (event.type == ENET_EVENT_TYPE_RECEIVE) {
 			enet_packet_destroy(event.packet);
 		} else if (event.type == ENET_EVENT_TYPE_DISCONNECT) {
@@ -150,7 +147,7 @@ b8 client_disconnect() {
 	return true;
 }
 
-void client_send_packet(NetPacket* packet) {
+void client_send_packet(NetPacket* packet, b8 cleanup) {
 	if (!SDL_GetAtomicInt(&client.connected)) {
 		log_warn("client not connect to server, recieving no packets");
 		return;
@@ -158,18 +155,19 @@ void client_send_packet(NetPacket* packet) {
 
 	u32 flags = ENET_PACKET_FLAG_RELIABLE;
 
-	ENetPacket* packet = enet_packet_create(packet->data, packet->data_len, flags);
-	if (!packet) {
+	ENetPacket* data = enet_packet_create(packet->data, packet->data_len, flags);
+	if (!data) {
 		log_warn("enet failed to generate packet");
 		return;
 	}
 
-	if (enet_peer_send(client.server, 0, packet) < 0) {
+	if (enet_peer_send(client.server, 0, data) < 0) {
 		log_err("failed to send packet");
-		enet_packet_destroy(packet);
+		enet_packet_destroy(data);
 		return;
 	}
-	enet_host_flush(client.server);
+	enet_host_flush(client.net_manager);
+	if (cleanup) packet_destroy(packet);
 }
 
 

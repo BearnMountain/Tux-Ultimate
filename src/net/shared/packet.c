@@ -5,18 +5,18 @@
 
 ENetPacket* packet_serialize(NetPacket* packet, b8 cleanup) {
 	ENetPacket* data = enet_packet_create(packet->data, packet->data_len, ENET_PACKET_FLAG_RELIABLE);
-	packet_destroy(packet);
+	if (cleanup) packet_destroy(packet);
 	return data;
 }
 
 NetPacket* packet_deserialize(ENetPacket* packet, b8 cleanup) {
 	NetPacket* data = (NetPacket*)malloc(sizeof(NetPacket));
 	data->data = (char*)malloc(packet->dataLength * sizeof(char));
-	data->data_len = packet->dataLength;
+	data->data_len = (u32)packet->dataLength;
 	memcpy(data->data, packet->data, data->data_len * sizeof(char));
 	data->type = PKT_CHAT;
 
-	enet_packet_destroy(packet);
+	if (cleanup) enet_packet_destroy(packet);
 	return data;
 }
 
@@ -56,7 +56,8 @@ ENetPacket* packet_create_enet(NetPacket* packet, b8 cleanup) {
 	return epacket;
 }
 
-NetPacket* packet_create_input(char* input_arr, u32 data_len) {
+NetPacket* packet_create_input(u8* input_arr, u32 data_len) {
+	data_len += 1; // account for null terminator
 	NetPacket* packet = (NetPacket*)malloc(sizeof(NetPacket));
 
 	packet->type = PKT_INPUT;

@@ -3,11 +3,18 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+// engine
 #include "engine/input.h"
 #include "engine/graphics/render.h"
+
+// general
 #include "util/logger.h"
 #include "src/util/config.h"
 #include "src/util/defines.h"
+
+// server
+#include "src/net/server/server.h"
+#include "src/net/client/client.h"
 
 typedef struct {
 	SDL_Window* window;
@@ -56,7 +63,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 SDL_AppResult SDL_AppIterate(void* appstate) {
 	(void)appstate;
 
-	render_frame();
+	// render_frame();
 	
 	return SDL_APP_CONTINUE;
 }
@@ -69,6 +76,32 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 			input_handle(event->key.key);
 			if (event->key.key == SDLK_Q || event->key.key == SDLK_ESCAPE) {
 				return SDL_APP_SUCCESS;
+			}
+			
+			switch(event->key.key) {
+				case SDLK_1:
+					server_start((ServerCreateInfo){
+						.max_clients = SERVER_MAX_CLIENTS,
+						.port = SERVER_PORT
+					});
+					break;
+				case SDLK_2:
+					server_stop();
+					break;
+				case SDLK_3:
+					client_connect((ClientCreateInfo){
+						.host_name = "localhost", // local for now
+						.port = SERVER_PORT, // local for now
+						.player_name = "Chap"
+					});
+					break;
+				case SDLK_4:
+					client_disconnect();
+					break;
+				case SDLK_5:
+					NetPacket* packet = packet_create_input("hello there", 11);
+					client_send_packet(packet, true);
+					break;
 			}
 		}
 		default: break;

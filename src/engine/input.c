@@ -7,13 +7,5 @@ void input_init(void) {
 }
 
 void input_handle(SDL_Keycode e) {
-	switch (e) {
-		case SDLK_1:
-			// server_create({
-			// });
-			break;
-	}
-
-
 }
 

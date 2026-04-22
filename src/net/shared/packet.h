@@ -30,7 +30,7 @@ NetPacket* packet_deserialize(ENetPacket* packet, b8 cleanup);
 ENetPacket* packet_create_enet(NetPacket* packet, b8 cleanup);
 
 // data is copied over, input arr can be discarded
-NetPacket* packet_create_input(char* input_arr, u32 dat_len);
+NetPacket* packet_create_input(u8* input_arr, u32 dat_len);
 void packet_destroy(NetPacket* packet);
 
 #endif

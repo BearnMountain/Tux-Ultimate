@@ -13,7 +13,7 @@ FrameData frame_data = {0};
 
 // ------ Supporting Functions ------
 
-void renderer_init(SDL_Window* window) {
+void render_init(SDL_Window* window) {
 	// initialize renderer global state
 	frame_data.window = window;
 
@@ -25,14 +25,9 @@ void renderer_init(SDL_Window* window) {
 	}
 	SDL_ClaimWindowForGPUDevice(frame_data.device, window);
 
-	if (!frame_data.pipeline) {
-		log_err("failed to load pipeline: %s", SDL_GetError());
-		return;
-	}
-
 }
 
-void renderer_uninit(void) {
+void render_uninit(void) {
 	SDL_WaitForGPUIdle(frame_data.device);
 
 	// releases gpu resources
@@ -40,7 +35,7 @@ void renderer_uninit(void) {
 	// 	SDL_ReleaseGPUBuffer(frame_data.device, gpu_buffer_container.vertex_buffer[i]);
 	// 	SDL_ReleaseGPUTransferBuffer(frame_data.device, gpu_buffer_container.transfer_buffer[i]);
 	// }
-	gpu_pipeline_unload(frame_data.pipeline);
+	// gpu_pipeline_unload(frame_data.pipeline);
 
 	// free(gpu_buffer_container.vertex_buffer);
 	// free(gpu_buffer_container.transfer_buffer);
@@ -49,7 +44,7 @@ void renderer_uninit(void) {
 	SDL_DestroyGPUDevice(frame_data.device);
 }
 
-void renderer_frame(void) {
+void render_frame(void) {
 	// aquire command buffer
 	SDL_GPUCommandBuffer* cmd_buffer = SDL_AcquireGPUCommandBuffer(frame_data.device);
 	if (!cmd_buffer) {
@@ -111,6 +106,7 @@ GPUMesh render_upload_mesh(const cgltf_primitive* prim) {
 	const cgltf_accessor* pos = NULL;
 	const cgltf_accessor* norm = NULL;
 	const cgltf_accessor* uv = NULL;
+	(void)norm;(void)uv;
 
 	// parsing primitives
 	for (size_t i = 0; i < prim->attributes_count; i++) {

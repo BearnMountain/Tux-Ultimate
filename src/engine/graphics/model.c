@@ -1,7 +1,6 @@
 #include "model.h"
 
 #include "src/util/logger.h"
-#include "lib/gltf/gltf.h"
 #include <string.h>
 
 // helper funcs defined at end of file
@@ -18,47 +17,10 @@ Model* model_create(const char* path) {
 	Model* model = (Model*)malloc(sizeof(Model));
 
 	cgltf_data* data = load_gltf(path);
-	
-
+	cgltf_free(data);
 
 	return model;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

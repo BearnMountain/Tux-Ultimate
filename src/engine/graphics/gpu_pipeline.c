@@ -7,9 +7,10 @@
 #include <stdlib.h>
 
 SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* fragment_path, SDL_GPUTextureFormat color_format, SDL_GPUTextureFormat depth_format) {
+	(void)color_format; (void)depth_format;
 	// grab respective shaders
-	SDL_GPUShader* vertex_shader = resourse_load_shader(frame_data.device, vertex_path);
-	SDL_GPUShader* fragment_shader = resourse_load_shader(frame_data.device, fragment_path);
+	SDL_GPUShader* vertex_shader = resource_load_shader(frame_data.device, vertex_path);
+	SDL_GPUShader* fragment_shader = resource_load_shader(frame_data.device, fragment_path);
 	if (!vertex_shader || !fragment_shader) {
 		log_err("failed to load shaders: %s & %s", vertex_path, fragment_path);
 		return NULL;

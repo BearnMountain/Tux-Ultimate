@@ -13,6 +13,8 @@
 // animation.h gives abstract way to run its different animation cycles
 #include <cglm/cglm.h>
 #include "src/util/defines.h"
+
+#define CGLTF_IMPLEMENTATION
 #include "lib/gltf/gltf.h"
 
 #define MODEL_PATH "res/characters/" // all models must be in this directory, 

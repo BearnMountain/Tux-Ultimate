@@ -6,6 +6,7 @@
 #include "src/util/defines.h"
 #include "src/net/shared/packet.h"
 #include <SDL3/SDL_atomic.h>
+#include <SDL3/SDL_thread.h>
 
 #define CLIENT_POLL_TIMEOUT_MS 100
 #define CLIENT_MAX_CHANNELS 2
@@ -19,18 +20,21 @@ typedef struct {
 	ENetAddress address;
 	ENetHost* net_manager;
 	ENetPeer* server;
+
+	SDL_Thread* thread;
 } Client;
 
 typedef struct {
-	ENetAddress server_address;
-	char* player_name;
+	u16 port;
+	const char* host_name;
+	const char* player_name;
 } ClientCreateInfo;
 
 b8 client_connect(ClientCreateInfo info);
 b8 client_disconnect(void);
 
 // TCP packet sending
-void client_send_packet(NetPacket* packet);
+void client_send_packet(NetPacket* packet, b8 cleanup);
 NetPacket* client_poll_packet(void);
 
 #endif
