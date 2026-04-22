@@ -20,7 +20,7 @@ void queue_push(PacketQueue* q, NetPacket* packet) {
     pthread_mutex_unlock(&q->mutex);
 }
 
-NetPacket *queue_pop(PacketQueue* q) {
+NetPacket* queue_pop(PacketQueue* q) {
     pthread_mutex_lock(&q->mutex);
     PacketNode* n = q->head;
     if (!n) {
@@ -35,4 +35,14 @@ NetPacket *queue_pop(PacketQueue* q) {
     NetPacket* p = n->packet;
     free(n);
     return p;
+}
+
+void queue_clear(PacketQueue* q) {
+	pthread_mutex_lock(&q->mutex);
+	NetPacket* p;
+	while ((p = queue_pop(q))) {
+		packet_destroy(p);
+	}
+	pthread_mutex_unlock(&q->mutex);
+	pthread_mutex_destroy(&q->mutex);
 }

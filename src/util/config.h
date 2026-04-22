@@ -8,6 +8,9 @@ typedef struct {
 	// platform dependent constants
 	SDL_GPUShaderFormat shader_format;	
 
+	// player info
+	char* player_name;
+
 	// window options
 	u32 fullscreen;
 	u32 height;

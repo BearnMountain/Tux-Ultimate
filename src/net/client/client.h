@@ -12,25 +12,25 @@
 
 typedef struct {
 	// thread info 
-	SDL_AtomicInt running;	// client thread for listening for packets, decompressing them and storing them in a queue
 	PacketQueue queue;
 
 	// connecting to network
 	SDL_AtomicInt connected;
 	ENetAddress address;
-	ENetPeer* peer;
+	ENetHost* net_manager;
+	ENetPeer* server;
 } Client;
 
 typedef struct {
 	ENetAddress server_address;
-	u32 server_port;
 	char* player_name;
 } ClientCreateInfo;
 
-b8 client_create(ClientCreateInfo info);
-b8 client_destroy(void);
+b8 client_connect(ClientCreateInfo info);
+b8 client_disconnect(void);
 
 // TCP packet sending
 void client_send_packet(NetPacket* packet);
+NetPacket* client_poll_packet(void);
 
 #endif

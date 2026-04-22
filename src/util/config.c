@@ -7,6 +7,7 @@
 
 Config config = {
 	.shader_format = SDL_GPU_SHADERFORMAT_MSL, // should be forcefully updated by SDL_GetGPUShaderFormat()
+	.player_name = "test",
 	.fullscreen = false,
 	.height = 800,
 	.width = 600,
