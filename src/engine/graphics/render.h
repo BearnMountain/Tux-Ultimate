@@ -4,7 +4,6 @@
 #include "SDL3/SDL_gpu.h"
 #include "cglm/types.h"
 #include "src/util/defines.h"
-#include "lib/gltf/gltf.h"
 
 // all data for gpu and rendering is stored here
 // global for use of all files inside graphics/*
@@ -37,7 +36,7 @@ void render_uninit(void);
 void render_frame(void);
 
 // submitting vertices to render to the screen
-GPUMesh render_upload_mesh(const cgltf_primitive* prim);
+// GPUMesh render_upload_mesh(const cgltf_primitive* prim);
 
 // void render_submit(
 // SDL_GPUGraphicsPipeline* pipeline,

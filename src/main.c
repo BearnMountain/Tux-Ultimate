@@ -6,6 +6,7 @@
 // engine
 #include "engine/input.h"
 #include "engine/graphics/render.h"
+#include "engine/graphics/model.h"
 
 // general
 #include "util/logger.h"
@@ -19,6 +20,9 @@
 typedef struct {
 	SDL_Window* window;
 	u32 width, height;
+
+	// models
+	Model* models[10];
 
 	// multiplayer
 	b8 enet_initialized;
@@ -57,14 +61,56 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 	render_init(app_info.window);
 
 
+	// loading models
+	mat4 proj, view;
+	glm_perspective(glm_rad(60.f), (float)frame_data.window_width / frame_data.window_height, 0.1f, 1000.f, proj);
+
+	vec3 eye = {0, 1, 3}, center = {0, 0, 0}, up = {0, 1, 0};
+	glm_lookat(eye, center, up, view);
+
+	app_info.models[0] = model_create("res/characters/generic/tux.glb");
+	// after model_create
+	printf("primitive_count: %d\n", app_info.models[0]->primitive_count);
+	printf("vertex_buffer: %p\n", (void*)app_info.models[0]->primitives[0].vertex_buffer);
+	printf("index_count: %d\n", app_info.models[0]->primitives[0].index_count);
+
 	return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
 	(void)appstate;
+    // Acquire command buffer + swapchain FIRST
+    frame_data.cmd = SDL_AcquireGPUCommandBuffer(frame_data.device);
+    if (!frame_data.cmd) return SDL_APP_CONTINUE;
 
-	// render_frame();
+    if (!SDL_AcquireGPUSwapchainTexture(frame_data.cmd, frame_data.window,
+            &frame_data.swapchain_texture, NULL, NULL)) {
+        SDL_SubmitGPUCommandBuffer(frame_data.cmd);
+        return SDL_APP_CONTINUE;
+    }
+    if (!frame_data.swapchain_texture) { // minimized window
+        SDL_SubmitGPUCommandBuffer(frame_data.cmd);
+        return SDL_APP_CONTINUE;
+    }
+
+	SDL_GPURenderPass* clear_pass = SDL_BeginGPURenderPass(
+    frame_data.cmd,
+    &(SDL_GPUColorTargetInfo){
+        .texture  = frame_data.swapchain_texture,
+        .load_op  = SDL_GPU_LOADOP_CLEAR,
+        .store_op = SDL_GPU_STOREOP_STORE,
+        .clear_color = {0.1f, 0.1f, 0.1f, 1.0f},
+    }, 1, NULL);
+	SDL_EndGPURenderPass(clear_pass);
+
+	mat4 proj, view;
+	glm_perspective(glm_rad(60.f), (float)frame_data.window_width / frame_data.window_height, 0.1f, 1000.f, proj);
+
+	vec3 eye = {0, 1, 10}, center = {0, 0, 0}, up = {0, 1, 0};
+	glm_lookat(eye, center, up, view);
+	model_render(app_info.models, 1, view, proj);
 	
+    SDL_SubmitGPUCommandBuffer(frame_data.cmd);  // <-- presents to screen
 	return SDL_APP_CONTINUE;
 }
 
@@ -114,6 +160,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
 	(void)appstate;
 	(void)result;
+
+	// destroy rendered models
+	model_destroy(app_info.models[0]);
 
 	// for networking
 	client_disconnect();

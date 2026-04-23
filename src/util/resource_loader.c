@@ -14,13 +14,14 @@ char* resource_load_file(const char* path, u32* size) {
 	}
 
 	fseek(file, 0, SEEK_END);
-	*size = ftell(file);
+	u32 tmp_size = ftell(file);
 	rewind(file);
 
-	buffer = (char*)malloc(*size + 1);
+	buffer = (char*)malloc(tmp_size + 1);
 
-	fread(buffer, sizeof(char), *size, file);
-	buffer[*size] = '\0';
+	fread(buffer, sizeof(char), tmp_size, file);
+	buffer[tmp_size] = '\0';
+	if (size) *size = tmp_size;
 
 	fclose(file);
 

@@ -1,4 +1,5 @@
 #include "render.h"
+#include "src/engine/graphics/model.h"
 #include "src/util/logger.h"
 #include "src/engine/graphics/gpu_pipeline.h"
 #include "src/util/config.h"
@@ -6,7 +7,7 @@
 #include <stdlib.h>
 
 struct {
-
+	Model* models;
 } gpu_buffer_container = {0};
 
 FrameData frame_data = {0};
@@ -95,6 +96,7 @@ void render_frame(void) {
     // SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
 
 	SDL_EndGPURenderPass(render_pass);
+
 	if(!SDL_SubmitGPUCommandBuffer(cmd_buffer)) {
 		log_warn("failed to submit gpu command buffer: %s", SDL_GetError());
 	}
@@ -102,61 +104,61 @@ void render_frame(void) {
 }
 
 
-GPUMesh render_upload_mesh(const cgltf_primitive* prim) {
-	const cgltf_accessor* pos = NULL;
-	const cgltf_accessor* norm = NULL;
-	const cgltf_accessor* uv = NULL;
-	(void)norm;(void)uv;
-
-	// parsing primitives
-	for (size_t i = 0; i < prim->attributes_count; i++) {
-		cgltf_attribute* attr = &prim->attributes[i];
-
-		switch (attr->type) {
-			case cgltf_attribute_type_position:
-				pos = attr->data;
-				break;
-			case cgltf_attribute_type_normal:
-				norm = attr->data;
-				break;
-			case cgltf_attribute_type_texcoord:
-				uv = attr->data;
-				break;
-			case cgltf_attribute_type_tangent:
-				log_warn("cgltf tangent not implemented yet");
-				break;
-			case cgltf_attribute_type_color:
-				log_warn("cgltf color not implemented yet");
-				break;
-			case cgltf_attribute_type_joints:
-				log_warn("cgltf joints not implemented yet");
-				break;
-			case cgltf_attribute_type_weights:
-				log_warn("cgltf weights not implemented yet");
-				break;
-			case cgltf_attribute_type_custom:
-				log_warn("cgltf custom not implemented yet");
-				break;
-			case cgltf_attribute_type_invalid:
-				log_warn("cgltf invalid");
-				break;
-			default:
-				log_warn("not even in cgltf enum");
-				break;
-		}
-	}
-
-	size_t vertex_count = pos->count;
-	ShaderVertex* vertices = (ShaderVertex*)malloc(sizeof(ShaderVertex) * vertex_count);
-
-	//f32* pos = accessor_ptr
-
-	free(vertices);
-
-	GPUMesh mesh = {0};
-
-	return mesh;
-}
+// GPUMesh render_upload_mesh(const cgltf_primitive* prim) {
+// 	const cgltf_accessor* pos = NULL;
+// 	const cgltf_accessor* norm = NULL;
+// 	const cgltf_accessor* uv = NULL;
+// 	(void)norm;(void)uv;
+//
+// 	// parsing primitives
+// 	for (size_t i = 0; i < prim->attributes_count; i++) {
+// 		cgltf_attribute* attr = &prim->attributes[i];
+//
+// 		switch (attr->type) {
+// 			case cgltf_attribute_type_position:
+// 				pos = attr->data;
+// 				break;
+// 			case cgltf_attribute_type_normal:
+// 				norm = attr->data;
+// 				break;
+// 			case cgltf_attribute_type_texcoord:
+// 				uv = attr->data;
+// 				break;
+// 			case cgltf_attribute_type_tangent:
+// 				log_warn("cgltf tangent not implemented yet");
+// 				break;
+// 			case cgltf_attribute_type_color:
+// 				log_warn("cgltf color not implemented yet");
+// 				break;
+// 			case cgltf_attribute_type_joints:
+// 				log_warn("cgltf joints not implemented yet");
+// 				break;
+// 			case cgltf_attribute_type_weights:
+// 				log_warn("cgltf weights not implemented yet");
+// 				break;
+// 			case cgltf_attribute_type_custom:
+// 				log_warn("cgltf custom not implemented yet");
+// 				break;
+// 			case cgltf_attribute_type_invalid:
+// 				log_warn("cgltf invalid");
+// 				break;
+// 			default:
+// 				log_warn("not even in cgltf enum");
+// 				break;
+// 		}
+// 	}
+//
+// 	size_t vertex_count = pos->count;
+// 	ShaderVertex* vertices = (ShaderVertex*)malloc(sizeof(ShaderVertex) * vertex_count);
+//
+// 	//f32* pos = accessor_ptr
+//
+// 	free(vertices);
+//
+// 	GPUMesh mesh = {0};
+//
+// 	return mesh;
+// }
 
 
 

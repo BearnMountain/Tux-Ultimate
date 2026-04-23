@@ -44,6 +44,7 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* 
 	// fills out attributes
 	SDL_GPUVertexAttribute attributes[attribute_count];
 	u32 attr_offset[attribute_count]; 
+	u32 stride = 0;
 
 	char* attr_set = json_attr;
 	for (u32 i = 0; i < attribute_count; i++) {
@@ -84,31 +85,38 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* 
 		attributes[i].location = location;
 
 		// gets format
+		u32 size = 0;
+
+		// get format + size
 		if (!strncmp(type, "int", 3)) {
-			if (*(type+3) == '4') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT4; attr_offset[location] = 4 * sizeof(int); }
-			else if (*(type+3) == '3') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT3; attr_offset[location] = 3 * sizeof(int); } 
-			else if (*(type+3) == '2') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT2; attr_offset[location] = 2 * sizeof(int); }
-			else { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT; attr_offset[location] = sizeof(int); }
-		} else if (!strncmp(type, "float", 5)) {
-			if (*(type+5) == '4') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; attr_offset[location] = 4 * sizeof(float); }
-			else if (*(type+5) == '3') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3; attr_offset[location] = 3 * sizeof(float); }
-			else if (*(type+5) == '2') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; attr_offset[location] = 2 * sizeof(float); }
-			else { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT; attr_offset[location] = sizeof(float); }		
+			if (*(type+3) == '4') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT4; size = 4 * sizeof(int); }
+			else if (*(type+3) == '3') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT3; size = 3 * sizeof(int); }
+			else if (*(type+3) == '2') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT2; size = 2 * sizeof(int); }
+			else { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_INT; size = sizeof(int); }
+		} 
+		else if (!strncmp(type, "float", 5)) {
+			if (*(type+5) == '4') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4; size = 4 * sizeof(float); }
+			else if (*(type+5) == '3') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3; size = 3 * sizeof(float); }
+			else if (*(type+5) == '2') { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2; size = 2 * sizeof(float); }
+			else { attributes[i].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT; size = sizeof(float); }        
 		} else {
-			log_warn("not implemented yet, change for primitive support: %s", type);
+			log_warn("not implemented yet: %s", type);
 			return NULL;
 		}
 
+		// assign offset sequentially (THIS IS THE FIX)
+		attributes[i].offset = stride;
+		stride += size;
 	}
 
 	// setting attribute offset
-	for (u32 i = 0; i < attribute_count; i++) {
-		u32 sum = 0;
-		for (u32 j = 0; j < attributes[i].location; j++) {
-			sum += attr_offset[j];
-		}
-		attributes[i].offset = sum;
-	}
+	// for (u32 i = 0; i < attribute_count; i++) {
+	// 	u32 sum = 0;
+	// 	for (u32 j = 0; j < attributes[i].location; j++) {
+	// 		sum += attr_offset[j];
+	// 	}
+	// 	attributes[i].offset = sum;
+	// }
 
 
 
@@ -121,6 +129,7 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* 
 				.slot = 0,
 				.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
 				.instance_step_rate = 0,
+				.pitch = stride
 			}},
 			.num_vertex_attributes = attribute_count,
 			.vertex_attributes = attributes

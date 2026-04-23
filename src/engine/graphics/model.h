@@ -13,9 +13,7 @@
 // animation.h gives abstract way to run its different animation cycles
 #include <cglm/cglm.h>
 #include "src/util/defines.h"
-
-#define CGLTF_IMPLEMENTATION
-#include "lib/gltf/gltf.h"
+#include <SDL3/SDL_gpu.h>
 
 #define MODEL_PATH "res/characters/" // all models must be in this directory, 
 
@@ -56,11 +54,23 @@
 
 // Reference to model that is stored on gpu
 // - pass to render.h to render the model
-typedef struct {
 
+typedef struct {
+	SDL_GPUBuffer* vertex_buffer;
+	SDL_GPUBuffer* indice_buffer;
+	u32 index_count;
+	mat4 transform;
+} Primitive;
+
+typedef struct {
+	Primitive* primitives;
+	int primitive_count;
 } Model; 
 
 Model* model_create(const char* path);
+void model_destroy(Model* model);
+
+void model_render(Model** list, int count, mat4 view, mat4 proj);
 
 /*
 void model_animate_run(Model m)
