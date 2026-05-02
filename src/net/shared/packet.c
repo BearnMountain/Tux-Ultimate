@@ -28,6 +28,7 @@ ENetPacket* packet_create_enet(NetPacket* packet, b8 cleanup) {
 	switch (packet->type) {
 		case PKT_INPUT:
 			epacket = enet_packet_create(packet->data, packet->data_len, ENET_PACKET_FLAG_RELIABLE);
+			log_warn("input not implemented");
 			break;
 		case PKT_CONNECT:
 			epacket = enet_packet_create(packet->data, packet->data_len, ENET_PACKET_FLAG_RELIABLE);
@@ -35,15 +36,14 @@ ENetPacket* packet_create_enet(NetPacket* packet, b8 cleanup) {
 			break;
 		case PKT_DISCONNECT:
 			epacket = enet_packet_create(packet->data, packet->data_len, ENET_PACKET_FLAG_RELIABLE);
-			log_warn("connect not implemented");
+			log_warn("disconnect not implemented");
 			break;
 		case PKT_STATE:
 			epacket = enet_packet_create(packet->data, packet->data_len, ENET_PACKET_FLAG_RELIABLE);
-			log_warn("connect not implemented");
+			log_warn("state not implemented");
 			break;
 		case PKT_CHAT:
 			epacket = enet_packet_create(packet->data, packet->data_len, ENET_PACKET_FLAG_RELIABLE);
-			log_warn("connect not implemented");
 			break;
 		case PKT_INVALID:
 			epacket = NULL;

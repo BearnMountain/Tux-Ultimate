@@ -20,12 +20,6 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* 
 	char json_file[512];
 	snprintf(json_file, sizeof(json_file), SHADER_DIR"%s.json", vertex_path);
 	char* json_attr = resource_load_file(json_file, NULL);
-/*
-    Uint32 location;                    
-    Uint32 buffer_slot;                 
-    SDL_GPUVertexElementFormat format;  
-    Uint32 offset;                      
-*/
 
 	u32 attribute_count = 0;
 	char* start_of_attr = strstr(json_attr, "inputs") + 6; // start of array
@@ -43,7 +37,6 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* 
 
 	// fills out attributes
 	SDL_GPUVertexAttribute attributes[attribute_count];
-	u32 attr_offset[attribute_count]; 
 	u32 stride = 0;
 
 	char* attr_set = json_attr;
@@ -108,17 +101,6 @@ SDL_GPUGraphicsPipeline* gpu_pipeline_load(const char* vertex_path, const char* 
 		attributes[i].offset = stride;
 		stride += size;
 	}
-
-	// setting attribute offset
-	// for (u32 i = 0; i < attribute_count; i++) {
-	// 	u32 sum = 0;
-	// 	for (u32 j = 0; j < attributes[i].location; j++) {
-	// 		sum += attr_offset[j];
-	// 	}
-	// 	attributes[i].offset = sum;
-	// }
-
-
 
 	SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(frame_data.device, &(SDL_GPUGraphicsPipelineCreateInfo) {
 		.vertex_shader = vertex_shader,

@@ -176,6 +176,7 @@ void client_send_packet(NetPacket* packet, b8 cleanup) {
 
 
 NetPacket* client_poll_packet(void) {
+	if (!SDL_GetAtomicInt(&client.connected)) return NULL;
 	return queue_pop(&client.queue);
 }
 

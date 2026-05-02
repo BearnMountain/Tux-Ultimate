@@ -37,6 +37,7 @@ CFLAGS = [
     "-I./"
 ]
 LDFLAGS = [
+    "-lm"
 ]
 
 # TODO: remove for vendored libs later on

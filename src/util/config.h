@@ -1,7 +1,8 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-#include "SDL3/SDL_gpu.h"
+#include <SDL3/SDL_gpu.h>
+#include <SDL3/SDL.h>
 #include "src/util/defines.h"
 
 typedef struct {
@@ -26,6 +27,9 @@ typedef struct {
 
 	// global information
 	u32 game_tick;
+
+	// keybinds 
+	SDL_Keycode move_forward;
 } Config;
 
 extern Config config;

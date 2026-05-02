@@ -1,10 +1,15 @@
 #ifndef CAMERA_H_
 #define CAMERA_H_
 
-#include "util/defines.h"
+#include "src/util/defines.h"
 #include <cglm/cglm.h>
+#include <SDL3/SDL.h>
 
-void camera_update();
-void camera_process_event(SDL_Event* e);
+typedef struct Camera Camera;
+
+// updates by absolute value
+void camera_process_event(Camera* camera, SDL_Event* e);
+mat4* get_view_matrix(Camera* camera);
+mat4* get_projection_matrix(Camera* camera);
 
 #endif

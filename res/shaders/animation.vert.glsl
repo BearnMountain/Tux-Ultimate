@@ -1,5 +1,8 @@
 #version 430 core
 
+const int MAX_BONES = 100;
+const int MAX_BONE_INFLUENCE = 4; // good enough for 4x4 matrix
+
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec3 norm;
 layout (location = 2) in vec2 in_uv;
@@ -9,9 +12,6 @@ layout (location = 6) in vec4 weights;
 layout (set = 1, binding = 0) uniform CameraUBO {
 	mat4 mvp; // mvp calculated on cpu
 };
-
-const int MAX_BONES = 100;
-const int MAX_BONE_INFLUENCE = 4; // good enough for 4x4 matrix
 
 layout (set = 1, binding = 1) uniform BonesUBO {
 	mat4 final_bones_matrice[MAX_BONES];
@@ -31,7 +31,7 @@ void main() {
 
 		vec4 local_pos = final_bones_matrice[bone_ids[i]] * vec4(pos, 1.0f);
 		net_pos += local_pos * weights[i];
-		vec3 local_norm = mat3(final_bones_matrice[bone_ids[i]]) * norm;
+		vec3 local_norm = mat3(final_bones_matrice[bone_ids[i]]) * norm; // to be updated
 	}
 
 	// position relative to bones
