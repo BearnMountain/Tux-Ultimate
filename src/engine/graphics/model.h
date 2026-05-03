@@ -25,22 +25,14 @@ typedef struct Animation Animation;
 
 typedef struct {
     SDL_GPUGraphicsPipeline* pipeline;
-    SDL_GPUBuffer*           vertex_buffer;
-    SDL_GPUBuffer*           index_buffer;
-    SDL_GPUTexture*          albedo_texture;
-    SDL_GPUSampler*          sampler;
-    uint32_t                 index_count;
-	Animation* 				 animation;
+    uint32_t index_count;
+	Animation* animation;
 
-	Mesh* mesh;
+	Mesh* meshes;
+	u32 mesh_count;
 } Model; 
 
-typedef struct {
-	mat4 mvp;
-} ModelUniforms;
-
 Model* model_create(const char* path, const char* vertex_shader, const char* frag_shader);
-void model_draw(Model* model, SDL_GPURenderPass* pass, SDL_GPUDevice* device, ModelUniforms* uniforms);
 void model_destroy(Model* model);
 
 

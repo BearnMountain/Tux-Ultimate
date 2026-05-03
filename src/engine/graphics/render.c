@@ -1,7 +1,6 @@
 #include "render.h"
-#include "src/engine/graphics/model.h"
+#include "cglm/cam.h"
 #include "src/util/logger.h"
-#include "src/engine/graphics/gpu_pipeline.h"
 #include "src/util/config.h"
 
 #include <stdlib.h>
@@ -29,10 +28,9 @@
 // }
 
 struct {
-	u32 mesh_count;
-	Mesh* meshes;
+	RenderInstance* instances;
+	u32 render_instances;
 } gpu_buffer_container = {0};
-
 FrameData frame_data = {0};
 
 // ------ Supporting Functions ------
@@ -48,10 +46,6 @@ void render_init(SDL_Window* window) {
 		return;
 	}
 	SDL_ClaimWindowForGPUDevice(frame_data.device, window);
-
-	gpu_buffer_container.mesh_count = 0;
-	gpu_buffer_container.meshes = NULL;
-
 }
 
 void render_uninit(void) {
@@ -67,12 +61,18 @@ void render_uninit(void) {
 	// free(gpu_buffer_container.vertex_buffer);
 	// free(gpu_buffer_container.transfer_buffer);
 
-	for (u32 i = 0; i < gpu_buffer_container.mesh_count; i++) {
-		Mesh* mesh = &gpu_buffer_container.meshes[i];
-		SDL_ReleaseGPUBuffer(frame_data.device, mesh->index_buffer);
-		SDL_ReleaseGPUBuffer(frame_data.device, mesh->vertex_buffer);
-		SDL_ReleaseGPUTexture(frame_data.device, mesh->albedo);
-		SDL_ReleaseGPUSampler(frame_data.device, mesh->sampler);
+	for (u32 i = 0; i < gpu_buffer_container.render_instances; i++) {
+		for (u32 j = 0; j < gpu_buffer_container.instances[i].mesh_count; i++) {
+			Mesh* mesh = &gpu_buffer_container.instances[i].meshes[j];
+			SDL_ReleaseGPUBuffer(frame_data.device, mesh->index_buffer);
+			SDL_ReleaseGPUBuffer(frame_data.device, mesh->vertex_buffer);
+			SDL_ReleaseGPUTexture(frame_data.device, mesh->albedo);
+			SDL_ReleaseGPUSampler(frame_data.device, mesh->sampler);
+
+
+		}
+		SDL_ReleaseGPUGraphicsPipeline(frame_data.device, gpu_buffer_container.instances[i].pipeline);
+		free(gpu_buffer_container.instances[i].meshes);
 	}
 
 	// destroy device
@@ -151,6 +151,9 @@ DrawIndexedPrimitives(...)
 	
 	for (u32 i = 0; i < gpu_buffer_container.mesh_count; i++) {
 		Mesh* m = &gpu_buffer_container.meshes[i];
+
+		SDL_BindGPUGraphicsPipeline(render_pass, m->pipeline);
+
 		SDL_GPUBufferBinding vbind = { m->vertex_buffer, 0 };
 		SDL_BindGPUVertexBuffers(render_pass, 0, &vbind, 1);
 
@@ -184,9 +187,11 @@ DrawIndexedPrimitives(...)
 
 }
 
-void render_submit_mesh(Mesh* mesh) {
-	gpu_buffer_container.meshes = realloc(gpu_buffer_container.meshes, sizeof(Mesh) * (gpu_buffer_container.mesh_count + 1));
-	memcpy(&gpu_buffer_container.meshes[gpu_buffer_container.mesh_count++], mesh, sizeof(Mesh));
+void render_submit_mesh(Mesh* mesh, u32 mesh_count) {
+	gpu_buffer_container.meshes = realloc(gpu_buffer_container.meshes, sizeof(Mesh) * (gpu_buffer_container.mesh_count + mesh_count));
+	for (u32 i = 0; i < mesh_count; i++) {
+		memcpy(&gpu_buffer_container.meshes[gpu_buffer_container.mesh_count++], &mesh[i], sizeof(Mesh));
+	}
 }
 
 SDL_GPUBuffer* render_upload_buffer(const void* data, u32 size, SDL_GPUBufferUsageFlags flags) {
@@ -231,15 +236,55 @@ SDL_GPUBuffer* render_upload_buffer(const void* data, u32 size, SDL_GPUBufferUsa
 
 
 
-SDL_GPUTexture* render_upload_texture(const char* data) {
+SDL_GPUTexture* render_upload_texture(const u8* data, u32 texture_width, u32 texture_height) {
+	u32 size = texture_height * texture_width * 4;
+    SDL_GPUTextureCreateInfo tinfo = {
+        .type                 = SDL_GPU_TEXTURETYPE_2D,
+        .format               = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+        .usage                = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+        .width                = texture_width,
+        .height               = texture_height,
+        .layer_count_or_depth = 1,
+        .num_levels           = 1,
+    };
+    SDL_GPUTexture* texture = SDL_CreateGPUTexture(frame_data.device, &tinfo);
 
-	SDL_GPUTexture* texture = NULL;
-	(void)data;
+    // transfer buffer upload
+    SDL_GPUTransferBufferCreateInfo tbinfo = {
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+        .size  = size,
+    };
+    SDL_GPUTransferBuffer* tb = SDL_CreateGPUTransferBuffer(frame_data.device, &tbinfo);
+
+    void* mapped = SDL_MapGPUTransferBuffer(frame_data.device, tb, false);
+    memcpy(mapped, data, size);
+    SDL_UnmapGPUTransferBuffer(frame_data.device, tb);
+
+	// upload to gpu
+    SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(frame_data.device);
+    SDL_GPUCopyPass* pass = SDL_BeginGPUCopyPass(cmd);
+
+    SDL_GPUTextureTransferInfo src = {
+        .transfer_buffer = tb,
+        .offset = 0,
+    };
+    SDL_GPUTextureRegion dst = {
+        .texture = texture,
+        .mip_level = 0,
+        .layer = 0,
+        .x = 0, .y = 0, .z = 0,
+        .w = texture_width, 
+		.h = texture_height, 
+		.d = 1,
+    };
+    SDL_UploadToGPUTexture(pass, &src, &dst, false);
+
+    SDL_EndGPUCopyPass(pass);
+    SDL_SubmitGPUCommandBuffer(cmd);
+    SDL_ReleaseGPUTransferBuffer(frame_data.device, tb);
 
 	return texture;
 }
-
-
 
 
 

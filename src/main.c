@@ -1,7 +1,13 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "enet/enet.h"
 #include "src/util/config.h"
+
+
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
+
 #include <SDL3/SDL_main.h>
 
 // engine
@@ -64,7 +70,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
 	// loading models
 	app_info.models[0] = model_create("res/characters/generic/tux.glb", "model.vert", "model.frag");
-
+	render_submit_mesh(app_info.models[0]->meshes, app_info.models[0]->mesh_count);
 
 	return SDL_APP_CONTINUE;
 }
@@ -72,7 +78,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 SDL_AppResult SDL_AppIterate(void* appstate) {
 	(void)appstate;
     
-
+	render_frame();
 
 	return SDL_APP_CONTINUE;
 }
