@@ -1,0 +1,14 @@
+[package]
+name = "Ultimate"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "app"
+path = "src/main.rs"
+
+[dependencies]
+env_logger = "0.11.11"
+log = "0.4.33"
+winit = "0.30.13"
+
