@@ -2,17 +2,13 @@
 mod engine;
 mod game;
 
-use engine::io::keyboard;
+use engine::io::keyboard::{KEYBOARD, KeyboardLayer};
 
 use std::error::Error;
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, 
-    event::{self, WindowEvent}, 
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, 
-    keyboard::{KeyCode, PhysicalKey::{self, Code}}, 
-    window::{Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, event::{self, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{self, KeyCode, PhysicalKey::{self, Code}}, window::{Window, WindowAttributes, WindowId},
 };
 use env_logger;
 
@@ -39,12 +35,13 @@ impl ApplicationHandler for App {
         window_id: WindowId,
         event: WindowEvent,
     ) {
+
         match event {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
             // WindowEvent::Resized(physical_size) => todo!(),
             // WindowEvent::Moved(physical_position) => todo!(),
             WindowEvent::CloseRequested => {
-                log::debug!("test");
+                event_loop.exit();
             },
             // WindowEvent::Destroyed => todo!(),
             // WindowEvent::DroppedFile(path_buf) => todo!(),
@@ -57,11 +54,10 @@ impl ApplicationHandler for App {
                 is_synthetic 
             } => {
                 if let PhysicalKey::Code(key) = event.physical_key {
-                    match key {
-                        KeyCode::Escape => {
-                            event_loop.exit();
-                        },
-                        _ => {}
+                    KEYBOARD.lock().unwrap().handle_key(key);
+
+                    if key == KeyCode::Escape {
+                        event_loop.exit();
                     }
                 }
             },
@@ -98,6 +94,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Env::default().default_filter_or("debug")
     ).init();
     let event_loop = EventLoop::new()?;
+
+    {
+        let mut keyboard = KEYBOARD.lock().unwrap();
+
+        keyboard.push_focus(KeyboardLayer::Base);
+        keyboard.subscribe(KeyCode::KeyW, Box::new(|| {
+            println!("pressed w");
+        }));
+    }
 
     event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
     event_loop.run_app(&mut App::default())?;
