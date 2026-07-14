@@ -1,10 +1,10 @@
-use winit::event::KeyEvent;
+use winit::event::{ElementState, KeyEvent};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::{LazyLock, Mutex};
 
-type Callback = Box<dyn FnMut() + Send>;
+type Callback = Box<dyn FnMut(ElementState) + Send>;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -40,10 +40,10 @@ impl Keyboard {
             .expect("no focus pushed - call push_focus first");
     }
 
-    pub fn handle_key(&mut self, key: KeyCode) {
+    pub fn handle_key(&mut self, key: KeyCode, state: ElementState) {
         let focus = self.current_focus();
         if let Some(keyboard) = self.layers[focus as usize].binds.get_mut(&key) {
-            keyboard();
+            keyboard(state);
         }
     }
 
