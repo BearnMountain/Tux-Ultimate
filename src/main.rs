@@ -1,5 +1,7 @@
 #![allow(unused)]
 mod engine;
+use engine::renderer::pipeline_builder::PipelineBuilder;
+
 mod game;
 
 use engine::io::keyboard::{KEYBOARD, KeyboardLayer};
@@ -15,6 +17,9 @@ use winit::{
 
 use wgpu::{Instance, InstanceDescriptor, RequestAdapterError, RequestAdapterOptionsBase};
 
+use crate::engine::renderer::pipeline_builder;
+
+
 struct State {
     window: Arc<Window>,
     instance: wgpu::Instance,
@@ -23,6 +28,9 @@ struct State {
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: PhysicalSize<u32>,
+
+    // loading graphics
+    render_pipeline: wgpu::RenderPipeline,
 }
 
 impl State {
@@ -80,6 +88,12 @@ impl State {
         };
         surface.configure(&device, &config);
 
+        // creates pipeline
+        let mut pipeline_builder = PipelineBuilder::new();
+        pipeline_builder.set_shader_module("shaders/shader.wgsl", "vs_main", "fs_main");
+        pipeline_builder.set_pixel_format(config.format);
+        let render_pipeline = pipeline_builder.build_pipeline(&device);
+
         return Self {
             window: window,
             instance: instance,
@@ -88,6 +102,7 @@ impl State {
             queue: queue,
             config: config,
             size: size,
+            render_pipeline: render_pipeline,
         };
     }
 
@@ -154,9 +169,14 @@ impl State {
 
         // submit draw commands and present to window surface texture
         {
-            command_encoder.begin_render_pass(&render_pass_descriptor);
+            let mut render_pass = command_encoder
+                .begin_render_pass(&render_pass_descriptor);
 
             // draw everything
+            render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.draw(0..3, 0..1);
+
+
         }
         self.queue.submit(std::iter::once(command_encoder.finish()));
         self.queue.present(surface_texture);
@@ -197,6 +217,12 @@ impl ApplicationHandler for App {
         self.window.as_ref().unwrap().request_redraw();
     }
 
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
+    }
+
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -206,7 +232,12 @@ impl ApplicationHandler for App {
 
         match event {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
-            // WindowEvent::Resized(physical_size) => todo!(),
+            WindowEvent::Resized(physical_size) => {
+                if let Some(state) = self.state.as_mut() {
+                    state.size = physical_size;
+                    state.resize(state.size.width, state.size.height);
+                }
+            },
             // WindowEvent::Moved(physical_position) => todo!(),
             WindowEvent::CloseRequested => {
                 event_loop.exit();
@@ -249,11 +280,14 @@ impl ApplicationHandler for App {
             WindowEvent::RedrawRequested => {
                 // draw
                 if let Some(state) = self.state.as_mut() {
+                    // if state.size.width != state.config.width || state.size.height != state.config.height {
+                    //     state.resize(state.size.width, state.size.height);
+                    // }
                     if let Err(e) = state.render() {
                         eprintln!("render error: {e:?}");
                     }
                 }
-                self.window.as_ref().unwrap().request_redraw();
+                // self.window.as_ref().unwrap().request_redraw();
             },
             _ => {},
         }

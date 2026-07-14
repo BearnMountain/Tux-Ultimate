@@ -1,6 +1,6 @@
 pub mod io;
 // pub mod graphics;
-// pub mod renderer;
+pub mod renderer;
 // pub mod input;
 // pub mod physics;
 // pub mod math;
