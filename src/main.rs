@@ -1,6 +1,7 @@
 #![allow(unused)]
 mod engine;
 use engine::renderer::pipeline_builder::PipelineBuilder;
+use engine::renderer::mesh_builder;
 
 mod game;
 
@@ -17,7 +18,8 @@ use winit::{
 
 use wgpu::{Instance, InstanceDescriptor, RequestAdapterError, RequestAdapterOptionsBase};
 
-use crate::engine::renderer::pipeline_builder;
+use crate::engine::renderer::mesh_builder::make_triangle;
+
 
 
 struct State {
@@ -31,6 +33,7 @@ struct State {
 
     // loading graphics
     render_pipeline: wgpu::RenderPipeline,
+    triangle_mesh: wgpu::Buffer,
 }
 
 impl State {
@@ -88,8 +91,12 @@ impl State {
         };
         surface.configure(&device, &config);
 
+        // vertex buffer for triangles
+        let triangle_mesh = mesh_builder::make_triangle(&device);
+
         // creates pipeline
         let mut pipeline_builder = PipelineBuilder::new();
+        pipeline_builder.add_buffer_layout(Some(mesh_builder::Vertex::get_layout()));
         pipeline_builder.set_shader_module("shaders/shader.wgsl", "vs_main", "fs_main");
         pipeline_builder.set_pixel_format(config.format);
         let render_pipeline = pipeline_builder.build_pipeline(&device);
@@ -103,6 +110,7 @@ impl State {
             config: config,
             size: size,
             render_pipeline: render_pipeline,
+            triangle_mesh: triangle_mesh,
         };
     }
 
@@ -169,14 +177,13 @@ impl State {
 
         // submit draw commands and present to window surface texture
         {
-            let mut render_pass = command_encoder
+            let mut pass = command_encoder
                 .begin_render_pass(&render_pass_descriptor);
 
-            // draw everything
-            render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.draw(0..3, 0..1);
-
-
+            // draw each pipeline
+            pass.set_pipeline(&self.render_pipeline);
+            pass.set_vertex_buffer(0, self.triangle_mesh.slice(..));
+            pass.draw(0..3, 0..1);
         }
         self.queue.submit(std::iter::once(command_encoder.finish()));
         self.queue.present(surface_texture);

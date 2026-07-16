@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "env_logger",
+ "glm",
  "log",
  "pollster",
  "wgpu",
@@ -629,6 +630,15 @@ dependencies = [
  "khronos_api",
  "log",
  "xml-rs",
+]
+
+[[package]]
+name = "glm"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "554870bc5d1b098ae10c380ebfeeb35e408107dcb5bb00e4677fc64eb4ce2aea"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]

@@ -10,6 +10,7 @@ pub struct PipelineBuilder {
     vertex_entry: String,
     fragment_entry: String,
     pixel_format: wgpu::TextureFormat,
+    vertex_buffer_layout: Vec<Option<wgpu::VertexBufferLayout<'static>>>,
 }
 
 impl PipelineBuilder {
@@ -20,9 +21,13 @@ impl PipelineBuilder {
             vertex_entry: "dummy".to_string(),
             fragment_entry: "dummy".to_string(),
             pixel_format: wgpu::TextureFormat::Rgba8Unorm,
+            vertex_buffer_layout: Vec::new(),
         };
     }
 
+    pub fn add_buffer_layout(&mut self, layout: Option<wgpu::VertexBufferLayout<'static>>) {
+        self.vertex_buffer_layout.push(layout);
+    }
 
     pub fn set_shader_module(&mut self, shader_filename: &str, vertex_entry: &str, fragment_entry: &str) {
         self.shader_filename = shader_filename.to_string();
@@ -80,7 +85,7 @@ impl PipelineBuilder {
                     module: &shader_module,
                     entry_point: Some(&self.vertex_entry),
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
-                    buffers: &[],
+                    buffers: &self.vertex_buffer_layout,
                 },
 
                 // how triangles are assembled
