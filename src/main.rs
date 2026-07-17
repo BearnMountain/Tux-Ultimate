@@ -1,4 +1,3 @@
-#![allow(unused)]
 mod engine;
 use engine::renderer::pipeline_builder::PipelineBuilder;
 use engine::renderer::mesh_builder;
@@ -8,7 +7,6 @@ mod game;
 use engine::io::keyboard::{KEYBOARD, KeyboardLayer};
 use std::sync::Arc;
 
-use std::error::Error;
 use anyhow::Result;
 
 use env_logger::Env;
@@ -16,11 +14,7 @@ use winit::{
     application::ApplicationHandler, dpi::PhysicalSize, event::{self, ElementState, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{self, KeyCode, PhysicalKey::{self, Code}}, window::{Window, WindowAttributes, WindowId},
 };
 
-use wgpu::{Instance, InstanceDescriptor, RequestAdapterError, RequestAdapterOptionsBase};
-
-use crate::engine::renderer::mesh_builder::make_triangle;
-
-
+use wgpu;
 
 struct State {
     window: Arc<Window>,
@@ -33,7 +27,7 @@ struct State {
 
     // loading graphics
     render_pipeline: wgpu::RenderPipeline,
-    triangle_mesh: wgpu::Buffer,
+    quad_mesh: mesh_builder::Mesh,
 }
 
 impl State {
@@ -92,7 +86,7 @@ impl State {
         surface.configure(&device, &config);
 
         // vertex buffer for triangles
-        let triangle_mesh = mesh_builder::make_triangle(&device);
+        let quad_mesh = mesh_builder::make_quad(&device);
 
         // creates pipeline
         let mut pipeline_builder = PipelineBuilder::new();
@@ -110,7 +104,7 @@ impl State {
             config: config,
             size: size,
             render_pipeline: render_pipeline,
-            triangle_mesh: triangle_mesh,
+            quad_mesh: quad_mesh,
         };
     }
 
@@ -182,8 +176,9 @@ impl State {
 
             // draw each pipeline
             pass.set_pipeline(&self.render_pipeline);
-            pass.set_vertex_buffer(0, self.triangle_mesh.slice(..));
-            pass.draw(0..3, 0..1);
+            pass.set_vertex_buffer(0, self.quad_mesh.vertex_buffer.slice(..));
+            pass.set_index_buffer(self.quad_mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            pass.draw_indexed(0..6, 0, 0..1);
         }
         self.queue.submit(std::iter::once(command_encoder.finish()));
         self.queue.present(surface_texture);
@@ -224,11 +219,11 @@ impl ApplicationHandler for App {
         self.window.as_ref().unwrap().request_redraw();
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if let Some(window) = &self.window {
-            window.request_redraw();
-        }
-    }
+    // fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    //     if let Some(window) = &self.window {
+    //         window.request_redraw();
+    //     }
+    // }
 
     fn window_event(
         &mut self,
@@ -236,12 +231,14 @@ impl ApplicationHandler for App {
         window_id: WindowId,
         event: WindowEvent,
     ) {
+        let _ = window_id;
 
         match event {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
             WindowEvent::Resized(physical_size) => {
                 if let Some(state) = self.state.as_mut() {
                     state.size = physical_size;
+                    state.update_surface();
                     state.resize(state.size.width, state.size.height);
                 }
             },
@@ -292,6 +289,8 @@ impl ApplicationHandler for App {
                     // }
                     if let Err(e) = state.render() {
                         eprintln!("render error: {e:?}");
+                        state.update_surface();
+                        state.resize(state.size.width, state.size.height);
                     }
                 }
                 // self.window.as_ref().unwrap().request_redraw();
@@ -331,7 +330,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() {
-    pollster::block_on(run());
+    let _ = pollster::block_on(run());
 }
 
 
