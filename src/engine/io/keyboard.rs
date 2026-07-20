@@ -1,10 +1,11 @@
-use winit::event::{ElementState, KeyEvent};
-use winit::keyboard::{KeyCode, PhysicalKey};
+use winit::event::{ElementState};
+use winit::keyboard::{KeyCode};
+use std::cell::RefCell;
 use std::collections::HashMap;
-use std::hash::Hash;
-use std::sync::{LazyLock, Mutex};
+use std::sync::{OnceLock};
+use std::thread::{self, ThreadId};
 
-type Callback = Box<dyn FnMut(ElementState) + Send>;
+type Callback = Box<dyn FnMut(ElementState)>;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -24,13 +25,33 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
+    pub fn init_main_thread() {
+        MAIN_THREAD_ID
+            .set(thread::current().id())
+            .expect("init_main_thread called twice");
+    }
+
     pub fn new() -> Self {
+        let mut focus_stack = Vec::new();
+        focus_stack.push(KeyboardLayer::Base);
         return Self {
             layers: std::array::from_fn(|_| Layer {
                 binds: HashMap::new(),
             }),
-            focus_stack: Vec::new(),
+            focus_stack,
         };
+    }
+
+    pub fn with_mut<R>(f: impl FnOnce(&mut Keyboard) -> R) -> R {
+        let owner = MAIN_THREAD_ID
+            .get()
+            .expect("Keyboard::init_main_thread() was never called");
+        assert_eq!(
+            thread::current().id(),
+            *owner,
+            "Keyboard accessed from a non-main thread"
+        );
+        KEYBOARD.with(|k| f(&mut k.borrow_mut()))
     }
 
     pub fn current_focus(&self) -> KeyboardLayer {
@@ -82,8 +103,10 @@ impl Keyboard {
             "pop_focus called with empty focus_stack"
         );
     }
-
 }
 
-pub static KEYBOARD: LazyLock<Mutex<Keyboard>> = 
-    LazyLock::new(|| Mutex::new(Keyboard::new()));
+static MAIN_THREAD_ID: OnceLock<ThreadId> = OnceLock::new();
+
+thread_local! {
+    static KEYBOARD: RefCell<Keyboard> = RefCell::new(Keyboard::new());
+}

@@ -4,6 +4,7 @@ use engine::renderer::mesh_builder;
 
 mod game;
 mod util;
+use glm::intBitsToFloat;
 use util::config::Config;
 
 use engine::io::keyboard::{KEYBOARD, KeyboardLayer};
@@ -18,6 +19,7 @@ use winit::{
 
 use wgpu;
 
+use crate::engine::io::keyboard::Keyboard;
 use crate::engine::renderer::{self, bind_group_layout};
 
 struct State {
@@ -203,7 +205,9 @@ impl ApplicationHandler for App {
                         event_loop.exit();
                     }
 
-                    KEYBOARD.lock().unwrap().handle_key(key, event.state);
+                    Keyboard::with_mut(|keyboard| {
+                        keyboard.handle_key(key, event.state);
+                    });
                 }
             },
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
@@ -247,14 +251,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::from_env(
         Env::default().default_filter_or("warn")
     ).init();
-    Config::init("assets/config.toml");
 
     let event_loop = EventLoop::new()?;
 
     // setting default keybinds
-    {
-        let mut keyboard = KEYBOARD.lock().unwrap();
-
+    Keyboard::with_mut(|keyboard| {
         keyboard.push_focus(KeyboardLayer::Base);
         keyboard.subscribe(KeyCode::KeyW, Box::new(|state| {
             if state == ElementState::Pressed {
@@ -263,7 +264,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 println!("released w");
             }
         }));
-    }
+        keyboard.pop_focus();
+    });
 
     event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
 
@@ -277,6 +279,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 // engine has textures
 // shader uses textures
 fn main() {
+    // configuring everything needed
+    Keyboard::init_main_thread();
+    Config::init("assets/config.toml");
     let _ = pollster::block_on(run());
 }
 
