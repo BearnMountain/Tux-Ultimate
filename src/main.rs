@@ -1,5 +1,5 @@
 mod engine;
-use engine::renderer::pipeline_builder::PipelineBuilder;
+use engine::renderer::pipeline;
 use engine::renderer::mesh_builder;
 
 mod game;
@@ -15,6 +15,8 @@ use winit::{
 };
 
 use wgpu;
+
+use crate::engine::renderer::{self, bind_group_layout};
 
 struct State {
     window: Arc<Window>,
@@ -87,13 +89,24 @@ impl State {
 
         // vertex buffer for triangles
         let quad_mesh = mesh_builder::make_quad(&device);
+        let material_bind_group_layout: wgpu::BindGroupLayout;
+        {
+            let mut builder = bind_group_layout::Builder::new(&device);
+            builder.add_material();
+            material_bind_group_layout = builder.build("MaterialBindGroupLayout");
 
-        // creates pipeline
-        let mut pipeline_builder = PipelineBuilder::new();
-        pipeline_builder.add_buffer_layout(Some(mesh_builder::Vertex::get_layout()));
-        pipeline_builder.set_shader_module("shaders/shader.wgsl", "vs_main", "fs_main");
-        pipeline_builder.set_pixel_format(config.format);
-        let render_pipeline = pipeline_builder.build_pipeline(&device);
+        }
+
+        let render_pipeline: wgpu::RenderPipeline;
+        {
+            // creates pipeline
+            let mut builder = pipeline::Builder::new(&device);
+            builder.set_shader_module("shaders/shader.wgsl", "vs_main", "fs_main");
+            builder.set_pixel_format(config.format);
+            builder.add_buffer_layout(Some(mesh_builder::Vertex::get_layout()));
+            builder.add_bind_group_layout(&material_bind_group_layout);
+            render_pipeline = builder.build_pipeline("RenderPipeline");
+        }
 
         return Self {
             window: window,
@@ -329,6 +342,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 
+// texture class
+// engine has textures
+// shader uses textures
 fn main() {
     let _ = pollster::block_on(run());
 }

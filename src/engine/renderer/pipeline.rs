@@ -2,31 +2,44 @@
 use std::env::current_dir;
 use std::fs;
 
-use wgpu::RenderPipeline;
+// use wgpu::RenderPipeline;
 
 
-pub struct PipelineBuilder {
+pub struct Builder<'a> {
     shader_filename: String,
     vertex_entry: String,
     fragment_entry: String,
     pixel_format: wgpu::TextureFormat,
     vertex_buffer_layout: Vec<Option<wgpu::VertexBufferLayout<'static>>>,
+    bind_group_layouts: Vec<&'a wgpu::BindGroupLayout>,
+    device: &'a wgpu::Device,
 }
 
-impl PipelineBuilder {
+impl<'a> Builder<'a> {
 
-    pub fn new() -> Self {
+    pub fn new(device: &'a wgpu::Device) -> Self {
         return Self {
             shader_filename: "dummy".to_string(),
             vertex_entry: "dummy".to_string(),
             fragment_entry: "dummy".to_string(),
             pixel_format: wgpu::TextureFormat::Rgba8Unorm,
             vertex_buffer_layout: Vec::new(),
+            bind_group_layouts: Vec::new(),
+            device: device,
         };
+    }
+
+    pub fn reset(&mut self) {
+        self.vertex_buffer_layout.clear();
+        self.bind_group_layouts.clear();
     }
 
     pub fn add_buffer_layout(&mut self, layout: Option<wgpu::VertexBufferLayout<'static>>) {
         self.vertex_buffer_layout.push(layout);
+    }
+
+    pub fn add_bind_group_layout(&mut self, layout: &'a wgpu::BindGroupLayout) {
+        self.bind_group_layouts.push(layout);
     }
 
     pub fn set_shader_module(&mut self, shader_filename: &str, vertex_entry: &str, fragment_entry: &str) {
@@ -39,7 +52,7 @@ impl PipelineBuilder {
         self.pixel_format = pixel_format;
     }
 
-    pub fn build_pipeline(&self, device: &wgpu::Device) -> wgpu::RenderPipeline {
+    pub fn build_pipeline(&mut self, label: &str) -> wgpu::RenderPipeline {
         let mut filepath = current_dir().unwrap();
         filepath.push("assets/");
         filepath.push(self.shader_filename.as_str());
@@ -48,7 +61,7 @@ impl PipelineBuilder {
             .expect("Can't read source code");
 
         // compile shaders into GPU shader module
-        let shader_module = device.create_shader_module(
+        let shader_module = self.device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: Some("Shader Module"),
                 source: wgpu::ShaderSource::Wgsl(
@@ -58,10 +71,12 @@ impl PipelineBuilder {
         );
 
         // describes resources available to shaders
-        let pipeline_layout = device.create_pipeline_layout(
+        let bind_group_layouts: Vec<Option<&wgpu::BindGroupLayout>> =
+            self.bind_group_layouts.iter().map(|i| Some(*i)).collect();
+        let pipeline_layout = self.device.create_pipeline_layout(
             &wgpu::PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
+                label: Some(label),
+                bind_group_layouts: &bind_group_layouts,
                 immediate_size: 0,
             }
         );
@@ -76,9 +91,9 @@ impl PipelineBuilder {
         })];
 
         // creates gpu pipeline
-        return device.create_render_pipeline(
+        let render_pipeline = self.device.create_render_pipeline(
             &wgpu::RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
+                label: Some(label),
                 layout: Some(&pipeline_layout),
 
                 vertex: wgpu::VertexState {
@@ -114,6 +129,10 @@ impl PipelineBuilder {
                 cache: None,
             }
         );
+
+        self.reset();
+
+        return render_pipeline;
     }
 }
 
