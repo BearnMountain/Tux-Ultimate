@@ -3,6 +3,8 @@ use engine::renderer::pipeline;
 use engine::renderer::mesh_builder;
 
 mod game;
+mod util;
+use util::config::Config;
 
 use engine::io::keyboard::{KEYBOARD, KeyboardLayer};
 use std::sync::Arc;
@@ -33,102 +35,28 @@ struct State {
 }
 
 impl State {
-    pub async fn new(window: Arc<Window>) -> Self {
-        let size = window.inner_size();
-
-        // descriptor to handle gpu
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor{
-            backends: wgpu::Backends::PRIMARY,
-            flags: Default::default(),
-            memory_budget_thresholds: Default::default(),
-            backend_options: Default::default(),
-            display: None,
-        });
-        
-        // creates winit surface for graphics
-        let surface = instance.create_surface(window.clone()).unwrap();
-
-        // select physical gpu
-        let adapter = instance.request_adapter(&wgpu::RequestAdapterOptionsBase {
-            power_preference: wgpu::PowerPreference::default(),
-            force_fallback_adapter: false,
-            compatible_surface: Some(&surface),
-            ..Default::default()
-        }).await.unwrap();
-
-        // logical device and command queue for graphics
-        let (device, queue) = adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("Device"),
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::default(),
-                experimental_features: wgpu::ExperimentalFeatures::disabled(),
-                memory_hints: Default::default(),
-                trace: wgpu::Trace::Off,
-            }
-        ).await.unwrap();
-
-        // format for the surface
-        let surface_capabilities = surface.get_capabilities(&adapter);
-        let surface_format = surface_capabilities.formats.iter()
-            .copied().filter(|f| f.is_srgb())
-            .next().unwrap_or(surface_capabilities.formats[0]);
-
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_format,
-            color_space: wgpu::SurfaceColorSpace::default(),
-            width: size.width,
-            height: size.height,
-            present_mode: surface_capabilities.present_modes[0],
-            desired_maximum_frame_latency: 2,
-            alpha_mode: surface_capabilities.alpha_modes[0],
-            view_formats: vec![],
-        };
-        surface.configure(&device, &config);
-
-        // vertex buffer for triangles
-        let quad_mesh = mesh_builder::make_quad(&device);
-        let material_bind_group_layout: wgpu::BindGroupLayout;
-        {
-            let mut builder = bind_group_layout::Builder::new(&device);
-            builder.add_material();
-            material_bind_group_layout = builder.build("MaterialBindGroupLayout");
-
-        }
-
-        let render_pipeline: wgpu::RenderPipeline;
-        {
-            // creates pipeline
-            let mut builder = pipeline::Builder::new(&device);
-            builder.set_shader_module("shaders/shader.wgsl", "vs_main", "fs_main");
-            builder.set_pixel_format(config.format);
-            builder.add_buffer_layout(Some(mesh_builder::Vertex::get_layout()));
-            builder.add_bind_group_layout(&material_bind_group_layout);
-            render_pipeline = builder.build_pipeline("RenderPipeline");
-        }
-
-        return Self {
-            window: window,
-            instance: instance,
-            surface: surface,
-            device: device,
-            queue: queue,
-            config: config,
-            size: size,
-            render_pipeline: render_pipeline,
-            quad_mesh: quad_mesh,
-        };
-    }
-
-    pub fn resize(&mut self, width: u32, height: u32) {
-        if width > 0 && height > 0 {
-            let max = 2048;
-            self.config.width = width.min(max);
-            self.config.height = height.min(max);
-            self.surface.configure(&self.device, &self.config);
-        }
-    }
+    // pub async fn new(window: Arc<Window>) -> Self {
+    //     // vertex buffer for triangles
+    //     let quad_mesh = mesh_builder::make_quad(&device);
+    //     let material_bind_group_layout: wgpu::BindGroupLayout;
+    //     {
+    //         let mut builder = bind_group_layout::Builder::new(&device);
+    //         builder.add_material();
+    //         material_bind_group_layout = builder.build("MaterialBindGroupLayout");
+    //
+    //     }
+    //
+    //     let render_pipeline: wgpu::RenderPipeline;
+    //     {
+    //         // creates pipeline
+    //         let mut builder = pipeline::Builder::new(&device);
+    //         builder.set_shader_module("shaders/shader.wgsl", "vs_main", "fs_main");
+    //         builder.set_pixel_format(config.format);
+    //         builder.add_buffer_layout(Some(mesh_builder::Vertex::get_layout()));
+    //         builder.add_bind_group_layout(&material_bind_group_layout);
+    //         render_pipeline = builder.build_pipeline("RenderPipeline");
+    //     }
+    // }
 
     pub fn render(&mut self) -> Result<()>{
         self.window.request_redraw();
@@ -141,11 +69,12 @@ impl State {
             wgpu::CurrentSurfaceTexture::Lost => {
                 self.resize(self.size.width, self.size.height);
                 return Ok(());
-			},
+            },
             wgpu::CurrentSurfaceTexture::Validation => {
                 panic!("Surface validation failed");
-			},
+            },
         };
+
         let image_view = surface_texture.texture.create_view(
             &wgpu::TextureViewDescriptor::default()
         );
@@ -318,6 +247,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::from_env(
         Env::default().default_filter_or("warn")
     ).init();
+    Config::init("assets/config.toml");
+
     let event_loop = EventLoop::new()?;
 
     // setting default keybinds
