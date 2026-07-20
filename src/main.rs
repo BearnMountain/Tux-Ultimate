@@ -1,42 +1,30 @@
 mod engine;
-use engine::renderer::pipeline;
-use engine::renderer::mesh_builder;
 
 mod game;
 mod util;
-use glm::intBitsToFloat;
 use util::config::Config;
 
-use engine::io::keyboard::{KEYBOARD, KeyboardLayer};
+use engine::io::keyboard::KeyboardLayer;
 use std::sync::Arc;
 
 use anyhow::Result;
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, dpi::PhysicalSize, event::{self, ElementState, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{self, KeyCode, PhysicalKey::{self, Code}}, window::{Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, 
+    event::{ElementState, WindowEvent}, 
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, 
+    keyboard::{KeyCode, PhysicalKey::{self}}, 
+    window::{Window, WindowAttributes, WindowId},
 };
 
-use wgpu;
-
+use crate::engine::Engine;
 use crate::engine::io::keyboard::Keyboard;
-use crate::engine::renderer::{self, bind_group_layout};
-
-struct State {
-    window: Arc<Window>,
-    instance: wgpu::Instance,
-    surface: wgpu::Surface<'static>,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    size: PhysicalSize<u32>,
 
     // loading graphics
-    render_pipeline: wgpu::RenderPipeline,
-    quad_mesh: mesh_builder::Mesh,
-}
+    // render_pipeline: wgpu::RenderPipeline,
+    // quad_mesh: mesh_builder::Mesh,
 
-impl State {
     // pub async fn new(window: Arc<Window>) -> Self {
     //     // vertex buffer for triangles
     //     let quad_mesh = mesh_builder::make_quad(&device);
@@ -60,90 +48,16 @@ impl State {
     //     }
     // }
 
-    pub fn render(&mut self) -> Result<()>{
-        self.window.request_redraw();
-        let surface_texture = match self.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
-            wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
-            wgpu::CurrentSurfaceTexture::Timeout |
-            wgpu::CurrentSurfaceTexture::Occluded => return Ok(()),
-            wgpu::CurrentSurfaceTexture::Outdated |
-            wgpu::CurrentSurfaceTexture::Lost => {
-                self.resize(self.size.width, self.size.height);
-                return Ok(());
-            },
-            wgpu::CurrentSurfaceTexture::Validation => {
-                panic!("Surface validation failed");
-            },
-        };
-
-        let image_view = surface_texture.texture.create_view(
-            &wgpu::TextureViewDescriptor::default()
-        );
-
-        // queue for all draw calls
-        let mut command_encoder = self.device.create_command_encoder(
-            &wgpu::CommandEncoderDescriptor {
-                label: Some("Render Encoder"),
-            }
-        );
-
-        // clear color
-        let color_attachment = wgpu::RenderPassColorAttachment {
-            view: &image_view,
-            depth_slice: None,
-            resolve_target: None,
-            ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                    r: 0.25,
-                    g: 0.0,
-                    b: 0.5,
-                    a: 0.0,
-                }),
-                store: wgpu::StoreOp::Store,
-            },
-        };
-
-        let render_pass_descriptor = wgpu::RenderPassDescriptor {
-            label: Some("Renderpass"),
-            color_attachments: &[Some(color_attachment)],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        };
-
-        // submit draw commands and present to window surface texture
-        {
-            let mut pass = command_encoder
-                .begin_render_pass(&render_pass_descriptor);
-
-            // draw each pipeline
-            pass.set_pipeline(&self.render_pipeline);
-            pass.set_vertex_buffer(0, self.quad_mesh.vertex_buffer.slice(..));
-            pass.set_index_buffer(self.quad_mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            pass.draw_indexed(0..6, 0, 0..1);
-        }
-        self.queue.submit(std::iter::once(command_encoder.finish()));
-        self.queue.present(surface_texture);
-
-        return Ok(());
-    }
-    
-    pub fn update_surface(&mut self) {
-        self.surface = self.instance.create_surface(self.window.clone()).unwrap();
-    }
-}
 
 struct App {
-    state: Option<State>,
+    engine: Option<Engine>,
     window: Option<Arc<Window>>,
 }
 
 impl App {
     pub fn new() -> Self {
         return Self {
-            state: None,
+            engine: None,
             window: None,
         }
     }
@@ -158,16 +72,12 @@ impl ApplicationHandler for App {
         let window = Arc::new(
             event_loop.create_window(WindowAttributes::default()).unwrap()
         );
-        self.state = Some(pollster::block_on(State::new(window.clone())));
+        self.engine = Some(Engine::new(window.clone()));
         self.window = Some(window);
         self.window.as_ref().unwrap().request_redraw();
-    }
 
-    // fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-    //     if let Some(window) = &self.window {
-    //         window.request_redraw();
-    //     }
-    // }
+        // set default keybinds
+    }
 
     fn window_event(
         &mut self,
@@ -180,10 +90,9 @@ impl ApplicationHandler for App {
         match event {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
             WindowEvent::Resized(physical_size) => {
-                if let Some(state) = self.state.as_mut() {
-                    state.size = physical_size;
-                    state.update_surface();
-                    state.resize(state.size.width, state.size.height);
+                if let Some(engine) = &mut self.engine {
+                    engine.renderer.resize(Some(physical_size));
+                    engine.renderer.update_surface();
                 }
             },
             // WindowEvent::Moved(physical_position) => todo!(),
@@ -229,14 +138,11 @@ impl ApplicationHandler for App {
             // WindowEvent::Occluded(_) => todo!(),
             WindowEvent::RedrawRequested => {
                 // draw
-                if let Some(state) = self.state.as_mut() {
-                    // if state.size.width != state.config.width || state.size.height != state.config.height {
-                    //     state.resize(state.size.width, state.size.height);
-                    // }
-                    if let Err(e) = state.render() {
+                if let Some(engine) = &mut self.engine {
+                    if let Err(e) = engine.renderer.render() {
                         eprintln!("render error: {e:?}");
-                        state.update_surface();
-                        state.resize(state.size.width, state.size.height);
+                        engine.renderer.update_surface();
+                        engine.renderer.resize(None);
                     }
                 }
                 // self.window.as_ref().unwrap().request_redraw();
@@ -247,11 +153,6 @@ impl ApplicationHandler for App {
 }
 
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    // initializes system peripherals
-    env_logger::Builder::from_env(
-        Env::default().default_filter_or("warn")
-    ).init();
-
     let event_loop = EventLoop::new()?;
 
     // setting default keybinds
@@ -279,9 +180,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 // engine has textures
 // shader uses textures
 fn main() {
-    // configuring everything needed
-    Keyboard::init_main_thread();
+    // init system info
+    env_logger::Builder::from_env(
+        Env::default().default_filter_or("warn")
+    ).init();
     Config::init("assets/config.toml");
+    Keyboard::init_main_thread();
+
     let _ = pollster::block_on(run());
 }
 

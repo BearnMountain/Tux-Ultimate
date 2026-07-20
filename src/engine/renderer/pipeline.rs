@@ -1,14 +1,10 @@
-
 use std::env::current_dir;
 use std::fs;
 
-// use wgpu::RenderPipeline;
-
+use crate::engine::assets::{types::shader::Shader};
 
 pub struct Builder<'a> {
-    shader_filename: String,
-    vertex_entry: String,
-    fragment_entry: String,
+    shader: Option<&'a Shader>,
     pixel_format: wgpu::TextureFormat,
     vertex_buffer_layout: Vec<Option<wgpu::VertexBufferLayout<'static>>>,
     bind_group_layouts: Vec<&'a wgpu::BindGroupLayout>,
@@ -16,12 +12,9 @@ pub struct Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
-
     pub fn new(device: &'a wgpu::Device) -> Self {
         return Self {
-            shader_filename: "dummy".to_string(),
-            vertex_entry: "dummy".to_string(),
-            fragment_entry: "dummy".to_string(),
+            shader: None,
             pixel_format: wgpu::TextureFormat::Rgba8Unorm,
             vertex_buffer_layout: Vec::new(),
             bind_group_layouts: Vec::new(),
@@ -32,6 +25,7 @@ impl<'a> Builder<'a> {
     pub fn reset(&mut self) {
         self.vertex_buffer_layout.clear();
         self.bind_group_layouts.clear();
+        self.shader = None;
     }
 
     pub fn add_buffer_layout(&mut self, layout: Option<wgpu::VertexBufferLayout<'static>>) {
@@ -42,34 +36,15 @@ impl<'a> Builder<'a> {
         self.bind_group_layouts.push(layout);
     }
 
-    pub fn set_shader_module(&mut self, shader_filename: &str, vertex_entry: &str, fragment_entry: &str) {
-        self.shader_filename = shader_filename.to_string();
-        self.vertex_entry = vertex_entry.to_string();
-        self.fragment_entry = fragment_entry.to_string();
+    pub fn load_shader(&mut self, shader: &'a Shader) {
+        self.shader = Some(shader);
     }
-
+    
     pub fn set_pixel_format(&mut self, pixel_format: wgpu::TextureFormat) {
         self.pixel_format = pixel_format;
     }
 
     pub fn build_pipeline(&mut self, label: &str) -> wgpu::RenderPipeline {
-        let mut filepath = current_dir().unwrap();
-        filepath.push("assets/");
-        filepath.push(self.shader_filename.as_str());
-        let filepath = filepath.into_os_string().into_string().unwrap();
-        let source_code = fs::read_to_string(filepath)
-            .expect("Can't read source code");
-
-        // compile shaders into GPU shader module
-        let shader_module = self.device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
-                label: Some("Shader Module"),
-                source: wgpu::ShaderSource::Wgsl(
-                    source_code.into()
-                ),
-            }
-        );
-
         // describes resources available to shaders
         let bind_group_layouts: Vec<Option<&wgpu::BindGroupLayout>> =
             self.bind_group_layouts.iter().map(|i| Some(*i)).collect();
@@ -97,8 +72,8 @@ impl<'a> Builder<'a> {
                 layout: Some(&pipeline_layout),
 
                 vertex: wgpu::VertexState {
-                    module: &shader_module,
-                    entry_point: Some(&self.vertex_entry),
+                    module: &self.shader.unwrap().shader_module,
+                    entry_point: Some(&self.shader.unwrap().vertex_entry),
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                     buffers: &self.vertex_buffer_layout,
                 },
@@ -120,8 +95,8 @@ impl<'a> Builder<'a> {
                     alpha_to_coverage_enabled: false,
                 },
                 fragment: Some(wgpu::FragmentState {
-                    module: &shader_module,
-                    entry_point: Some(&self.fragment_entry),
+                    module: &self.shader.unwrap().shader_module,
+                    entry_point: Some(&self.shader.unwrap().fragment_entry),
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                     targets: &render_targets,
                 }),
@@ -135,22 +110,3 @@ impl<'a> Builder<'a> {
         return render_pipeline;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

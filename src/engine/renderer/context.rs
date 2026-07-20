@@ -6,13 +6,13 @@ use crate::util::config::Config;
 
 // context of how graphics are rendered on the main window
 pub struct RenderContext {
-    window: Arc<Window>,
-    instance: wgpu::Instance,
-    surface: wgpu::Surface<'static>,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    size: PhysicalSize<u32>,
+    pub window: Arc<Window>,
+    pub instance: wgpu::Instance,
+    pub surface: wgpu::Surface<'static>,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+    pub config: wgpu::SurfaceConfiguration,
+    pub size: PhysicalSize<u32>,
 }
 
 impl RenderContext {
@@ -101,5 +101,10 @@ impl RenderContext {
             self.config.height = height.min(max);
             self.surface.configure(&self.device, &self.config);
         }
+    }
+
+    pub fn update_surface(&mut self) {
+        self.surface = self.instance.create_surface(self.window.clone()).unwrap();
+        self.surface.configure(&self.device, &self.config);
     }
 }
