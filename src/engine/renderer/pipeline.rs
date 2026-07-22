@@ -1,4 +1,4 @@
-use std::env::current_dir;
+use std::{collections::HashMap, env::current_dir};
 use std::fs;
 
 use crate::engine::assets::{types::shader::Shader};
@@ -7,7 +7,7 @@ pub struct Builder<'a> {
     shader: Option<&'a Shader>,
     pixel_format: wgpu::TextureFormat,
     vertex_buffer_layout: Vec<Option<wgpu::VertexBufferLayout<'static>>>,
-    bind_group_layouts: Vec<&'a wgpu::BindGroupLayout>,
+    bind_group_layouts: Vec<Option<&'a wgpu::BindGroupLayout>>,
     device: &'a wgpu::Device,
 }
 
@@ -33,7 +33,7 @@ impl<'a> Builder<'a> {
     }
 
     pub fn add_bind_group_layout(&mut self, layout: &'a wgpu::BindGroupLayout) {
-        self.bind_group_layouts.push(layout);
+        self.bind_group_layouts.push(Some(layout));
     }
 
     pub fn load_shader(&mut self, shader: &'a Shader) {
@@ -46,12 +46,10 @@ impl<'a> Builder<'a> {
 
     pub fn build_pipeline(&mut self, label: &str) -> wgpu::RenderPipeline {
         // describes resources available to shaders
-        let bind_group_layouts: Vec<Option<&wgpu::BindGroupLayout>> =
-            self.bind_group_layouts.iter().map(|i| Some(*i)).collect();
         let pipeline_layout = self.device.create_pipeline_layout(
             &wgpu::PipelineLayoutDescriptor {
                 label: Some(label),
-                bind_group_layouts: &bind_group_layouts,
+                bind_group_layouts: &self.bind_group_layouts,
                 immediate_size: 0,
             }
         );
@@ -110,3 +108,20 @@ impl<'a> Builder<'a> {
         return render_pipeline;
     }
 }
+
+// #[derive(Hash)]
+// pub struct PipelineKey {
+//     pipeline: wgpu::RenderPipeline,
+// }
+//
+// pub struct PipelineStorage {
+//     pipelines: HashMap<PipelineKey, wgpu::RenderPipeline>,
+// }
+//
+// impl PipelineStorage {
+//     pub fn new() -> Self {
+//         return Self {
+//             pipelines: HashMap::new(),
+//         }
+//     }
+// }

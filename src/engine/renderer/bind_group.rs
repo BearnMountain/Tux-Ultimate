@@ -1,50 +1,136 @@
 pub struct Builder<'a> {
-    entries: Vec<wgpu::BindGroupEntry<'a>>,
-    layout: Option<&'a wgpu::BindGroupLayout>,
     device: &'a wgpu::Device,
+    layout_entries: Vec<wgpu::BindGroupLayoutEntry>,
+    group_entries: Vec<wgpu::BindGroupEntry<'a>>,
 }
 
 impl<'a> Builder<'a> {
     pub fn new (device: &'a wgpu::Device) -> Self {
-
-
         return Builder {
-            entries: Vec::new(),
-            layout: None,
             device: device,
+            layout_entries: Vec::new(),
+            group_entries: Vec::new(),
         }
     }
 
     fn reset(&mut self) {
-        self.entries.clear();
+        self.layout_entries.clear();
+        self.group_entries.clear();
     }
 
-    pub fn set_layout(&mut self, layout: &'a wgpu::BindGroupLayout) {
-        self.layout = Some(layout);
-    }
-
-    pub fn add_material(&mut self, view: &'a wgpu::TextureView, sampler: &'a wgpu::Sampler) {
-        self.entries.push(wgpu::BindGroupEntry {
-            binding: self.entries.len() as u32,
-            resource: wgpu::BindingResource::TextureView(view),
-        });
-
-        self.entries.push(wgpu::BindGroupEntry {
-            binding: self.entries.len() as u32,
-            resource: wgpu::BindingResource::Sampler(sampler),
-        });
-    }
-
-    pub fn build(&mut self, label: &str) -> wgpu::BindGroup {
-        let bind_group = self.device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                label: Some(label),
-                layout: self.layout.unwrap(),
-                entries: &self.entries,
+    pub fn build(&mut self, label: &str) 
+        -> (wgpu::BindGroupLayout, wgpu::BindGroup)
+    {
+        let layout = self.device.create_bind_group_layout(
+            &wgpu::BindGroupLayoutDescriptor {
+                label: Some(&format!("{label}_layout")),
+                entries: &self.layout_entries,
             }
         );
-        self.reset();
 
-        return bind_group;
+        let group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some(&format!("{label}_group")),
+            layout: &layout,
+            entries: &self.group_entries,
+        });
+
+        self.reset();
+        return (layout, group);
+    }
+
+    pub fn add_buffer(
+        &mut self, 
+        shader_type: wgpu::ShaderStages, 
+        ty: wgpu::BufferBindingType,
+        buffer: &'a wgpu::Buffer
+    ) -> &mut Self {
+        let binding = self.layout_entries.len() as u32;
+        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+            binding: binding,
+            visibility: shader_type,
+            ty: wgpu::BindingType::Buffer { 
+                ty, 
+                has_dynamic_offset: false, 
+                min_binding_size: None, 
+            },
+            count: None,
+        });
+        self.group_entries.push(wgpu::BindGroupEntry {
+            binding,
+            resource: buffer.as_entire_binding(),
+        });
+        return self;
+    }
+
+    pub fn add_texture_view(
+        &mut self,
+        shader_type: wgpu::ShaderStages,
+        sample_type: wgpu::TextureSampleType,
+        view_dimension: wgpu::TextureViewDimension,
+        texture_view: &'a wgpu::TextureView,
+    ) -> &mut Self {
+        let binding = self.layout_entries.len() as u32;
+        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+            binding,
+            visibility: shader_type,
+            ty: wgpu::BindingType::Texture {
+                sample_type,
+                view_dimension,
+                multisampled: false,
+            },
+            count: None,
+        });
+        self.group_entries.push(wgpu::BindGroupEntry {
+            binding,
+            resource: wgpu::BindingResource::TextureView(texture_view),
+        });
+        return self;
+    }
+
+    pub fn add_texture_storage(
+        &mut self,
+        shader_type: wgpu::ShaderStages,
+        access: wgpu::StorageTextureAccess,
+        format: wgpu::TextureFormat,
+        view_dimension: wgpu::TextureViewDimension,
+        storage_texture_view: &'a wgpu::TextureView,
+    ) -> &mut Self {
+        let binding = self.layout_entries.len() as u32;
+        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+            binding,
+            visibility: shader_type,
+            ty: wgpu::BindingType::StorageTexture { 
+                access, 
+                format, 
+                view_dimension, 
+            },
+            count: None,
+        });
+        self.group_entries.push(wgpu::BindGroupEntry {
+            binding,
+            resource: wgpu::BindingResource::TextureView(storage_texture_view),
+        });
+
+        return self;
+    }
+
+    pub fn add_texture_sampler(
+        &mut self,
+        shader_type: wgpu::ShaderStages,
+        binding_type: wgpu::SamplerBindingType,
+        texture_sampler: &'a wgpu::Sampler,
+    ) -> &mut Self {
+        let binding = self.layout_entries.len() as u32;
+        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+            binding,
+            visibility: shader_type,
+            ty: wgpu::BindingType::Sampler(binding_type),
+            count: None,
+        });
+        self.group_entries.push(wgpu::BindGroupEntry {
+            binding,
+            resource: wgpu::BindingResource::Sampler(texture_sampler),
+        });
+        self
     }
 }

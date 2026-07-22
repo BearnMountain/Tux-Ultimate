@@ -1,21 +1,27 @@
-use winit::dpi::PhysicalSize;
-
 pub mod pipeline;
 pub mod mesh_builder;
 // pub mod model_loader;
 pub mod context;
-pub mod bind_group_layout;
 pub mod bind_group;
+
+use winit::dpi::PhysicalSize;
 
 pub struct Renderer {
     graphics: context::RenderContext,
+
+    pipeline_cache: pipeline::PipelineStorage,
 }
 
 impl Renderer {
     pub fn new(graphics: context::RenderContext) -> Self {
         return Self {
             graphics,
+            pipeline_cache: pipeline::PipelineStorage::new(),
         };
+    }
+
+    fn render_pass(&self, pass: &mut wgpu::RenderPass) {
+
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
@@ -42,7 +48,7 @@ impl Renderer {
         );
 
         // queue for all draw calls
-        let mut command_encoder =self.graphics.device.create_command_encoder(
+        let mut command_encoder = self.graphics.device.create_command_encoder(
             &wgpu::CommandEncoderDescriptor {
                 label: Some("Renderer Encoder"),
             }
@@ -78,6 +84,7 @@ impl Renderer {
             );
 
             // pass through each pipeline and render
+            self.render_pass(&mut pass);
         }
 
         self.graphics.queue.submit(std::iter::once(command_encoder.finish()));
