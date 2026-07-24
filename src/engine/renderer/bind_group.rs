@@ -1,41 +1,35 @@
-pub struct Builder<'a> {
+use wgpu::wgc::resource;
+
+
+pub struct LayoutBuilder<'a> {
     device: &'a wgpu::Device,
-    layout_entries: Vec<wgpu::BindGroupLayoutEntry>,
-    group_entries: Vec<wgpu::BindGroupEntry<'a>>,
+    pub entries: Vec<wgpu::BindGroupLayoutEntry>,
 }
 
-impl<'a> Builder<'a> {
+impl<'a> LayoutBuilder<'a> {
     pub fn new (device: &'a wgpu::Device) -> Self {
-        return Builder {
+        return Self {
             device: device,
-            layout_entries: Vec::new(),
-            group_entries: Vec::new(),
+            entries: Vec::new(),
         }
     }
 
     fn reset(&mut self) {
-        self.layout_entries.clear();
-        self.group_entries.clear();
+        self.entries.clear();
     }
 
     pub fn build(&mut self, label: &str) 
-        -> (wgpu::BindGroupLayout, wgpu::BindGroup)
+        -> wgpu::BindGroupLayout
     {
         let layout = self.device.create_bind_group_layout(
             &wgpu::BindGroupLayoutDescriptor {
                 label: Some(&format!("{label}_layout")),
-                entries: &self.layout_entries,
+                entries: &self.entries,
             }
         );
 
-        let group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some(&format!("{label}_group")),
-            layout: &layout,
-            entries: &self.group_entries,
-        });
-
         self.reset();
-        return (layout, group);
+        return layout;
     }
 
     pub fn add_buffer(
@@ -44,8 +38,8 @@ impl<'a> Builder<'a> {
         ty: wgpu::BufferBindingType,
         buffer: &'a wgpu::Buffer
     ) -> &mut Self {
-        let binding = self.layout_entries.len() as u32;
-        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+        let binding = self.entries.len() as u32;
+        self.entries.push(wgpu::BindGroupLayoutEntry {
             binding: binding,
             visibility: shader_type,
             ty: wgpu::BindingType::Buffer { 
@@ -55,10 +49,6 @@ impl<'a> Builder<'a> {
             },
             count: None,
         });
-        self.group_entries.push(wgpu::BindGroupEntry {
-            binding,
-            resource: buffer.as_entire_binding(),
-        });
         return self;
     }
 
@@ -67,10 +57,9 @@ impl<'a> Builder<'a> {
         shader_type: wgpu::ShaderStages,
         sample_type: wgpu::TextureSampleType,
         view_dimension: wgpu::TextureViewDimension,
-        texture_view: &'a wgpu::TextureView,
     ) -> &mut Self {
-        let binding = self.layout_entries.len() as u32;
-        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+        let binding = self.entries.len() as u32;
+        self.entries.push(wgpu::BindGroupLayoutEntry {
             binding,
             visibility: shader_type,
             ty: wgpu::BindingType::Texture {
@@ -80,10 +69,7 @@ impl<'a> Builder<'a> {
             },
             count: None,
         });
-        self.group_entries.push(wgpu::BindGroupEntry {
-            binding,
-            resource: wgpu::BindingResource::TextureView(texture_view),
-        });
+
         return self;
     }
 
@@ -93,10 +79,9 @@ impl<'a> Builder<'a> {
         access: wgpu::StorageTextureAccess,
         format: wgpu::TextureFormat,
         view_dimension: wgpu::TextureViewDimension,
-        storage_texture_view: &'a wgpu::TextureView,
     ) -> &mut Self {
-        let binding = self.layout_entries.len() as u32;
-        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+        let binding = self.entries.len() as u32;
+        self.entries.push(wgpu::BindGroupLayoutEntry {
             binding,
             visibility: shader_type,
             ty: wgpu::BindingType::StorageTexture { 
@@ -106,11 +91,6 @@ impl<'a> Builder<'a> {
             },
             count: None,
         });
-        self.group_entries.push(wgpu::BindGroupEntry {
-            binding,
-            resource: wgpu::BindingResource::TextureView(storage_texture_view),
-        });
-
         return self;
     }
 
@@ -118,19 +98,142 @@ impl<'a> Builder<'a> {
         &mut self,
         shader_type: wgpu::ShaderStages,
         binding_type: wgpu::SamplerBindingType,
-        texture_sampler: &'a wgpu::Sampler,
     ) -> &mut Self {
-        let binding = self.layout_entries.len() as u32;
-        self.layout_entries.push(wgpu::BindGroupLayoutEntry {
+        let binding = self.entries.len() as u32;
+        self.entries.push(wgpu::BindGroupLayoutEntry {
             binding,
             visibility: shader_type,
             ty: wgpu::BindingType::Sampler(binding_type),
             count: None,
         });
-        self.group_entries.push(wgpu::BindGroupEntry {
-            binding,
-            resource: wgpu::BindingResource::Sampler(texture_sampler),
+        return self;
+    }
+}
+
+pub struct ResourceBuilder<'a> {
+    device: &'a wgpu::Device,
+    layout: &'a LayoutBuilder<'a>,
+
+    entries: Vec<wgpu::BindGroupEntry<'a>>,
+}
+
+impl<'a> ResourceBuilder<'a> {
+    pub fn new(
+        device: &'a wgpu::Device, 
+        layout: &'a LayoutBuilder<'a>,
+    ) -> Self {
+        return Self {
+            device,
+            layout,
+            entries: Vec::new(),
+            
+        };
+    }
+
+    fn reset(&mut self) {
+        self.entries.clear();
+    }
+
+    pub fn build(&mut self, label: &str, layout: &'a wgpu::BindGroupLayout) -> wgpu::BindGroup {
+        let resource = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some(&format!("{label}_group")),
+            layout: &layout,
+            entries: &self.entries,
         });
-        self
+
+        self.reset();
+        return resource;
+    }
+
+    pub fn buffer(&mut self, buffer: &'a wgpu::Buffer) -> Result<&mut Self, Box<dyn std::error::Error>> {
+        let expect = self.layout.entries
+            .get(self.entries.len())
+            .ok_or(format!(
+                "buffer binding goes out of bounce, only {} bindings", 
+                self.entries.len()
+            ))?;
+
+        match expect.ty {
+            wgpu::BindingType::Buffer {..} => {},
+            _ => {
+                return Err("incorrect binding resource order. buffer is not next".into());
+            },
+        }
+
+        self.entries.push(wgpu::BindGroupEntry {
+            binding: expect.binding,
+            resource: buffer.as_entire_binding(),
+        });
+
+        return Ok(self);
+    }
+
+    pub fn texture_view(&mut self, buffer: &'a wgpu::TextureView) -> Result<&mut Self, Box<dyn std::error::Error>> {
+        let expect = self.layout.entries
+            .get(self.entries.len())
+            .ok_or(format!(
+                "texture view binding goes out of bounce, only {} bindings", 
+                self.entries.len()
+            ))?;
+
+        match expect.ty {
+            wgpu::BindingType::Buffer {..} => {},
+            _ => {
+                return Err("incorrect binding resource order. texture view is not next".into());
+            },
+        }
+
+        self.entries.push(wgpu::BindGroupEntry {
+            binding: expect.binding,
+            resource: wgpu::BindingResource::TextureView(buffer),
+        });
+
+        return Ok(self);
+    }
+
+    pub fn texture_storage(&mut self, buffer: &'a wgpu::TextureView) -> Result<&mut Self, Box<dyn std::error::Error>> {
+        let expect = self.layout.entries
+            .get(self.entries.len())
+            .ok_or(format!(
+                "texture storage binding goes out of bounce, only {} bindings", 
+                self.entries.len()
+            ))?;
+
+        match expect.ty {
+            wgpu::BindingType::Buffer {..} => {},
+            _ => {
+                return Err("incorrect binding resource order. texture storage is not next".into());
+            },
+        }
+
+        self.entries.push(wgpu::BindGroupEntry {
+            binding: expect.binding,
+            resource: wgpu::BindingResource::TextureView(buffer),
+        });
+
+        return Ok(self);
+    }
+
+    pub fn texture_sampler(&mut self, buffer: &'a wgpu::Sampler) -> Result<&mut Self, Box<dyn std::error::Error>> {
+        let expect = self.layout.entries
+            .get(self.entries.len())
+            .ok_or(format!(
+                "texture sampler binding goes out of bounce, only {} bindings", 
+                self.entries.len()
+            ))?;
+
+        match expect.ty {
+            wgpu::BindingType::Buffer {..} => {},
+            _ => {
+                return Err("incorrect binding resource order. texture sampler is not next".into());
+            },
+        }
+
+        self.entries.push(wgpu::BindGroupEntry {
+            binding: expect.binding,
+            resource: wgpu::BindingResource::Sampler(buffer),
+        });
+
+        return Ok(self);
     }
 }

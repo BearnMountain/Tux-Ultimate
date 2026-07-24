@@ -109,19 +109,19 @@ impl<'a> Builder<'a> {
     }
 }
 
-// #[derive(Hash)]
-// pub struct PipelineKey {
-//     pipeline: wgpu::RenderPipeline,
-// }
-//
-// pub struct PipelineStorage {
-//     pipelines: HashMap<PipelineKey, wgpu::RenderPipeline>,
-// }
-//
-// impl PipelineStorage {
-//     pub fn new() -> Self {
-//         return Self {
-//             pipelines: HashMap::new(),
-//         }
-//     }
-// }
+#[derive(Hash)]
+pub struct PipelineKey {
+    // something
+}
+
+pub struct PipelineStorage {
+    pipelines: HashMap<PipelineKey, wgpu::RenderPipeline>,
+}
+
+impl PipelineStorage {
+    pub fn new() -> Self {
+        return Self {
+            pipelines: HashMap::new(),
+        }
+    }
+}
