@@ -1,9 +1,9 @@
 pub mod pipeline;
 pub mod mesh;
-// pub mod model_loader;
 pub mod context;
 pub mod bind_group;
 pub mod material;
+// pub mod model_loader;
 
 use winit::dpi::PhysicalSize;
 

@@ -61,9 +61,10 @@ impl Server {
     pub fn load_texture(
         &mut self, 
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         source: &RawSource,
     ) -> Option<Handle<Texture>> {
-        let texture = match Texture::D2("texture", device, source) {
+        let texture = match Texture::D2("texture", device, queue, source) {
             Ok(s) => s,
             Err(err) => {
                 log::error!("Server failed loading texture: {err}");
