@@ -1,8 +1,9 @@
 pub mod pipeline;
-pub mod mesh_builder;
+pub mod mesh;
 // pub mod model_loader;
 pub mod context;
 pub mod bind_group;
+pub mod material;
 
 use winit::dpi::PhysicalSize;
 
@@ -61,9 +62,9 @@ impl Renderer {
             resolve_target: None,
             ops: wgpu::Operations {
                 load: wgpu::LoadOp::Clear(wgpu::Color {
-                    r: 1.0,
-                    g: 0.0,
-                    b: 0.0,
+                    r: 0.0,
+                    g: 0.7,
+                    b: 0.3,
                     a: 0.5,
                 }),
                 store: wgpu::StoreOp::Store,

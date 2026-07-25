@@ -176,9 +176,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 
-// texture class
-// engine has textures
-// shader uses textures
 fn main() {
     // init system info
     env_logger::Builder::from_env(

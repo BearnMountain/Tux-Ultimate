@@ -1,6 +1,8 @@
 use wgpu::ShaderModule;
-use std::path::{PathBuf};
 
+use crate::engine::assets::types::{TextSource};
+
+// raw data turned to gpu resource
 pub struct Shader {
     pub shader_module: ShaderModule,
     pub vertex_entry: String,
@@ -8,32 +10,24 @@ pub struct Shader {
 }
 
 impl Shader {
-    // full filepath required
+    // turns source code to gpu data
     pub fn new(
         device: &wgpu::Device,
-        file_path: &PathBuf,
+        source: &TextSource,
         vertex_entry: &str,
         fragment_entry: &str,
     ) -> anyhow::Result<Self> {
-        let source = std::fs::read_to_string(file_path)?;
-
-        let shader_source = match file_path.extension().and_then(|e| e.to_str()) {
-            Some("wgsl") => wgpu::ShaderSource::Wgsl(source.into()),
-            Some(ext) => {
-                return Err(anyhow::anyhow!("Unsupported shader extension: {ext}").into());
-            }
-            None => {
-                return Err(anyhow::anyhow!("Shader has no extension"));
-            }
+        let shader_source = match source.path.extension().and_then(|e| e.to_str()) {
+            Some("wgsl") => wgpu::ShaderSource::Wgsl(source.source.clone().into()),
+            Some(ext) => { return Err(anyhow::anyhow!("Shader extension not supported: {ext}").into()); },
+            None => { return Err(anyhow::anyhow!("No shader extension").into()); },
         };
 
-        let shader_module = device.create_shader_module(
-            wgpu::ShaderModuleDescriptor {
-                label: Some("ShaderModule"),
-                source: shader_source,
-            }
-        );
-
+        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor { 
+            label: Some("ShaderModule"), 
+            source: shader_source,
+        });
+        
         return Ok(Self {
             shader_module,
             vertex_entry: vertex_entry.to_string(),
