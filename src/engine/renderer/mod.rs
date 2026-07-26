@@ -5,12 +5,19 @@ pub mod bind_group;
 pub mod material;
 // pub mod model_loader;
 
+use glm::ext::pi;
 use winit::dpi::PhysicalSize;
+
+use crate::engine::renderer::pipeline::PipelineID;
 
 pub struct Renderer {
     graphics: context::RenderContext,
 
     pipeline_cache: pipeline::PipelineStorage,
+    materials_cache: material::MaterialStorage,
+
+    // renderables
+    meshes_cache: mesh::MeshStorage,
 }
 
 impl Renderer {
@@ -18,11 +25,60 @@ impl Renderer {
         return Self {
             graphics,
             pipeline_cache: pipeline::PipelineStorage::new(),
+            materials_cache: material::MaterialStorage::new(),
+            meshes_cache: mesh::MeshStorage::new(),
         };
     }
 
-    fn render_pass(&self, pass: &mut wgpu::RenderPass) {
 
+            // let mut renderpass = command_encoder.begin_render_pass(&render_pass_descriptor);
+            // renderpass.set_pipeline(&self.render_pipeline);
+            //
+            // renderpass.set_bind_group(0, &self.quad_material.bind_group, &[]);
+            // renderpass.set_vertex_buffer(0, self.quad_mesh.vertex_buffer.slice(..));
+            // renderpass.set_index_buffer(self.quad_mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            // renderpass.draw_indexed(0..6, 0, 0..1);
+            //
+            // renderpass.set_bind_group(0, &self.triangle_material.bind_group, &[]);
+            // renderpass.set_vertex_buffer(0, self.triangle_mesh.slice(..));
+            // renderpass.draw(0..3, 0..1);
+
+    fn render_pass(&mut self, pass: &mut wgpu::RenderPass) {
+        { // self.meshes_cache run
+            // sorting meshes pipeline -> material
+            let meshes = self.meshes_cache.get_all_sorted(); 
+            if meshes.len() == 0 {
+                return;
+            }
+
+            let mut pipeline_id: pipeline::PipelineID = meshes[0].pipeline_id;
+            let mut material_id: material::MaterialID = meshes[0].material_id;
+            let mut material_bind_index = 0;
+            pass.set_pipeline(&self.pipeline_cache.get(pipeline_id).unwrap());
+            pass.set_bind_group(material_bind_index, &self.materials_cache.get(material_id).unwrap().bind_group, &[]);
+            pass.set_vertex_buffer(0, meshes[0].vertex_buffer.slice(..));
+            pass.set_index_buffer(meshes[0].index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            pass.draw_indexed(0..6, 0, 0..1); // TODO: need to not hardcode this
+
+            for mesh in meshes {
+                // updates pipeline/material for new sorted batch
+                if mesh.pipeline_id != pipeline_id {
+                    pipeline_id = mesh.pipeline_id;
+                    pass.set_pipeline(&self.pipeline_cache.get(pipeline_id).unwrap());
+                }
+                if mesh.material_id != material_id {
+                    material_bind_index += 1;
+                    material_id = mesh.material_id;
+                    pass.set_bind_group(material_bind_index, &self.materials_cache.get(material_id).unwrap().bind_group, &[]);
+                }
+
+                pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+                pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                pass.draw_indexed(0..6, 0, 0..1); // TODO: need to not hardcode this
+
+
+            }
+        }
     }
 
     pub fn render(&mut self) -> anyhow::Result<()> {
@@ -104,5 +160,16 @@ impl Renderer {
 
     pub fn update_surface(&mut self) {
         self.graphics.update_surface();
+    }
+
+    // adding items to cache
+    fn add_material(&mut self, material: material::Material) -> material::MaterialID {
+        return self.materials_cache.add(material);
+    }
+    fn add_pipeline(&mut self, pipeline: wgpu::RenderPipeline) -> pipeline::PipelineID {
+        return self.pipeline_cache.add(pipeline);
+    }
+    fn add_mesh(&mut self, mesh: mesh::Mesh) -> mesh::MeshID {
+        return self.meshes_cache.add(mesh);
     }
 }
