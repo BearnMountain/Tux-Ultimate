@@ -13,7 +13,7 @@ impl Shader {
     // turns source code to gpu data
     pub fn new(
         device: &wgpu::Device,
-        source: &TextSource,
+        source: TextSource,
         vertex_entry: &str,
         fragment_entry: &str,
     ) -> anyhow::Result<Self> {

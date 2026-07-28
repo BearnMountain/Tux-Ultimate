@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+#![allow(unused)]
 pub mod pipeline;
 pub mod mesh;
 pub mod context;
@@ -5,10 +7,8 @@ pub mod bind_group;
 pub mod material;
 // pub mod model_loader;
 
-use glm::ext::pi;
 use winit::dpi::PhysicalSize;
 
-use crate::engine::renderer::pipeline::PipelineID;
 
 pub struct Renderer {
     graphics: context::RenderContext,
@@ -23,25 +23,12 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(graphics: context::RenderContext) -> Self {
         return Self {
-            graphics,
+            graphics: graphics,
             pipeline_cache: pipeline::PipelineStorage::new(),
             materials_cache: material::MaterialStorage::new(),
             meshes_cache: mesh::MeshStorage::new(),
         };
     }
-
-
-            // let mut renderpass = command_encoder.begin_render_pass(&render_pass_descriptor);
-            // renderpass.set_pipeline(&self.render_pipeline);
-            //
-            // renderpass.set_bind_group(0, &self.quad_material.bind_group, &[]);
-            // renderpass.set_vertex_buffer(0, self.quad_mesh.vertex_buffer.slice(..));
-            // renderpass.set_index_buffer(self.quad_mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            // renderpass.draw_indexed(0..6, 0, 0..1);
-            //
-            // renderpass.set_bind_group(0, &self.triangle_material.bind_group, &[]);
-            // renderpass.set_vertex_buffer(0, self.triangle_mesh.slice(..));
-            // renderpass.draw(0..3, 0..1);
 
     fn render_pass(&mut self, pass: &mut wgpu::RenderPass) {
         { // self.meshes_cache run
@@ -163,13 +150,18 @@ impl Renderer {
     }
 
     // adding items to cache
-    fn add_material(&mut self, material: material::Material) -> material::MaterialID {
+    pub fn add_material(&mut self, material: material::Material) -> material::MaterialID {
         return self.materials_cache.add(material);
     }
-    fn add_pipeline(&mut self, pipeline: wgpu::RenderPipeline) -> pipeline::PipelineID {
+    pub fn add_pipeline(&mut self, pipeline: wgpu::RenderPipeline) -> pipeline::PipelineID {
         return self.pipeline_cache.add(pipeline);
     }
-    fn add_mesh(&mut self, mesh: mesh::Mesh) -> mesh::MeshID {
+    pub fn add_mesh(&mut self, mesh: mesh::Mesh) -> mesh::MeshID {
         return self.meshes_cache.add(mesh);
+    }
+
+    // get items from internal struct
+    pub fn get_render_context(&self) -> &context::RenderContext {
+        return &self.graphics;
     }
 }

@@ -1,7 +1,7 @@
 use glm::*;
 use wgpu::util::DeviceExt;
 
-use crate::engine::renderer::{self, pipeline};
+use crate::engine::renderer::{self};
 
 #[repr(C)] // want c layout for memory
 #[derive(Copy, Clone, Debug)]

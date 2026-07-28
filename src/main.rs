@@ -4,50 +4,21 @@ mod game;
 mod util;
 use util::config::Config;
 
-use engine::io::keyboard::KeyboardLayer;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use anyhow::Result;
 
 use env_logger::Env;
 use winit::{
     application::ApplicationHandler, 
-    event::{ElementState, WindowEvent}, 
+    event::{WindowEvent}, 
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, 
     keyboard::{KeyCode, PhysicalKey::{self}}, 
     window::{Window, WindowAttributes, WindowId},
 };
 
-use crate::engine::Engine;
-use crate::engine::io::keyboard::Keyboard;
-
-    // loading graphics
-    // render_pipeline: wgpu::RenderPipeline,
-    // quad_mesh: mesh_builder::Mesh,
-
-    // pub async fn new(window: Arc<Window>) -> Self {
-    //     // vertex buffer for triangles
-    //     let quad_mesh = mesh_builder::make_quad(&device);
-    //     let material_bind_group_layout: wgpu::BindGroupLayout;
-    //     {
-    //         let mut builder = bind_group_layout::Builder::new(&device);
-    //         builder.add_material();
-    //         material_bind_group_layout = builder.build("MaterialBindGroupLayout");
-    //
-    //     }
-    //
-    //     let render_pipeline: wgpu::RenderPipeline;
-    //     {
-    //         // creates pipeline
-    //         let mut builder = pipeline::Builder::new(&device);
-    //         builder.set_shader_module("shaders/shader.wgsl", "vs_main", "fs_main");
-    //         builder.set_pixel_format(config.format);
-    //         builder.add_buffer_layout(Some(mesh_builder::Vertex::get_layout()));
-    //         builder.add_bind_group_layout(&material_bind_group_layout);
-    //         render_pipeline = builder.build_pipeline("RenderPipeline");
-    //     }
-    // }
-
+use crate::engine::{
+    Engine, assets::{server}, renderer::{self, bind_group, mesh, pipeline}};
 
 struct App {
     engine: Option<Engine>,
@@ -75,6 +46,78 @@ impl ApplicationHandler for App {
         self.engine = Some(Engine::new(window.clone()));
         self.window = Some(window);
         self.window.as_ref().unwrap().request_redraw();
+
+        // testing engine
+        let engine = self.engine.as_mut().unwrap();
+
+        // gather test data
+        let (shader_text,texture_raw) = pollster::block_on(async {
+            tokio::try_join!(
+                server::Server::preload_text(Path::new("shaders/shader.wgsl")),
+                server::Server::preload_raw(Path::new("textures/brick-texture-54.png")),
+            )
+        }).expect("rip");
+
+        let shader_handle = match engine.asset_server.load_shader(shader_text, None, None) {
+            Some(shader) => shader,
+            None => { 
+                log::error!("failed to load shader source text");
+                return;
+            },
+        };
+        let texture_handle = match engine.asset_server.load_texture(texture_raw) {
+            Some(texture) => texture,
+            None => { 
+                log::error!("failed to load texture source raw");
+                return;
+            },
+        };
+
+        let mut binding = bind_group::LayoutBuilder::new(&engine.renderer.get_render_context().device);
+        let bind_group_layout_builder = binding
+            .add_texture_view(
+                wgpu::ShaderStages::FRAGMENT, 
+                wgpu::TextureSampleType::Float { 
+                    filterable: true,
+                }, wgpu::TextureViewDimension::D2
+            )
+            .add_texture_sampler(
+                wgpu::ShaderStages::FRAGMENT, 
+                wgpu::SamplerBindingType::Filtering
+            )
+            .build("material bind group test");
+
+        let pipeline = {
+            let contex = engine.renderer.get_render_context();
+            pipeline::Builder::new(&contex.device)
+                .set_shader(engine.asset_server.get_shader(shader_handle).unwrap())
+                .set_pixel_format(contex.config.format)
+                .add_buffer_layout(Some(mesh::Vertex::get_layout()))
+                .add_bind_group_layout(&bind_group_layout_builder.layout.clone().unwrap())
+                .build_pipeline("pipeline test")
+        };
+
+        let material = {
+            let contex = engine.renderer.get_render_context();
+            renderer::material::Material::new(
+                "test material", 
+                engine.asset_server.get_texture(texture_handle).unwrap(), 
+                &contex.device, 
+                &bind_group_layout_builder
+            )
+        };
+
+
+        let material_id = engine.renderer.add_material(material);
+        let pipeline_id = engine.renderer.add_pipeline(pipeline);
+        let mesh = renderer::mesh::Mesh::make_quad(
+            &engine.renderer.get_render_context().device, 
+            material_id,
+            pipeline_id,
+        );
+
+        let _mesh_id = engine.renderer.add_mesh(mesh);
+    
 
         // set default keybinds
     }
@@ -114,9 +157,9 @@ impl ApplicationHandler for App {
                         event_loop.exit();
                     }
 
-                    Keyboard::with_mut(|keyboard| {
-                        keyboard.handle_key(key, event.state);
-                    });
+                    // Keyboard::with_mut(|keyboard| {
+                    //     keyboard.handle_key(key, event.state);
+                    // });
                 }
             },
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
@@ -152,21 +195,17 @@ impl ApplicationHandler for App {
     }
 }
 
-async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let event_loop = EventLoop::new()?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // init system info
+    env_logger::Builder::from_env(
+        Env::default().default_filter_or("warn")
+    ).init();
+    Config::init("assets/config.toml");
 
-    // setting default keybinds
-    Keyboard::with_mut(|keyboard| {
-        keyboard.push_focus(KeyboardLayer::Base);
-        keyboard.subscribe(KeyCode::KeyW, Box::new(|state| {
-            if state == ElementState::Pressed {
-                println!("pressed w");
-            } else {
-                println!("released w");
-            }
-        }));
-        keyboard.pop_focus();
-    });
+    let rt = tokio::runtime::Runtime::new().expect("failed to start app");
+    let _guard = rt.enter();
+
+    let event_loop = EventLoop::new()?;
 
     event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
 
@@ -174,17 +213,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     event_loop.run_app(&mut app)?;
 
     return Ok(());
-}
-
-fn main() {
-    // init system info
-    env_logger::Builder::from_env(
-        Env::default().default_filter_or("warn")
-    ).init();
-    Config::init("assets/config.toml");
-    Keyboard::init_main_thread();
-
-    let _ = pollster::block_on(run());
 }
 
 

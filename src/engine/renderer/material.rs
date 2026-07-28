@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::engine::{assets::{
     types::texture::Texture,
 }, renderer::bind_group::{self, LayoutBuilder}};

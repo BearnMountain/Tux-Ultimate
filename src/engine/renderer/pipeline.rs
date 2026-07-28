@@ -27,20 +27,24 @@ impl<'a> Builder<'a> {
         self.shader = None;
     }
 
-    pub fn add_buffer_layout(&mut self, layout: Option<wgpu::VertexBufferLayout<'static>>) {
+    pub fn add_buffer_layout(&mut self, layout: Option<wgpu::VertexBufferLayout<'static>>) -> &mut Self {
         self.vertex_buffer_layout.push(layout);
+        return self;
     }
 
-    pub fn add_bind_group_layout(&mut self, layout: &'a wgpu::BindGroupLayout) {
+    pub fn add_bind_group_layout(&mut self, layout: &'a wgpu::BindGroupLayout) -> &mut Self {
         self.bind_group_layouts.push(Some(layout));
+        return self;
     }
 
-    pub fn load_shader(&mut self, shader: &'a Shader) {
+    pub fn set_shader(&mut self, shader: &'a Shader) -> &mut Self {
         self.shader = Some(shader);
+        return self;
     }
     
-    pub fn set_pixel_format(&mut self, pixel_format: wgpu::TextureFormat) {
+    pub fn set_pixel_format(&mut self, pixel_format: wgpu::TextureFormat) -> &mut Self {
         self.pixel_format = pixel_format;
+        return self;
     }
 
     pub fn build_pipeline(&mut self, label: &str) -> wgpu::RenderPipeline {

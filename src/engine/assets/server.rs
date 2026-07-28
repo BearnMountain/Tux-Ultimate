@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path};
 
 use crate::engine::assets::{
     handle::Handle, storage::Storage, types::{
@@ -7,13 +7,17 @@ use crate::engine::assets::{
 };
 
 pub struct Server {
+    device: wgpu::Device,
+    queue: wgpu::Queue,
     shaders: Storage<Shader>,
     textures: Storage<Texture>,
 }
 
 impl Server {
-    pub fn new() -> Self {
+    pub fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
         return Self {
+            device,
+            queue,
             shaders: Storage::new(),
             textures: Storage::new(),
         };
@@ -33,8 +37,7 @@ impl Server {
     /// Preload text source async, then call this func after 'join'
     pub fn load_shader(
         &mut self, 
-        device: &wgpu::Device,
-        source: &TextSource,
+        source: TextSource,
         vertex_entry: Option<&str>,
         fragment_entry: Option<&str>,
     ) -> Option<Handle<Shader>> {
@@ -47,7 +50,7 @@ impl Server {
             None => "fs_main"
         };
 
-        let shader = match Shader::new(device, source, ventry, fentry) {
+        let shader = match Shader::new(&self.device, source, ventry, fentry) {
             Ok(s) => s,
             Err(err) => {
                 log::error!("Server failed loading texture: {err}");
@@ -60,11 +63,9 @@ impl Server {
 
     pub fn load_texture(
         &mut self, 
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        source: &RawSource,
+        source: RawSource,
     ) -> Option<Handle<Texture>> {
-        let texture = match Texture::D2("texture", device, queue, source) {
+        let texture = match Texture::D2("texture", &self.device, &self.queue, source) {
             Ok(s) => s,
             Err(err) => {
                 log::error!("Server failed loading texture: {err}");

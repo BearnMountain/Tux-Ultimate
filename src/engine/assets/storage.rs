@@ -23,12 +23,8 @@ impl<T> Storage<T> {
         return Handle::new(id);
     }
 
-    pub fn remove(&mut self, handle: &Handle<T>) -> bool {
-        match self.assets.remove(&handle.id) {
-            Some(thing) => {let _ = thing; return true;},
-            None => false,
-        };
-        return false;
+    pub fn remove(&mut self, handle: &Handle<T>) -> Option<T> {
+        return self.assets.remove(&handle.id);
     }
 
     pub fn get(&self, handle: Handle<T>) -> Option<&T> {

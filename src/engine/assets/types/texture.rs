@@ -13,7 +13,7 @@ impl Texture {
         label: &str,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        source: &RawSource,
+        source: RawSource,
     ) -> anyhow::Result<Self> {
         let size = wgpu::Extent3d {
             width: source.width,
