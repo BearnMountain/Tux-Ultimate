@@ -2,17 +2,14 @@ mod engine;
 
 mod game;
 mod util;
+use glm::Vec3;
 use util::config::Config;
 
 use std::{path::Path, sync::Arc};
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, 
-    event::{WindowEvent}, 
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, 
-    keyboard::{KeyCode, PhysicalKey::{self}}, 
-    window::{Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, dpi::LogicalSize, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
 };
 
 use crate::engine::{
@@ -35,11 +32,19 @@ impl App {
 impl ApplicationHandler for App {
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let global_config = Config::get().read().unwrap();
         // generate ui
 
         // creating window
+        let attrs = WindowAttributes::default()
+            .with_title("Tux Ultimate")
+            .with_inner_size(LogicalSize::new(
+                global_config.window.width, 
+                global_config.window.height
+            ));
+
         let window = Arc::new(
-            event_loop.create_window(WindowAttributes::default()).unwrap()
+            event_loop.create_window(attrs).unwrap()
         );
         self.engine = Some(Engine::new(window.clone()));
         self.window = Some(window);
@@ -71,7 +76,9 @@ impl ApplicationHandler for App {
             },
         };
         
-        let mut binding = bind_group::LayoutBuilder::new(&engine.renderer.get_render_context().device);
+        let mut binding = bind_group::LayoutBuilder::new(
+            &engine.renderer.get_render_context().device
+        );
         let bind_group_layout_builder = binding
             .add_texture_view(
                 wgpu::ShaderStages::FRAGMENT, 
@@ -112,6 +119,8 @@ impl ApplicationHandler for App {
             &engine.renderer.get_render_context().device, 
             material_id,
             pipeline_id,
+            [100.0, 100.0],
+            [100.0, 100.0],
         );
         
         let _mesh_id = engine.renderer.add_mesh(mesh);

@@ -3,7 +3,14 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    pub window: WindowConfig,
     pub graphics: GraphicsConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct WindowConfig {
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Debug, Deserialize)]

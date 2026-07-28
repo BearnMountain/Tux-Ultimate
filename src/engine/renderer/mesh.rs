@@ -1,7 +1,7 @@
 use glm::*;
 use wgpu::util::DeviceExt;
 
-use crate::engine::renderer::{self};
+use crate::engine::renderer::{self, coordinate::Coordinate};
 
 #[repr(C)] // want c layout for memory
 #[derive(Copy, Clone, Debug)]
@@ -50,12 +50,23 @@ impl Mesh {
         device: &wgpu::Device, 
         material_id: renderer::material::MaterialID,
         pipeline_id: renderer::pipeline::PipelineID,
+        pos: [f32; 2],
+        dim: [f32; 2],
     ) -> Mesh {
+        let (x, y, z) = Coordinate::position(pos[0], pos[1]);
+        let (w, h) = Coordinate::area(dim[0], dim[1]);
+        log::debug!("pos_px={:?} dim_px={:?} -> ndc x={} y={} w={} h={}", pos, dim, x, y, w, h);
+
+                // Vec3::new(-0.75, -0.75, 0.0),
+                // Vec3::new( 0.75, -0.75, 0.0),
+                // Vec3::new( 0.75,  0.75, 0.0),
+                // Vec3::new(-0.75,  0.75, 0.0),
+
         let vertices: [Vertex; 4] = [
-            Vertex { position: Vec3::new(-0.75, -0.75, 0.0), color: Vec3::new(1.0, 0.0, 0.0)},
-            Vertex { position: Vec3::new( 0.75, -0.75, 0.0), color: Vec3::new(0.5, 1.0, 0.0)},
-            Vertex { position: Vec3::new( 0.75,  0.75, 0.0), color: Vec3::new(1.0, 0.0, 0.0)},
-            Vertex { position: Vec3::new(-0.75,  0.75, 0.0), color: Vec3::new(1.0, 0.0, 0.0)},
+            Vertex { position: Vec3::new(x, y - h, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: Vec3::new(x + w, y - h, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: Vec3::new(x + w, y, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: Vec3::new(x, y, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
         ];
         let mut bytes: &[u8] = unsafe {
             any_as_u8_slice(&vertices)
