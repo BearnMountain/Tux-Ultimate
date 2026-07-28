@@ -21,6 +21,10 @@ impl<'a> Builder<'a> {
         };
     }
 
+    pub fn get_layout_size(&self) -> usize {
+        return self.bind_group_layouts.len();
+    }
+
     pub fn reset(&mut self) {
         self.vertex_buffer_layout.clear();
         self.bind_group_layouts.clear();
@@ -129,6 +133,6 @@ impl PipelineStorage {
 
     pub fn add(&mut self, pipeline: wgpu::RenderPipeline) -> PipelineID {
         self.pipelines.push(pipeline);
-        return self.pipelines.len();
+        return self.pipelines.len() - 1;
     }
 }

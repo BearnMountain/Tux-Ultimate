@@ -6,8 +6,6 @@ use util::config::Config;
 
 use std::{path::Path, sync::Arc};
 
-use anyhow::Result;
-
 use env_logger::Env;
 use winit::{
     application::ApplicationHandler, 
@@ -59,20 +57,20 @@ impl ApplicationHandler for App {
         }).expect("rip");
 
         let shader_handle = match engine.asset_server.load_shader(shader_text, None, None) {
-            Some(shader) => shader,
+            Some(handle) => handle,
             None => { 
                 log::error!("failed to load shader source text");
                 return;
             },
         };
         let texture_handle = match engine.asset_server.load_texture(texture_raw) {
-            Some(texture) => texture,
+            Some(handle) => handle,
             None => { 
                 log::error!("failed to load texture source raw");
                 return;
             },
         };
-
+        
         let mut binding = bind_group::LayoutBuilder::new(&engine.renderer.get_render_context().device);
         let bind_group_layout_builder = binding
             .add_texture_view(
@@ -86,7 +84,7 @@ impl ApplicationHandler for App {
                 wgpu::SamplerBindingType::Filtering
             )
             .build("material bind group test");
-
+        
         let pipeline = {
             let contex = engine.renderer.get_render_context();
             pipeline::Builder::new(&contex.device)
@@ -96,7 +94,7 @@ impl ApplicationHandler for App {
                 .add_bind_group_layout(&bind_group_layout_builder.layout.clone().unwrap())
                 .build_pipeline("pipeline test")
         };
-
+        
         let material = {
             let contex = engine.renderer.get_render_context();
             renderer::material::Material::new(
@@ -106,8 +104,8 @@ impl ApplicationHandler for App {
                 &bind_group_layout_builder
             )
         };
-
-
+        
+        // get stuff renderable each loop
         let material_id = engine.renderer.add_material(material);
         let pipeline_id = engine.renderer.add_pipeline(pipeline);
         let mesh = renderer::mesh::Mesh::make_quad(
@@ -115,9 +113,9 @@ impl ApplicationHandler for App {
             material_id,
             pipeline_id,
         );
-
+        
         let _mesh_id = engine.renderer.add_mesh(mesh);
-    
+        
 
         // set default keybinds
     }
@@ -198,8 +196,9 @@ impl ApplicationHandler for App {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // init system info
     env_logger::Builder::from_env(
-        Env::default().default_filter_or("warn")
-    ).init();
+        Env::default()
+            .default_filter_or("warn,app=debug")
+    ).init();    
     Config::init("assets/config.toml");
 
     let rt = tokio::runtime::Runtime::new().expect("failed to start app");

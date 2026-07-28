@@ -38,32 +38,29 @@ impl Renderer {
                 return;
             }
 
-            let mut pipeline_id: pipeline::PipelineID = meshes[0].pipeline_id;
-            let mut material_id: material::MaterialID = meshes[0].material_id;
-            let mut material_bind_index = 0;
-            pass.set_pipeline(&self.pipeline_cache.get(pipeline_id).unwrap());
-            pass.set_bind_group(material_bind_index, &self.materials_cache.get(material_id).unwrap().bind_group, &[]);
-            pass.set_vertex_buffer(0, meshes[0].vertex_buffer.slice(..));
-            pass.set_index_buffer(meshes[0].index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            pass.draw_indexed(0..6, 0, 0..1); // TODO: need to not hardcode this
+            let mut current_pipeline: Option<pipeline::PipelineID> = None;
+            let mut current_material: Option<pipeline::PipelineID> = None;
 
             for mesh in meshes {
-                // updates pipeline/material for new sorted batch
-                if mesh.pipeline_id != pipeline_id {
-                    pipeline_id = mesh.pipeline_id;
-                    pass.set_pipeline(&self.pipeline_cache.get(pipeline_id).unwrap());
+                if current_pipeline != Some(mesh.pipeline_id) {
+                    current_pipeline = Some(mesh.pipeline_id);
+                    pass.set_pipeline(
+                        &self.pipeline_cache.get(mesh.pipeline_id).unwrap()
+                    );
                 }
-                if mesh.material_id != material_id {
-                    material_bind_index += 1;
-                    material_id = mesh.material_id;
-                    pass.set_bind_group(material_bind_index, &self.materials_cache.get(material_id).unwrap().bind_group, &[]);
+            
+                if current_material != Some(mesh.material_id) {
+                    current_material = Some(mesh.material_id);
+                    pass.set_bind_group(
+                        0,
+                        &self.materials_cache.get(mesh.material_id).unwrap().bind_group,
+                        &[]
+                    );
                 }
-
+            
                 pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
                 pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-                pass.draw_indexed(0..6, 0, 0..1); // TODO: need to not hardcode this
-
-
+                pass.draw_indexed(0..mesh.index_count, 0, 0..1);
             }
         }
     }

@@ -29,7 +29,7 @@ impl Material {
         let bind_group = bind_group::ResourceBuilder::new(device, layout)
             .texture_view(&texture.view).unwrap()
             .texture_sampler(&sampler).unwrap()
-            .build(label).unwrap();
+            .build(label).expect("failed to create bind group for new material");
 
         return Self {
             bind_group,
@@ -54,6 +54,6 @@ impl MaterialStorage {
 
     pub fn add(&mut self, material: Material) -> MaterialID {
         self.materials.push(material);
-        return self.materials.len();
+        return self.materials.len() - 1;
     }
 }

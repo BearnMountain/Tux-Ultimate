@@ -39,6 +39,7 @@ pub type MeshID = usize;
 pub struct Mesh {
     pub vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
+    pub index_count: u32,
 
     pub material_id: renderer::material::MaterialID,
     pub pipeline_id: renderer::pipeline::PipelineID,
@@ -83,6 +84,7 @@ impl Mesh {
         return Mesh {
             vertex_buffer,
             index_buffer,
+            index_count: 6,
             material_id,
             pipeline_id,
         };
@@ -114,8 +116,7 @@ impl MeshStorage {
     }
 
     pub fn add(&mut self, mesh: Mesh) -> MeshID {
-        let id = self.meshes.len();
         self.meshes.push(mesh);
-        return id;
+        return self.meshes.len() - 1;
     }
 }

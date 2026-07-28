@@ -176,7 +176,7 @@ impl<'a> ResourceBuilder<'a> {
             ))?;
 
         match expect.ty {
-            wgpu::BindingType::Buffer {..} => {},
+            wgpu::BindingType::Texture {..} => {},
             _ => {
                 return Err(anyhow::anyhow!("incorrect binding resource order. texture view is not next").into());
             },
@@ -199,7 +199,7 @@ impl<'a> ResourceBuilder<'a> {
             ))?;
 
         match expect.ty {
-            wgpu::BindingType::Buffer {..} => {},
+            wgpu::BindingType::StorageTexture {..} => {},
             _ => {
                 return Err(anyhow::anyhow!("incorrect binding resource order. texture storage is not next").into());
             },
@@ -222,7 +222,7 @@ impl<'a> ResourceBuilder<'a> {
             ))?;
 
         match expect.ty {
-            wgpu::BindingType::Buffer {..} => {},
+            wgpu::BindingType::Sampler {..} => {},
             _ => {
                 return Err(anyhow::anyhow!("incorrect binding resource order. texture sampler is not next").into());
             },

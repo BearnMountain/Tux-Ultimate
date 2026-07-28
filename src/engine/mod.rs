@@ -12,7 +12,6 @@ pub mod assets;
 // pub mod ui;
 
 use std::sync::Arc;
-use tokio::runtime::Handle;
 use winit::window::Window;
 
 pub struct Engine {

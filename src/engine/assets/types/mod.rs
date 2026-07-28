@@ -31,7 +31,7 @@ impl RawSource {
     pub async fn new(file_path: &Path) -> anyhow::Result<Self> {
         let source = tokio::fs::read(file_path).await?;
         let img = image::load_from_memory(&source)?;
-        let rgba = img.to_rgb8();
+        let rgba = img.to_rgba8();
         let (width, height) = rgba.dimensions();
 
         return Ok(Self {
