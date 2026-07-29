@@ -1,6 +1,6 @@
 [window]
 width = 800
-height = 450
+height = 600
 
 [graphics]
 backend = "Metal" # Metal, Vulkan, DX12

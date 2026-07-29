@@ -1,5 +1,3 @@
-use glm::Vec3;
-
 use crate::util::config::Config;
 
 pub struct Coordinate;

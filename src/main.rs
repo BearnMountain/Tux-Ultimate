@@ -2,7 +2,6 @@ mod engine;
 
 mod game;
 mod util;
-use glm::Vec3;
 use util::config::Config;
 
 use std::{path::Path, sync::Arc};
@@ -33,7 +32,6 @@ impl ApplicationHandler for App {
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let global_config = Config::get().read().unwrap();
-        // generate ui
 
         // creating window
         let attrs = WindowAttributes::default()
@@ -54,7 +52,7 @@ impl ApplicationHandler for App {
         let engine = self.engine.as_mut().unwrap();
 
         // gather test data
-        let (shader_text,texture_raw) = pollster::block_on(async {
+        let (shader_text, texture_raw) = pollster::block_on(async {
             tokio::try_join!(
                 server::Server::preload_text(Path::new("shaders/shader.wgsl")),
                 server::Server::preload_raw(Path::new("textures/brick-texture-54.png")),
@@ -82,9 +80,8 @@ impl ApplicationHandler for App {
         let bind_group_layout_builder = binding
             .add_texture_view(
                 wgpu::ShaderStages::FRAGMENT, 
-                wgpu::TextureSampleType::Float { 
-                    filterable: true,
-                }, wgpu::TextureViewDimension::D2
+                wgpu::TextureSampleType::Float { filterable: true }, 
+                wgpu::TextureViewDimension::D2
             )
             .add_texture_sampler(
                 wgpu::ShaderStages::FRAGMENT, 
@@ -115,15 +112,25 @@ impl ApplicationHandler for App {
         // get stuff renderable each loop
         let material_id = engine.renderer.add_material(material);
         let pipeline_id = engine.renderer.add_pipeline(pipeline);
-        let mesh = renderer::mesh::Mesh::make_quad(
-            &engine.renderer.get_render_context().device, 
-            material_id,
-            pipeline_id,
-            [100.0, 100.0],
-            [100.0, 100.0],
-        );
-        
-        let _mesh_id = engine.renderer.add_mesh(mesh);
+        {
+            let mesh0 = renderer::mesh::Mesh::make_quad(
+                &engine.renderer.get_render_context().device, 
+                material_id,
+                pipeline_id,
+                [100.0, 100.0], // pos
+                [100.0, 100.0], // area
+            );
+            let _mesh_id = engine.renderer.add_mesh(mesh0);
+
+            let mesh1 = renderer::mesh::Mesh::make_quad(
+                &engine.renderer.get_render_context().device, 
+                material_id,
+                pipeline_id,
+                [100.0, 300.0], 
+                [100.0, 100.0],
+            );
+            let _mesh_id = engine.renderer.add_mesh(mesh1);
+        }
         
 
         // set default keybinds

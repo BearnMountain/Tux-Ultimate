@@ -60,7 +60,7 @@ impl RenderContext {
             required_features: wgpu::Features::empty(),
             required_limits: wgpu::Limits::default(),
             experimental_features: wgpu::ExperimentalFeatures::disabled(),
-            memory_hints: Default::default(),
+            memory_hints: wgpu::MemoryHints::Performance,
             trace: wgpu::Trace::Off,
         }).await.unwrap();
 

@@ -37,8 +37,10 @@ unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
 pub type MeshID = usize;
 
 pub struct Mesh {
-    pub vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
+    // 0 - offset: vertex_buffer
+    // offset - end: index_buffer
+    pub buffer: wgpu::Buffer,
+    pub offset: u64,
     pub index_count: u32,
 
     pub material_id: renderer::material::MaterialID,
@@ -55,12 +57,6 @@ impl Mesh {
     ) -> Mesh {
         let (x, y, z) = Coordinate::position(pos[0], pos[1]);
         let (w, h) = Coordinate::area(dim[0], dim[1]);
-        log::debug!("pos_px={:?} dim_px={:?} -> ndc x={} y={} w={} h={}", pos, dim, x, y, w, h);
-
-                // Vec3::new(-0.75, -0.75, 0.0),
-                // Vec3::new( 0.75, -0.75, 0.0),
-                // Vec3::new( 0.75,  0.75, 0.0),
-                // Vec3::new(-0.75,  0.75, 0.0),
 
         let vertices: [Vertex; 4] = [
             Vertex { position: Vec3::new(x, y - h, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
@@ -68,33 +64,32 @@ impl Mesh {
             Vertex { position: Vec3::new(x + w, y, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
             Vertex { position: Vec3::new(x, y, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
         ];
-        let mut bytes: &[u8] = unsafe {
-            any_as_u8_slice(&vertices)
-        };
-
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("VertexBuffer"),
-            contents: bytes,
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-
         let indices: [u16; 6] = [
             0, 1, 2,
             2, 3, 0
         ];
-        bytes = unsafe {
+
+        let bytes_vertex: &[u8] = unsafe {
+            any_as_u8_slice(&vertices)
+        };
+        let bytes_index: &[u8] = unsafe {
             any_as_u8_slice(&indices)
         };
+        let bytes_merged: &[u8] = &[
+            bytes_vertex,
+            bytes_index,
+        ].concat();
 
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("IndexBuffer"),
-            contents: bytes,
-            usage: wgpu::BufferUsages::INDEX,
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("VertexBuffer"),
+            contents: bytes_merged,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::INDEX,
         });
+        let offset: u64 = bytes_vertex.len().try_into().unwrap();
 
         return Mesh {
-            vertex_buffer,
-            index_buffer,
+            buffer,
+            offset,
             index_count: 6,
             material_id,
             pipeline_id,

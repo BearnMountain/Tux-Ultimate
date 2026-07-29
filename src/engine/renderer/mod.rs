@@ -59,8 +59,8 @@ impl Renderer {
                     );
                 }
             
-                pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-                pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                pass.set_vertex_buffer(0, mesh.buffer.slice(0..mesh.offset));
+                pass.set_index_buffer(mesh.buffer.slice(mesh.offset..), wgpu::IndexFormat::Uint16);
                 pass.draw_indexed(0..mesh.index_count, 0, 0..1);
             }
         }
