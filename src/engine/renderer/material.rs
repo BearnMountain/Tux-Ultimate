@@ -1,6 +1,6 @@
-use crate::engine::{assets::{
-    types::texture::Texture,
-}, renderer::bind_group::{self, LayoutBuilder}};
+use crate::engine::{
+    assets::types::texture::Texture, 
+    renderer::bind_group::{self, LayoutBuilder, LayoutInfo}};
 
 pub type MaterialID = usize;
 
@@ -13,7 +13,7 @@ impl Material {
         label: &str, 
         texture: &Texture, // extract from server::get_texture
         device: &wgpu::Device,
-        layout: &LayoutBuilder,
+        layout: &LayoutInfo,
     ) -> Self {
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {

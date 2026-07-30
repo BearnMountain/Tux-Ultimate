@@ -1,7 +1,10 @@
 @group(0) @binding(0) var texture_ref: texture_2d<f32>;
 @group(0) @binding(1) var sampler_ref: sampler;
 
-@group(1) @binding(0) var<uniform> model: mat4x4<f32>;
+struct Transform {
+	matrices: array<mat4x4<f32>>,
+}
+@group(1) @binding(0) var<storage, read> transforms: Transform;
 
 struct Vertex {
 	@location(0) position: vec3<f32>,
@@ -15,9 +18,12 @@ struct VertexPayload {
 };
 
 @vertex
-fn vs_main(vertex: Vertex) -> VertexPayload {
+fn vs_main(
+	@builtin(instance_index) instance_index: u32,
+	vertex: Vertex,
+) -> VertexPayload {
 	var out: VertexPayload;
-	out.position = model * vec4<f32>(vertex.position, 1.0f);
+	out.position = transforms.matrices[instance_index] * vec4<f32>(vertex.position, 1.0f);
 	out.color = vertex.color;
     out.uv = vec2<f32>(0.5 * (vertex.position.x + 1f), -0.5 * (vertex.position.y + 1f));
 	return out;

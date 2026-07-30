@@ -1,13 +1,13 @@
-use glm::*;
 use wgpu::util::DeviceExt;
 
-use crate::engine::renderer::{self, coordinate::Coordinate};
+use crate::engine::renderer::{self, coordinate::Coordinate, transform::TransformID};
+use super::math::any_as_u8_slice;
 
 #[repr(C)] // want c layout for memory
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
-    position: Vec3,
-    color: Vec3,
+    position: glam::Vec3,
+    color: glam::Vec3,
 }
 
 impl Vertex {
@@ -26,14 +26,6 @@ impl Vertex {
     }
 }
 
-#[allow(unsafe_op_in_unsafe_fn)]
-unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-    return ::core::slice::from_raw_parts(
-        (p as *const T) as *const u8, 
-        ::core::mem::size_of::<T>()
-    );
-}
-
 pub type MeshID = usize;
 
 pub struct Mesh {
@@ -45,6 +37,7 @@ pub struct Mesh {
 
     pub material_id: renderer::material::MaterialID,
     pub pipeline_id: renderer::pipeline::PipelineID,
+    pub transform_id: renderer::transform::TransformID,
 }
 
 impl Mesh {
@@ -52,17 +45,18 @@ impl Mesh {
         device: &wgpu::Device, 
         material_id: renderer::material::MaterialID,
         pipeline_id: renderer::pipeline::PipelineID,
+        transform_id: renderer::transform::TransformID,
         pos: [f32; 2],
         dim: [f32; 2],
     ) -> Mesh {
-        let (x, y, z) = Coordinate::position(pos[0], pos[1]);
-        let (w, h) = Coordinate::area(dim[0], dim[1]);
+        let (x, y) = (pos[0], pos[1]);
+        let (w, h) = (dim[0], dim[1]);
 
         let vertices: [Vertex; 4] = [
-            Vertex { position: Vec3::new(x, y - h, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: Vec3::new(x + w, y - h, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: Vec3::new(x + w, y, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: Vec3::new(x, y, 0.0), color: Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: glam::Vec3::new(x,     y - h, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: glam::Vec3::new(x + w, y - h, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: glam::Vec3::new(x + w, y, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: glam::Vec3::new(x,     y, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
         ];
         let indices: [u16; 6] = [
             0, 1, 2,
@@ -93,6 +87,7 @@ impl Mesh {
             index_count: 6,
             material_id,
             pipeline_id,
+            transform_id,
         };
     }
 }

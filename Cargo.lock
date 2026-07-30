@@ -8,7 +8,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "env_logger",
- "glm",
+ "glam",
  "gltf",
  "image",
  "log",
@@ -882,12 +882,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "glm"
-version = "0.3.0"
+name = "glam"
+version = "0.33.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "554870bc5d1b098ae10c380ebfeeb35e408107dcb5bb00e4677fc64eb4ce2aea"
+checksum = "7f22fb22f065b308be0d8724e3706c7fa3fc2a6c7d6899df4cad7860e7a75436"
 dependencies = [
- "num-traits",
+ "bytemuck",
 ]
 
 [[package]]

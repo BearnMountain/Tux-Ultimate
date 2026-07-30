@@ -12,7 +12,7 @@ use winit::{
 };
 
 use crate::engine::{
-    Engine, assets::{server}, renderer::{self, bind_group, mesh, pipeline}};
+    Engine, assets::server, renderer::{self, bind_group::{self}, mesh, pipeline}};
 
 struct App {
     engine: Option<Engine>,
@@ -50,6 +50,7 @@ impl ApplicationHandler for App {
 
         // testing engine
         let engine = self.engine.as_mut().unwrap();
+        let device = engine.renderer.get_render_context().device.clone();
 
         // gather test data
         let (shader_text, texture_raw) = pollster::block_on(async {
@@ -74,10 +75,7 @@ impl ApplicationHandler for App {
             },
         };
         
-        let mut binding = bind_group::LayoutBuilder::new(
-            &engine.renderer.get_render_context().device
-        );
-        let bind_group_layout_builder = binding
+        let material_layout = bind_group::LayoutBuilder::new(&device)
             .add_texture_view(
                 wgpu::ShaderStages::FRAGMENT, 
                 wgpu::TextureSampleType::Float { filterable: true }, 
@@ -87,7 +85,7 @@ impl ApplicationHandler for App {
                 wgpu::ShaderStages::FRAGMENT, 
                 wgpu::SamplerBindingType::Filtering
             )
-            .build("material bind group test");
+            .build("material bind group");
         
         let pipeline = {
             let contex = engine.renderer.get_render_context();
@@ -95,28 +93,33 @@ impl ApplicationHandler for App {
                 .set_shader(engine.asset_server.get_shader(shader_handle).unwrap())
                 .set_pixel_format(contex.config.format)
                 .add_buffer_layout(Some(mesh::Vertex::get_layout()))
-                .add_bind_group_layout(&bind_group_layout_builder.layout.clone().unwrap())
+                .add_bind_group_layout(&material_layout.layout.clone()) // idx: 0
+                .add_bind_group_layout(&engine.renderer.get_transform_layout().layout.clone()) // idx: 1
                 .build_pipeline("pipeline test")
         };
         
-        let material = {
-            let contex = engine.renderer.get_render_context();
-            renderer::material::Material::new(
-                "test material", 
-                engine.asset_server.get_texture(texture_handle).unwrap(), 
-                &contex.device, 
-                &bind_group_layout_builder
-            )
-        };
+        let material = renderer::material::Material::new(
+            "test material", 
+            engine.asset_server.get_texture(texture_handle).unwrap(), 
+            &device, 
+            &material_layout
+        );
+        let transform_id_0 = engine.renderer.add_transform(
+            renderer::transform::Transform::new()
+        );
+        let transform_id_1 = engine.renderer.add_transform(
+            renderer::transform::Transform::new()
+        );
         
         // get stuff renderable each loop
         let material_id = engine.renderer.add_material(material);
         let pipeline_id = engine.renderer.add_pipeline(pipeline);
         {
             let mesh0 = renderer::mesh::Mesh::make_quad(
-                &engine.renderer.get_render_context().device, 
+                &device, 
                 material_id,
                 pipeline_id,
+                transform_id_0,
                 [100.0, 100.0], // pos
                 [100.0, 100.0], // area
             );
@@ -126,6 +129,7 @@ impl ApplicationHandler for App {
                 &engine.renderer.get_render_context().device, 
                 material_id,
                 pipeline_id,
+                transform_id_1,
                 [100.0, 300.0], 
                 [100.0, 100.0],
             );

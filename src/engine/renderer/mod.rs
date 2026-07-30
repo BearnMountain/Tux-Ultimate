@@ -6,16 +6,19 @@ pub mod context;
 pub mod bind_group;
 pub mod material;
 pub mod coordinate;
+pub mod ubo;
+pub mod math;
+pub mod transform;
 // pub mod model_loader;
 
 use winit::dpi::PhysicalSize;
-
 
 pub struct Renderer {
     graphics: context::RenderContext,
 
     pipeline_cache: pipeline::PipelineStorage,
     materials_cache: material::MaterialStorage,
+    transform_cache: transform::TransformStorage,
 
     // renderables
     meshes_cache: mesh::MeshStorage,
@@ -23,10 +26,15 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(graphics: context::RenderContext) -> Self {
+        let transform_cache = transform::TransformStorage::new(
+            &graphics.device,
+            &graphics.queue,
+        );
         return Self {
-            graphics: graphics,
+            graphics,
             pipeline_cache: pipeline::PipelineStorage::new(),
             materials_cache: material::MaterialStorage::new(),
+            transform_cache,
             meshes_cache: mesh::MeshStorage::new(),
         };
     }
@@ -35,10 +43,15 @@ impl Renderer {
         { // self.meshes_cache run
             // sorting meshes pipeline -> material
             let meshes = self.meshes_cache.get_all_sorted(); 
+
             if meshes.len() == 0 {
                 return;
             }
 
+            self.transform_cache.upload();
+            pass.set_bind_group(1, &self.transform_cache.bind_group, &[]);
+
+            // binds new pipeline/material(bind groups) whenever needed
             let mut current_pipeline: Option<pipeline::PipelineID> = None;
             let mut current_material: Option<pipeline::PipelineID> = None;
 
@@ -59,6 +72,7 @@ impl Renderer {
                     );
                 }
             
+                // renders basic mesh to screen
                 pass.set_vertex_buffer(0, mesh.buffer.slice(0..mesh.offset));
                 pass.set_index_buffer(mesh.buffer.slice(mesh.offset..), wgpu::IndexFormat::Uint16);
                 pass.draw_indexed(0..mesh.index_count, 0, 0..1);
@@ -143,16 +157,21 @@ impl Renderer {
         }
     }
 
+    // updaters to renderer
     pub fn update_surface(&mut self) {
         self.graphics.update_surface();
     }
 
-    // adding items to cache
+    /// adding items to cache
+    /// all take ownership
     pub fn add_material(&mut self, material: material::Material) -> material::MaterialID {
         return self.materials_cache.add(material);
     }
     pub fn add_pipeline(&mut self, pipeline: wgpu::RenderPipeline) -> pipeline::PipelineID {
         return self.pipeline_cache.add(pipeline);
+    }
+    pub fn add_transform(&mut self, transform: transform::Transform) -> transform::TransformID {
+        return self.transform_cache.add(transform);
     }
     pub fn add_mesh(&mut self, mesh: mesh::Mesh) -> mesh::MeshID {
         return self.meshes_cache.add(mesh);
@@ -161,5 +180,8 @@ impl Renderer {
     // get items from internal struct
     pub fn get_render_context(&self) -> &context::RenderContext {
         return &self.graphics;
+    }
+    pub fn get_transform_layout(&self) -> &bind_group::LayoutInfo {
+        return &self.transform_cache.layout;
     }
 }

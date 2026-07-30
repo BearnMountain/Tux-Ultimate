@@ -1,35 +1,39 @@
+pub struct LayoutInfo {
+    pub entries: Vec<wgpu::BindGroupLayoutEntry>,
+    pub layout: wgpu::BindGroupLayout,
+}
 
 pub struct LayoutBuilder<'a> {
     device: &'a wgpu::Device,
-    pub entries: Vec<wgpu::BindGroupLayoutEntry>,
-    pub layout: Option<wgpu::BindGroupLayout>,
+    entries: Vec<wgpu::BindGroupLayoutEntry>,
 }
 
+/// 
 impl<'a> LayoutBuilder<'a> {
     pub fn new (device: &'a wgpu::Device) -> Self {
         return Self {
             device: device,
             entries: Vec::new(),
-            layout: None,
         }
     }
 
     pub fn reset(&mut self) {
         self.entries.clear();
-        self.layout = None;
+        self.entries = Vec::new();
     }
 
     pub fn build(&mut self, label: &str) 
-        -> &mut Self
+        -> LayoutInfo
     {
-        self.layout = Some(self.device.create_bind_group_layout(
-            &wgpu::BindGroupLayoutDescriptor {
-                label: Some(&format!("{label}_layout")),
-                entries: &self.entries,
-            }
-        ));
-
-        return self;
+        return LayoutInfo {
+            layout: self.device.create_bind_group_layout(
+                &wgpu::BindGroupLayoutDescriptor {
+                    label: Some(&format!("{label}_layout")),
+                    entries: &self.entries,
+                }
+            ),
+            entries: self.entries.clone(),
+        };
     }
 
     pub fn add_buffer(
@@ -111,7 +115,7 @@ impl<'a> LayoutBuilder<'a> {
 
 pub struct ResourceBuilder<'a> {
     device: &'a wgpu::Device,
-    layout: &'a LayoutBuilder<'a>,
+    layout: &'a LayoutInfo,
 
     entries: Vec<wgpu::BindGroupEntry<'a>>,
 }
@@ -119,7 +123,7 @@ pub struct ResourceBuilder<'a> {
 impl<'a> ResourceBuilder<'a> {
     pub fn new(
         device: &'a wgpu::Device, 
-        layout: &'a LayoutBuilder<'a>,
+        layout: &'a LayoutInfo,
     ) -> Self {
         return Self {
             device,
@@ -136,7 +140,7 @@ impl<'a> ResourceBuilder<'a> {
     pub fn build(&mut self, label: &str) -> anyhow::Result<wgpu::BindGroup> {
         let resource = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some(&format!("{label}_group")),
-            layout: &self.layout.layout.clone().unwrap(),
+            layout: &self.layout.layout.clone(),
             entries: &self.entries,
         });
 
