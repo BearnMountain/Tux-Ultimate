@@ -1,7 +1,7 @@
 // pub mod io;
 // pub mod graphics;
 pub mod renderer;
-// pub mod scene;
+pub mod scene;
 pub mod assets;
 // pub mod input;
 // pub mod physics;

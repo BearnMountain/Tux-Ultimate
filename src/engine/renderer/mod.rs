@@ -6,7 +6,6 @@ pub mod context;
 pub mod bind_group;
 pub mod material;
 pub mod coordinate;
-pub mod ubo;
 pub mod math;
 pub mod transform;
 // pub mod model_loader;
