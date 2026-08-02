@@ -33,9 +33,12 @@ impl Camera {
         aspect: f32,
     ) -> Self {
         let transform = CameraTransform::new(position, aspect);
+        let uploader = CameraUploader::new(device, queue, &transform);
+
+        uploader.upload(&transform);
 
         return Self {
-            uploader: CameraUploader::new(device, queue, &transform),
+            uploader,
             transform,
             controller: CameraController::new(),
         }

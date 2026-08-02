@@ -16,6 +16,11 @@ pub enum GameActions {
     CAMERA_RIGHT,
     CAMERA_LEFT,
     CAMERA_ZOOM_IN,
+    CAMERA_ZOOM_OUT,
+    CAMERA_ROTATE_UP,
+    CAMERA_ROTATE_DOWN,
+    CAMERA_ROTATE_RIGHT,
+    CAMERA_ROTATE_LEFT,
 
     // player
     PLAYER_LEFT,
@@ -39,7 +44,7 @@ pub struct Input {
 
     // mouse input
     pub mouse_button: (bool, bool, bool), // left, middle, right
-    pub mouse_position: (f64, f64), // xy
+    // pub mouse_position: (f64, f64), // xy
     pub mouse_scroll: (f64, f64), 
 
 }
@@ -71,7 +76,7 @@ impl Input {
         return Self {
             keys_down: [false; GameActions::TOTAL_ACTIONS],
             bindings,
-            mouse_position: (0.0, 0.0),
+            // mouse_position: (0.0, 0.0),
             mouse_scroll: (0.0, 0.0),
             mouse_button: (false, false, false),
         }
@@ -126,7 +131,11 @@ impl Input {
 
     pub fn keyboard(&mut self, key: &KeyCode, state: &ElementState) {
         if let Some(action) = self.bindings.get(key) {
-            self.keys_down[*action as usize] = true;
+            if matches!(state, ElementState::Pressed) {
+                self.keys_down[*action as usize] = true;
+            } else {
+                self.keys_down[*action as usize] = false;
+            }
         }
     }
 

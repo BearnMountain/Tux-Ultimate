@@ -14,14 +14,11 @@ pub mod assets;
 use std::sync::Arc;
 use winit::{dpi::PhysicalSize, window::Window};
 
+use crate::engine::assets::server;
+
 pub struct Engine {
     pub renderer: renderer::Renderer,
     pub asset_server: assets::server::Server,
-
-    // io handling
-    pub camera: scene::camera::Camera,
-    
-    // keyboard: io::keyboard::Keyboard,
 }
 
 impl Engine {
@@ -32,31 +29,34 @@ impl Engine {
             return (context,);
         });
 
-        let camera = scene::camera::Camera::new(
-            &graphics.device, 
-            &graphics.queue, 
-            glam::Vec3::new(0.0, 0.0, 0.0), 
-            window.inner_size().width as f32 / window.inner_size().height as f32,
+        let renderer = renderer::Renderer::new(
+            graphics,
+            window.inner_size().width as f32,
+            window.inner_size().height as f32,
         );
-
-        let renderer = renderer::Renderer::new(graphics);
-        let asset_server = assets::server::Server::new(
-            renderer.get_render_context().device.clone(),
-            renderer.get_render_context().queue.clone(),
+        let asset_server = server::Server::new(
+            &renderer.get_render_context().device,
+            &renderer.get_render_context().queue,
         );
 
         return Self {
             renderer,
             asset_server,
-            camera,
         };
     }
     
     pub fn resize(&mut self, physical_size: Option<PhysicalSize<u32>>) {
-        self.renderer.resize(physical_size);
-        self.camera.transform.aspect = 
-            physical_size.unwrap().width as f32 /
-            physical_size.unwrap().height as f32;
+        let (width, height) = match physical_size {
+            Some(size) => (size.width, size.height),
+            None => (
+                self.renderer.get_render_context().size.width, 
+                self.renderer.get_render_context().size.height
+            ),
+        };
+
+        self.renderer.resize(PhysicalSize{width, height});
+        self.renderer.camera.transform.aspect = width as f32 / height as f32;
+        self.renderer.update_surface();
     }
 
 

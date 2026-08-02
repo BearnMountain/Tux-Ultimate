@@ -14,10 +14,10 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         return Self {
-            device,
-            queue,
+            device: device.clone(),
+            queue: queue.clone(),
             shaders: Storage::new(),
             textures: Storage::new(),
         };

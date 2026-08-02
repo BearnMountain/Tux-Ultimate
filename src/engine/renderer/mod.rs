@@ -10,10 +10,14 @@ pub mod math;
 pub mod transform;
 // pub mod model_loader;
 
+use glam::Vec3;
 use winit::dpi::PhysicalSize;
+
+use crate::engine::scene::camera;
 
 pub struct Renderer {
     graphics: context::RenderContext,
+    pub camera: camera::Camera,
 
     pipeline_cache: pipeline::PipelineStorage,
     materials_cache: material::MaterialStorage,
@@ -24,13 +28,20 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(graphics: context::RenderContext) -> Self {
+    pub fn new(graphics: context::RenderContext, width: f32, height: f32) -> Self {
         let transform_cache = transform::TransformStorage::new(
             &graphics.device,
             &graphics.queue,
         );
+        let camera = camera::Camera::new(
+            &graphics.device, 
+            &graphics.queue, 
+            Vec3::new(0.0, 0.0, 0.0), 
+            width / height,
+        );
         return Self {
             graphics,
+            camera,
             pipeline_cache: pipeline::PipelineStorage::new(),
             materials_cache: material::MaterialStorage::new(),
             transform_cache,
@@ -47,8 +58,8 @@ impl Renderer {
                 return;
             }
 
-            self.transform_cache.upload();
             pass.set_bind_group(1, &self.transform_cache.bind_group, &[]);
+            pass.set_bind_group(2, &self.camera.uploader.bind_group, &[]);
 
             // binds new pipeline/material(bind groups) whenever needed
             let mut current_pipeline: Option<pipeline::PipelineID> = None;
@@ -148,17 +159,17 @@ impl Renderer {
         return Ok(());
     }
 
-    pub fn resize(&mut self, physical_size: Option<PhysicalSize<u32>>) {
-        if let Some(size) = physical_size {
-            self.graphics.resize(size.width, size.height);
-        } else {
-            self.graphics.resize(self.graphics.size.width, self.graphics.size.height);
-        }
+    pub fn resize(&mut self, physical_size: PhysicalSize<u32>) {
+        self.graphics.resize(physical_size.width, physical_size.height);
     }
 
     // updaters to renderer
     pub fn update_surface(&mut self) {
         self.graphics.update_surface();
+    }
+
+    pub fn update_transform(&mut self) {
+        self.transform_cache.upload();
     }
 
     /// adding items to cache

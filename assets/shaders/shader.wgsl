@@ -2,7 +2,9 @@
 @group(0) @binding(1) var sampler_ref: sampler;
 
 // stores all transforms(up to 128mb)
+// each index can have its own transform
 @group(1) @binding(0) var<storage, read> models: array<mat4x4<f32>>; 
+
 // camera movement
 @group(2) @binding(0) var<uniform> view_projection: mat4x4<f32>;
 

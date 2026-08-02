@@ -55,8 +55,8 @@ impl Mesh {
         let vertices: [Vertex; 4] = [
             Vertex { position: glam::Vec3::new(x,     y - h, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
             Vertex { position: glam::Vec3::new(x + w, y - h, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: glam::Vec3::new(x + w, y, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: glam::Vec3::new(x,     y, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: glam::Vec3::new(x + w, y,     0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
+            Vertex { position: glam::Vec3::new(x,     y,     0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
         ];
         let indices: [u16; 6] = [
             0, 1, 2,

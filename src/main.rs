@@ -4,18 +4,16 @@ mod game;
 mod util;
 use util::config::Config;
 
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, dpi::LogicalSize, event::{MouseScrollDelta, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, dpi::LogicalSize, event::{WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
 };
 
-use crate::{engine::{
-    Engine, assets::server, renderer::{self, bind_group::{self}, mesh, pipeline}}, game::Game};
+use crate::game::Game;
 
 struct App {
-    engine: Option<Engine>,
     window: Option<Arc<Window>>,
     game: Option<Game>,
 }
@@ -23,7 +21,6 @@ struct App {
 impl App {
     pub fn new() -> Self {
         return Self {
-            engine: None,
             window: None,
             game: None,
         };
@@ -46,101 +43,9 @@ impl ApplicationHandler for App {
         let window = Arc::new(
             event_loop.create_window(attrs).unwrap()
         );
-        self.engine = Some(Engine::new(window.clone()));
+        self.game = Some(Game::init(window.clone()));
         self.window = Some(window);
         self.window.as_ref().unwrap().request_redraw();
-        self.game = Some(Game::new());
-
-        // testing engine
-        let engine = self.engine.as_mut().unwrap();
-        let device = engine.renderer.get_render_context().device.clone();
-
-        // gather test data
-        let (shader_text, texture_raw) = pollster::block_on(async {
-            tokio::try_join!(
-                server::Server::preload_text(Path::new("shaders/shader.wgsl")),
-                server::Server::preload_raw(Path::new("textures/brick-texture-54.png")),
-            )
-        }).expect("rip");
-
-        let shader_handle = match engine.asset_server.load_shader(shader_text, None, None) {
-            Some(handle) => handle,
-            None => { 
-                log::error!("failed to load shader source text");
-                return;
-            },
-        };
-        let texture_handle = match engine.asset_server.load_texture(texture_raw) {
-            Some(handle) => handle,
-            None => { 
-                log::error!("failed to load texture source raw");
-                return;
-            },
-        };
-        
-        let material_layout = bind_group::LayoutBuilder::new(&device)
-            .add_texture_view(
-                wgpu::ShaderStages::FRAGMENT, 
-                wgpu::TextureSampleType::Float { filterable: true }, 
-                wgpu::TextureViewDimension::D2
-            )
-            .add_texture_sampler(
-                wgpu::ShaderStages::FRAGMENT, 
-                wgpu::SamplerBindingType::Filtering
-            )
-            .build("material bind group");
-        
-        let pipeline = {
-            let contex = engine.renderer.get_render_context();
-            pipeline::Builder::new(&contex.device)
-                .set_shader(engine.asset_server.get_shader(shader_handle).unwrap())
-                .set_pixel_format(contex.config.format)
-                .add_buffer_layout(Some(mesh::Vertex::get_layout()))
-                .add_bind_group_layout(&material_layout.layout.clone()) // idx: 0
-                .add_bind_group_layout(&engine.renderer.get_transform_layout().layout.clone()) // idx: 1
-                .build_pipeline("pipeline test")
-        };
-        
-        let material = renderer::material::Material::new(
-            "test material", 
-            engine.asset_server.get_texture(texture_handle).unwrap(), 
-            &device, 
-            &material_layout
-        );
-        let transform_id_0 = engine.renderer.add_transform(
-            renderer::transform::Transform::new()
-        );
-        let transform_id_1 = engine.renderer.add_transform(
-            renderer::transform::Transform::new()
-        );
-        
-        // get stuff renderable each loop
-        let material_id = engine.renderer.add_material(material);
-        let pipeline_id = engine.renderer.add_pipeline(pipeline);
-        {
-            let mesh0 = renderer::mesh::Mesh::make_quad(
-                &device, 
-                material_id,
-                pipeline_id,
-                transform_id_0,
-                [100.0, 100.0], // pos
-                [100.0, 100.0], // area
-            );
-            let _mesh_id = engine.renderer.add_mesh(mesh0);
-
-            let mesh1 = renderer::mesh::Mesh::make_quad(
-                &engine.renderer.get_render_context().device, 
-                material_id,
-                pipeline_id,
-                transform_id_1,
-                [100.0, 300.0], 
-                [100.0, 100.0],
-            );
-            let _mesh_id = engine.renderer.add_mesh(mesh1);
-        }
-        
-
-        // set default keybinds
     }
 
     fn window_event(
@@ -154,9 +59,8 @@ impl ApplicationHandler for App {
         match event {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
             WindowEvent::Resized(physical_size) => {
-                if let Some(engine) = &mut self.engine {
-                    engine.renderer.resize(Some(physical_size));
-                    engine.renderer.update_surface();
+                if let Some(game) = &mut self.game {
+                    game.engine.resize(Some(physical_size));
                 }
             },
             // WindowEvent::Moved(physical_position) => todo!(),
@@ -207,11 +111,11 @@ impl ApplicationHandler for App {
             // WindowEvent::Occluded(_) => todo!(),
             WindowEvent::RedrawRequested => {
                 // draw
-                if let Some(engine) = &mut self.engine {
-                    if let Err(e) = engine.renderer.render() {
+                if let Some(game) = &mut self.game {
+                    if let Err(e) = game.engine.renderer.render() {
                         eprintln!("render error: {e:?}");
-                        engine.renderer.update_surface();
-                        engine.renderer.resize(None);
+                        game.engine.renderer.update_surface();
+                        game.engine.resize(None);
                     }
                 }
                 // self.window.as_ref().unwrap().request_redraw();
