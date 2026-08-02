@@ -5,6 +5,7 @@ use serde::Deserialize;
 pub struct Config {
     pub window: WindowConfig,
     pub graphics: GraphicsConfig,
+    pub keybinds: KeybindConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -16,6 +17,14 @@ pub struct WindowConfig {
 #[derive(Debug, Deserialize)]
 pub struct GraphicsConfig {
     pub backend: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct KeybindConfig {
+    pub player_left: String,
+    pub player_right: String,
+    pub player_up: String,
+    pub player_down: String,
 }
 
 static CONFIG: OnceLock<RwLock<Config>> = OnceLock::new();

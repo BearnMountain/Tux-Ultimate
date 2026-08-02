@@ -8,15 +8,16 @@ use std::{path::Path, sync::Arc};
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, dpi::LogicalSize, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, dpi::LogicalSize, event::{MouseScrollDelta, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
 };
 
-use crate::engine::{
-    Engine, assets::server, renderer::{self, bind_group::{self}, mesh, pipeline}};
+use crate::{engine::{
+    Engine, assets::server, renderer::{self, bind_group::{self}, mesh, pipeline}}, game::Game};
 
 struct App {
     engine: Option<Engine>,
     window: Option<Arc<Window>>,
+    game: Option<Game>,
 }
 
 impl App {
@@ -24,7 +25,8 @@ impl App {
         return Self {
             engine: None,
             window: None,
-        }
+            game: None,
+        };
     }
 }
 
@@ -47,6 +49,7 @@ impl ApplicationHandler for App {
         self.engine = Some(Engine::new(window.clone()));
         self.window = Some(window);
         self.window.as_ref().unwrap().request_redraw();
+        self.game = Some(Game::new());
 
         // testing engine
         let engine = self.engine.as_mut().unwrap();
@@ -174,10 +177,7 @@ impl ApplicationHandler for App {
                     if key == KeyCode::Escape {
                         event_loop.exit();
                     }
-
-                    // Keyboard::with_mut(|keyboard| {
-                    //     keyboard.handle_key(key, event.state);
-                    // });
+                    self.game.as_mut().unwrap().input_handler.keyboard(&key, &event.state);
                 }
             },
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
@@ -185,8 +185,16 @@ impl ApplicationHandler for App {
             // WindowEvent::CursorMoved { device_id, position } => todo!(),
             // WindowEvent::CursorEntered { device_id } => todo!(),
             // WindowEvent::CursorLeft { device_id } => todo!(),
-            // WindowEvent::MouseWheel { device_id, delta, phase } => todo!(),
-            // WindowEvent::MouseInput { device_id, state, button } => todo!(),
+            WindowEvent::MouseWheel { 
+                device_id: _, 
+                delta, 
+                phase 
+            } => self.game.as_mut().unwrap().input_handler.mouse_wheel(&delta, &phase), 
+            WindowEvent::MouseInput { 
+                device_id: _, 
+                state, 
+                button 
+            } => self.game.as_mut().unwrap().input_handler.mouse_button(&state, &button),
             // WindowEvent::PinchGesture { device_id, delta, phase } => todo!(),
             // WindowEvent::PanGesture { device_id, delta, phase } => todo!(),
             // WindowEvent::DoubleTapGesture { device_id } => todo!(),
