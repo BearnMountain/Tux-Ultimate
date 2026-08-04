@@ -72,7 +72,10 @@ impl Game {
         let transform_id_1 = engine.renderer.add_transform(
             transform::Transform::new()
         );
-        engine.renderer.update_transform(); // upload to gpu
+
+        // upload to gpu
+        engine.renderer.update_transform_snapshots();
+        engine.renderer.update_transform(); 
         
         // get stuff renderable each loop
         let material_id = engine.renderer.add_material(material);
@@ -113,14 +116,14 @@ impl Game {
     }
 
     /// called to update game as much as possible
-    pub fn update(&mut self) {
+    pub fn update(&mut self, _frame_time: Duration) {
         self.update_from_input();
     }
 
     /// all winit input events update game here
     fn update_from_input(&mut self) {
         { // camera
-            let mut camera = &mut self.engine.renderer.camera;
+            let camera = &mut self.engine.renderer.camera;
             let inputs = &self.input_handler.action_state[
                 (GameActions::CAMERA_UP as usize)..=(GameActions::CAMERA_ROTATE_LEFT as usize)
             ];

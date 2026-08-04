@@ -13,9 +13,13 @@ use winit::{
 
 use crate::game::Game;
 
+// max time that a frame isnt updated
+const MAXIMUM_ACCUMULATOR: Duration = Duration::from_millis(100);
+
 struct App {
     window: Option<Arc<Window>>,
     game: Option<Game>,
+
     last_time: Instant,
     accumulator: Duration,
     tick: u64,
@@ -24,13 +28,15 @@ struct App {
 
 impl App {
     pub fn new() -> Self {
+        let tick_rate = Config::get().read().unwrap().app.tick_rate as u64;
+        let dt = Duration::from_nanos(1_000_000_000 / tick_rate.max(1));
         return Self {
             window: None,
             game: None,
             last_time: Instant::now(),
             accumulator: Duration::ZERO,
             tick: 0,
-            dt: Duration::from_nanos(1_000_000_000 / Config::get().read().unwrap().app.tick_rate as u64),
+            dt,
         };
     }
 }
@@ -54,25 +60,30 @@ impl ApplicationHandler for App {
         self.game = Some(Game::init(window.clone()));
         self.window = Some(window);
         self.window.as_ref().unwrap().request_redraw();
+
+        // reset frame timer
+        self.last_time = Instant::now();
+        self.accumulator = Duration::ZERO;
+
+        event_loop.set_control_flow(ControlFlow::Poll);
     }
 
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
-        window_id: WindowId,
+        _window_id: WindowId,
         event: WindowEvent,
     ) {
-        let _ = window_id;
+        let Some(game) = &mut self.game else { return };
 
         match event {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
             WindowEvent::Resized(physical_size) => {
-                if let Some(game) = &mut self.game {
-                    game.engine.resize(Some(physical_size));
-                }
+                game.engine.resize(Some(physical_size));
             },
             // WindowEvent::Moved(physical_position) => todo!(),
             WindowEvent::CloseRequested => {
+                // save files etc in the future
                 event_loop.exit();
             },
             // WindowEvent::Destroyed => todo!(),
@@ -89,7 +100,7 @@ impl ApplicationHandler for App {
                     if key == KeyCode::Escape {
                         event_loop.exit();
                     }
-                    self.game.as_mut().unwrap().input_handler.keyboard(&key, &event.state);
+                    game.input_handler.keyboard(&key, &event.state);
                 }
             },
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
@@ -97,19 +108,19 @@ impl ApplicationHandler for App {
             WindowEvent::CursorMoved { 
                 device_id: _, 
                 position 
-            } => self.game.as_mut().unwrap().input_handler.mouse_movement(position),
+            } => game.input_handler.mouse_movement(position),
             // WindowEvent::CursorEntered { device_id } => todo!(),
             // WindowEvent::CursorLeft { device_id } => todo!(),
             WindowEvent::MouseWheel { 
                 device_id: _, 
                 delta, 
                 phase 
-            } => self.game.as_mut().unwrap().input_handler.mouse_wheel(&delta, &phase), 
+            } => game.input_handler.mouse_wheel(&delta, &phase), 
             WindowEvent::MouseInput { 
                 device_id: _, 
                 state, 
                 button 
-            } => self.game.as_mut().unwrap().input_handler.mouse_button(&state, &button),
+            } => game.input_handler.mouse_button(&state, &button),
             // WindowEvent::PinchGesture { device_id, delta, phase } => todo!(),
             // WindowEvent::PanGesture { device_id, delta, phase } => todo!(),
             // WindowEvent::DoubleTapGesture { device_id } => todo!(),
@@ -121,14 +132,17 @@ impl ApplicationHandler for App {
             // WindowEvent::ThemeChanged(theme) => todo!(),
             // WindowEvent::Occluded(_) => todo!(),
             WindowEvent::RedrawRequested => {
+                // compute render interpolation
+                let alpha = self.accumulator.as_secs_f32() / self.dt.as_secs_f32();
+                game.engine.renderer.interpolation_alpha = alpha.clamp(0.0, 1.0);
+
+                game.engine.renderer.update_transform();
+
                 // draw
-                if let Some(game) = &mut self.game {
-                    game.engine.renderer.update_transform();
-                    if let Err(e) = game.engine.renderer.render() {
-                        eprintln!("render error: {e:?}");
-                        game.engine.renderer.update_surface();
-                        game.engine.resize(None);
-                    }
+                if let Err(e) = game.engine.renderer.render() {
+                    eprintln!("render error: {e:?}");
+                    game.engine.renderer.update_surface();
+                    game.engine.resize(None);
                 }
                 // self.window.as_ref().unwrap().request_redraw();
             },
@@ -137,30 +151,39 @@ impl ApplicationHandler for App {
     }
 
     // sets tick intervals
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let _ = event_loop;
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         let Some(game) = &mut self.game else { return };
 
         let now = Instant::now();
-        self.accumulator += now - self.last_time;
+        let mut frame_time = now - self.last_time;
         self.last_time = now;
 
+        if frame_time > MAXIMUM_ACCUMULATOR {
+            frame_time = MAXIMUM_ACCUMULATOR;
+        }
+        self.accumulator += frame_time;
+
         // general polling
-        game.update();
+        game.update(frame_time);
+        if self.accumulator >= self.dt {
+            game.engine.renderer.update_transform_snapshots();
+        }
         
         // renders frame 1/tick freqency
-        let mut tick_run = 0;
-        while self.accumulator >= self.dt && tick_run < 5 {
+        let max_ticks_per_frame = 5;
+        let mut ticks = 0;
+        while self.accumulator >= self.dt && ticks < max_ticks_per_frame {
             game.engine.renderer.update_transform_snapshots();
             game.frame(self.dt, self.tick);
+
             self.accumulator -= self.dt;
             self.tick += 1;
-            tick_run += 1;
+            ticks += 1;
         }
 
-        // interpolates transform animation
-        let alpha = self.accumulator.as_secs_f32() / self.dt.as_secs_f32();
-        game.engine.renderer.interpolation_alpha = alpha;
+        if ticks >= max_ticks_per_frame {
+            self.accumulator = Duration::ZERO;
+        }
 
         if let Some(window) = &self.window {
             window.request_redraw();

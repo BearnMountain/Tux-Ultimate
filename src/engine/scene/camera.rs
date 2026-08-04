@@ -190,7 +190,7 @@ impl CameraTransform {
         self.pitch = (self.pitch + delta_pitch).clamp(
             -std::f32::consts::FRAC_PI_2 + 0.01,
             std::f32::consts::FRAC_PI_2 - 0.01,
-        )
+        );
     }
 
     pub fn right(&self) -> Vec3 {

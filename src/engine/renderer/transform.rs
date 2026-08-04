@@ -128,21 +128,30 @@ impl TransformStorage {
         self.previous_transforms.clear();
         self.previous_transforms.extend_from_slice(&self.transforms);
     }
+
     pub fn interpolate(&mut self, alpha: f32) {
         debug_assert_eq!(
             self.previous_transforms.len(), self.transforms.len(),
             "transform mismatch, cant add between snapshot and interpolate functions"
         );
         self.render_transforms.clear();
-        self.render_transforms.extend(
-            self.previous_transforms.iter()
-                .zip(self.transforms.iter())
-                .map(|(previous, current)| previous.lerp(current, alpha))
-        );
+        self.render_transforms.reserve(self.transforms.len());
+
+        for (i, current) in self.transforms.iter().enumerate() {
+            if let Some(previous) = self.previous_transforms.get(i) {
+                // Both exist: smoothly interpolate
+                self.render_transforms.push(previous.lerp(current, alpha));
+            } else {
+                // Newly spawned entity (no snapshot history yet): render directly at current position
+                self.render_transforms.push(*current);
+            }
+        }
     }
 
     pub fn upload(&mut self) {
         let needed = self.transforms.len() as u64;
+        
+        // accounts for change in transformer size
         if needed > self.capacity {
             let new_capacity = (needed * 2).max(self.capacity * 2);
             self.buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -158,11 +167,11 @@ impl TransformStorage {
             self.capacity = new_capacity;
         }
 
-        let matrices: Vec<Mat4> = self.transforms.iter().map(|t| t.matrix()).collect();
-        self.queue.write_buffer(
-            &self.buffer, 
-            0, 
-            unsafe { math::any_as_u8_slice(&matrices) }
-        );
+        // Convert interpolated render_transforms to matrices
+        let matrices: Vec<Mat4> = self.render_transforms.iter().map(|t| t.matrix()).collect();
+
+        // uploads to gpu
+        let bytes = unsafe { math::any_as_u8_slice(&matrices) };
+        self.queue.write_buffer(&self.buffer, 0, bytes);
     }
 }
