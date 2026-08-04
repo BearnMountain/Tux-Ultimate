@@ -13,9 +13,10 @@ pub type TransformID = usize;
 
 const MAX_TRANSFORMS: u64 = 1024;
 
+#[derive(Clone, Copy)]
 pub struct Transform {
     pub position: Vec3,
-    pub angle: f32,
+    pub rotation: Quat,
     pub scale: Vec3,
 }
 
@@ -23,15 +24,37 @@ impl Transform {
     pub fn new() -> Self {
         return Self {
             position: Vec3::ZERO,
-            angle: 0.0,
+            rotation: Quat::IDENTITY,
             scale: Vec3::ONE,
         };
+    }
+
+    /// helps to transform between frame, not instantaneously
+    pub fn lerp(&self, other: &Transform, alpha: f32) -> Transform {
+        Transform {
+            position: self.position.lerp(other.position, alpha),
+            rotation: self.rotation.slerp(other.rotation, alpha),
+            scale: self.scale.lerp(other.scale, alpha),
+        }
+    }
+
+    /// aint no one rotating a quat by hand
+    pub fn rotate(
+        &mut self,
+        dx: f32, 
+        dy: f32,
+        dz: f32,
+    ) {
+        self.rotation = (
+            self.rotation *
+            Quat::from_euler(glam::EulerRot::YXZ, dy, dx, dz)
+        ).normalize();
     }
 
     pub fn matrix(&self) -> Mat4 {
         return Mat4::from_scale_rotation_translation(
             self.scale,
-            Quat::from_rotation_z(self.angle),
+            self.rotation,
             self.position,
         );
     }
@@ -42,6 +65,8 @@ pub struct TransformStorage {
     pub bind_group: wgpu::BindGroup,
     capacity: u64,
     transforms: Vec<Transform>,
+    previous_transforms: Vec<Transform>, // snapstock each tick
+    render_transforms: Vec<Transform>, // interpolated
 
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -77,6 +102,8 @@ impl TransformStorage {
             bind_group,
             capacity,
             transforms: Vec::new(),
+            previous_transforms: Vec::new(),
+            render_transforms: Vec::new(),
             device: device.clone(),
             queue: queue.clone(),
             layout,
@@ -94,6 +121,24 @@ impl TransformStorage {
 
     pub fn iter(&self) -> std::slice::Iter<'_, Transform> {
         self.transforms.iter()
+    }
+
+    /// smoothing out animation and transforms
+    pub fn snapshot_previous(&mut self) {
+        self.previous_transforms.clear();
+        self.previous_transforms.extend_from_slice(&self.transforms);
+    }
+    pub fn interpolate(&mut self, alpha: f32) {
+        debug_assert_eq!(
+            self.previous_transforms.len(), self.transforms.len(),
+            "transform mismatch, cant add between snapshot and interpolate functions"
+        );
+        self.render_transforms.clear();
+        self.render_transforms.extend(
+            self.previous_transforms.iter()
+                .zip(self.transforms.iter())
+                .map(|(previous, current)| previous.lerp(current, alpha))
+        );
     }
 
     pub fn upload(&mut self) {

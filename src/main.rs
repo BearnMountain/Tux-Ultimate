@@ -4,7 +4,7 @@ mod game;
 mod util;
 use util::config::Config;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::{Duration, Instant}};
 
 use env_logger::Env;
 use winit::{
@@ -16,6 +16,10 @@ use crate::game::Game;
 struct App {
     window: Option<Arc<Window>>,
     game: Option<Game>,
+    last_time: Instant,
+    accumulator: Duration,
+    tick: u64,
+    dt: Duration,
 }
 
 impl App {
@@ -23,6 +27,10 @@ impl App {
         return Self {
             window: None,
             game: None,
+            last_time: Instant::now(),
+            accumulator: Duration::ZERO,
+            tick: 0,
+            dt: Duration::from_nanos(1_000_000_000 / Config::get().read().unwrap().app.tick_rate as u64),
         };
     }
 }
@@ -86,7 +94,10 @@ impl ApplicationHandler for App {
             },
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
             // WindowEvent::Ime(ime) => todo!(),
-            // WindowEvent::CursorMoved { device_id, position } => todo!(),
+            WindowEvent::CursorMoved { 
+                device_id: _, 
+                position 
+            } => self.game.as_mut().unwrap().input_handler.mouse_movement(position),
             // WindowEvent::CursorEntered { device_id } => todo!(),
             // WindowEvent::CursorLeft { device_id } => todo!(),
             WindowEvent::MouseWheel { 
@@ -112,6 +123,7 @@ impl ApplicationHandler for App {
             WindowEvent::RedrawRequested => {
                 // draw
                 if let Some(game) = &mut self.game {
+                    game.engine.renderer.update_transform();
                     if let Err(e) = game.engine.renderer.render() {
                         eprintln!("render error: {e:?}");
                         game.engine.renderer.update_surface();
@@ -121,6 +133,37 @@ impl ApplicationHandler for App {
                 // self.window.as_ref().unwrap().request_redraw();
             },
             _ => {},
+        }
+    }
+
+    // sets tick intervals
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let _ = event_loop;
+        let Some(game) = &mut self.game else { return };
+
+        let now = Instant::now();
+        self.accumulator += now - self.last_time;
+        self.last_time = now;
+
+        // general polling
+        game.update();
+        
+        // renders frame 1/tick freqency
+        let mut tick_run = 0;
+        while self.accumulator >= self.dt && tick_run < 5 {
+            game.engine.renderer.update_transform_snapshots();
+            game.frame(self.dt, self.tick);
+            self.accumulator -= self.dt;
+            self.tick += 1;
+            tick_run += 1;
+        }
+
+        // interpolates transform animation
+        let alpha = self.accumulator.as_secs_f32() / self.dt.as_secs_f32();
+        game.engine.renderer.interpolation_alpha = alpha;
+
+        if let Some(window) = &self.window {
+            window.request_redraw();
         }
     }
 }

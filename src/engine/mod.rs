@@ -58,6 +58,4 @@ impl Engine {
         self.renderer.camera.transform.aspect = width as f32 / height as f32;
         self.renderer.update_surface();
     }
-
-
 }

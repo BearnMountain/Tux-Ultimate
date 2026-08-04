@@ -3,9 +3,15 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    pub app: AppConfig,
     pub window: WindowConfig,
     pub graphics: GraphicsConfig,
     pub keybinds: KeybindConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AppConfig {
+    pub tick_rate: u32,
 }
 
 #[derive(Debug, Deserialize)]

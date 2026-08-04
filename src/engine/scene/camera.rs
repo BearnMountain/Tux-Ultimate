@@ -21,7 +21,9 @@ pub enum CameraAction {
 /// Camera Object Used Outside
 pub struct Camera {
     pub uploader: CameraUploader,
-    pub transform: CameraTransform,
+    pub transform: CameraTransform, // current 
+    previous_transform: CameraTransform, // prev
+    render_transform: CameraTransform, // gets uploaded - step between prev and current in ticks
     pub controller: CameraController,
 }
 
@@ -39,20 +41,36 @@ impl Camera {
 
         return Self {
             uploader,
+            previous_transform: transform,
+            render_transform: transform,
             transform,
             controller: CameraController::new(),
         }
+    }
+
+    pub fn snapshot_previous(&mut self) {
+        self.previous_transform = self.transform;
     }
 
     pub fn update(
         &mut self,
         action: CameraAction,
         change: f32,
-        dt: f32,
     ) {
         self.controller.action(action, change);
-        self.controller.update(&mut self.transform, dt);
         self.uploader.upload(&self.transform);
+    }
+
+    pub fn queue_action(&mut self, action: CameraAction, value: f32) {
+        self.controller.action(action, value);
+    }
+    pub fn tick(&mut self, dt: f32) {
+        self.controller.update(&mut self.transform, dt);
+    }
+
+    pub fn update_render_transform(&mut self, alpha: f32) {
+        self.render_transform = self.previous_transform.lerp(&self.transform, alpha);
+        self.uploader.upload(&self.render_transform);
     }
 }
 
@@ -129,6 +147,7 @@ impl CameraController {
     }
 }
 
+#[derive(Clone, Copy)]
 /// deals with all math: matrix() to get camera for shaders
 pub struct CameraTransform {
     pub position: Vec3,
@@ -178,6 +197,21 @@ impl CameraTransform {
         self.forward_direction().cross(Vec3::Y).normalize()
     }
 
+    pub fn lerp(&self, other: &CameraTransform, alpha: f32) -> Self {
+        let diff = (other.yaw - self.yaw).rem_euclid(std::f32::consts::TAU);
+        let shortest = if diff > std::f32::consts::PI { diff - std::f32::consts::TAU } else { diff };
+
+        return CameraTransform {
+            position: self.position.lerp(other.position, alpha),
+            yaw: self.yaw + shortest * alpha,
+            pitch: self.pitch + (other.pitch - self.pitch) * alpha,
+            fov_y: self.fov_y + (other.fov_y - self.fov_y) * alpha,
+            aspect: other.aspect,
+            znear: self.znear,
+            zfar: self.zfar,
+        };
+    }
+
     // generating data for shaders
     pub fn view_matrix(&self) -> Mat4 {
         return view::look_to_mat4(
@@ -195,6 +229,7 @@ impl CameraTransform {
             self.zfar,
         );
     }
+
     pub fn matrix(&self) -> Mat4 {
         return self.projection_matrix() * self.view_matrix();
     }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use winit::{event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase}, keyboard::KeyCode};
+use winit::{dpi::PhysicalPosition, event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase}, keyboard::KeyCode};
 
 use crate::util::config::{Config};
 
@@ -15,6 +15,8 @@ pub enum GameActions {
     CAMERA_DOWN,
     CAMERA_RIGHT,
     CAMERA_LEFT,
+    CAMERA_FORWARD,
+    CAMERA_BACKWARD,
     CAMERA_ZOOM_IN,
     CAMERA_ZOOM_OUT,
     CAMERA_ROTATE_UP,
@@ -39,14 +41,14 @@ impl GameActions {
 
 pub struct Input {
     // true = pressed, false = released
-    pub keys_down: [bool; GameActions::TOTAL_ACTIONS],
+    pub action_state: [bool; GameActions::TOTAL_ACTIONS],
     bindings: HashMap<KeyCode, GameActions>,
 
     // mouse input
     pub mouse_button: (bool, bool, bool), // left, middle, right
-    // pub mouse_position: (f64, f64), // xy
     pub mouse_scroll: (f64, f64), 
-
+    pub mouse_pos_now: (f64, f64), // delta position by subtracting
+    pub mouse_pos_prev: (f64, f64),
 }
 
 impl Input {
@@ -71,19 +73,58 @@ impl Input {
         bind(&config.player_right, GameActions::PLAYER_RIGHT, "player right");
         bind(&config.player_up,    GameActions::PLAYER_UP,    "player up");
         bind(&config.player_down,  GameActions::PLAYER_DOWN,  "player down");
+        { // for debugging purposes
+            bindings.insert(KeyCode::ArrowUp, GameActions::CAMERA_FORWARD);
+            bindings.insert(KeyCode::ArrowDown, GameActions::CAMERA_BACKWARD);
+            bindings.insert(KeyCode::ArrowRight, GameActions::CAMERA_RIGHT);
+            bindings.insert(KeyCode::ArrowLeft, GameActions::CAMERA_LEFT);
+            bindings.insert(KeyCode::Space, GameActions::CAMERA_UP);
+            bindings.insert(KeyCode::ShiftLeft, GameActions::CAMERA_DOWN);
+            // bindings.insert(KeyCode::, GameActions::CAMERA_ZOOM_IN);
+            // bindings.insert(KeyCode::, GameActions::CAMERA_ZOOM_OUT);
+            // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_UP);
+            // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_DOWN);
+            // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_RIGHT);
+            // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_LEFT);
+        }
+
 
 
         return Self {
-            keys_down: [false; GameActions::TOTAL_ACTIONS],
+            action_state: [false; GameActions::TOTAL_ACTIONS],
             bindings,
             // mouse_position: (0.0, 0.0),
             mouse_scroll: (0.0, 0.0),
             mouse_button: (false, false, false),
+            mouse_pos_now: (0.0, 0.0),
+            mouse_pos_prev: (0.0, 0.0),
         }
     }
 
     pub fn mouse_wheel(&mut self, delta: &MouseScrollDelta, phase: &TouchPhase) {
-        let _ = phase;
+        match phase {
+            TouchPhase::Started => {
+                if self.mouse_scroll.1 < 0.0 {
+                    self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = true
+                } else {
+                    self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = true
+                }
+            },
+            TouchPhase::Moved => {
+                if self.mouse_scroll.1 < 0.0 {
+                    self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = true
+                } else {
+                    self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = true
+                }
+            },
+            TouchPhase::Ended => {
+                self.mouse_scroll = (0.0, 0.0);
+                self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = false;
+                self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = false;
+            },
+            TouchPhase::Cancelled => self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = false,
+        }
+
         let (x, y) = match delta {
             MouseScrollDelta::LineDelta(x, y) => (*x as f64, *y as f64),
             MouseScrollDelta::PixelDelta(pos) => (pos.x, pos.y),
@@ -129,12 +170,17 @@ impl Input {
         };
     }
 
+    pub fn mouse_movement(&mut self, position: PhysicalPosition<f64>) {
+        self.mouse_pos_prev = self.mouse_pos_now;
+        self.mouse_pos_now = (position.x, position.y);
+    }
+
     pub fn keyboard(&mut self, key: &KeyCode, state: &ElementState) {
         if let Some(action) = self.bindings.get(key) {
             if matches!(state, ElementState::Pressed) {
-                self.keys_down[*action as usize] = true;
+                self.action_state[*action as usize] = true;
             } else {
-                self.keys_down[*action as usize] = false;
+                self.action_state[*action as usize] = false;
             }
         }
     }

@@ -1,3 +1,6 @@
+[app]
+tick_rate = 60
+
 [window]
 width = 800
 height = 600

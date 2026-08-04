@@ -1,8 +1,8 @@
-use std::{path::Path, sync::Arc};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use winit::window::Window;
 
-use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, mesh, pipeline, transform}}, game::io::input::Input};
+use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, mesh, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
 
 mod io;
 
@@ -106,8 +106,68 @@ impl Game {
         };
     }
 
-    pub fn run(&mut self) {
-
+    pub fn frame(&mut self, dt: Duration, tick: u64) {
+        let _ = tick;
+        let _ = dt;
+        let _ = self.engine.renderer.render();
     }
 
+    /// called to update game as much as possible
+    pub fn update(&mut self) {
+        self.update_from_input();
+    }
+
+    /// all winit input events update game here
+    fn update_from_input(&mut self) {
+        { // camera
+            let mut camera = &mut self.engine.renderer.camera;
+            let inputs = &self.input_handler.action_state[
+                (GameActions::CAMERA_UP as usize)..=(GameActions::CAMERA_ROTATE_LEFT as usize)
+            ];
+            // matches inputs to what type of change should happen to the camera
+            if let [
+                up, down, right, left, forward, backward,
+                zoom_in, zoom_out, 
+                rot_up, rot_down, rot_right, rot_left
+            ] = inputs {
+                if *up { 
+                    camera.controller.action(CameraAction::MOVE_Y, 1.0);
+				}
+                if *down { 
+                    camera.controller.action(CameraAction::MOVE_Y, -1.0);
+				}
+                if *right { 
+                    camera.controller.action(CameraAction::MOVE_X, 1.0);
+				}
+                if *left { 
+                    camera.controller.action(CameraAction::MOVE_X, -1.0);
+				}
+                if *forward { 
+                    camera.controller.action(CameraAction::MOVE_Z, 1.0);
+				}
+                if *backward { 
+                    camera.controller.action(CameraAction::MOVE_Z, -1.0);
+				}
+                if *zoom_in { 
+                    camera.controller.action(CameraAction::ZOOM, 1.0);
+				}
+                if *zoom_out { 
+                    camera.controller.action(CameraAction::ZOOM, -1.0);
+				}
+                if *rot_up { 
+                    camera.controller.action(CameraAction::ROTATE_Y, 1.0);
+				}
+                if *rot_down { 
+                    camera.controller.action(CameraAction::ROTATE_Y, -1.0);
+				}
+                if *rot_right { 
+                    camera.controller.action(CameraAction::ROTATE_X, 1.0);
+				}
+                if *rot_left { 
+                    camera.controller.action(CameraAction::ROTATE_X, -1.0);
+				}
+            }
+            camera.controller.update(&mut camera.transform, 1.0);
+        }
+    }
 }
