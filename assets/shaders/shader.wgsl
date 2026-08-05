@@ -25,7 +25,7 @@ fn vs_main(
 	vertex: Vertex,
 ) -> VertexPayload {
 	var out: VertexPayload;
-	out.position = view_projection * models[instance_index] * vec4<f32>(vertex.position, 1.0f);
+	out.position = view_projection * vec4<f32>(vertex.position, 1.0f);
 	out.color = vertex.color;
     out.uv = vec2<f32>(0.5 * (vertex.position.x + 1f), -0.5 * (vertex.position.y + 1f));
 	return out;

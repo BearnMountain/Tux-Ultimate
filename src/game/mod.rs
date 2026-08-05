@@ -1,5 +1,6 @@
 use std::{path::Path, sync::Arc, time::Duration};
 
+use glam::Vec3;
 use winit::window::Window;
 
 use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, mesh, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
@@ -7,6 +8,8 @@ use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, me
 mod io;
 
 pub struct Game {
+    tick: u64,
+
     pub engine: Engine,
     pub input_handler: io::input::Input,
 }
@@ -69,9 +72,6 @@ impl Game {
         let transform_id_0 = engine.renderer.add_transform(
             transform::Transform::new()
         );
-        let transform_id_1 = engine.renderer.add_transform(
-            transform::Transform::new()
-        );
 
         // upload to gpu
         engine.renderer.update_transform_snapshots();
@@ -81,38 +81,38 @@ impl Game {
         let material_id = engine.renderer.add_material(material);
         let pipeline_id = engine.renderer.add_pipeline(pipeline);
         {
-            let mesh0 = mesh::Mesh::make_quad(
+            let camera = &engine.renderer.camera.transform;
+            let spawn_pos = camera.position + camera.forward_direction() * 5.0;
+            let size = Vec3::splat(1.0);
+            let pos = spawn_pos - size * 0.5;
+
+            let mesh0 = mesh::Mesh::make_cube(
                 &device, 
                 material_id,
                 pipeline_id,
                 transform_id_0,
-                [100.0, 100.0], // pos
-                [100.0, 100.0], // area
+                pos.to_array(), // pos
+                [1.0, 1.0, 1.0], // volume
             );
             let _mesh_id = engine.renderer.add_mesh(mesh0);
-
-            let mesh1 = mesh::Mesh::make_quad(
-                &engine.renderer.get_render_context().device, 
-                material_id,
-                pipeline_id,
-                transform_id_1,
-                [100.0, 300.0], 
-                [100.0, 100.0],
-            );
-            let _mesh_id = engine.renderer.add_mesh(mesh1);
         }
- 
+
         
         return Self {
+            tick: 0,
             engine,
             input_handler,
         };
     }
 
     pub fn frame(&mut self, dt: Duration, tick: u64) {
-        let _ = tick;
         let _ = dt;
         let _ = self.engine.renderer.render();
+        self.tick = tick;
+
+        // reset mouse input
+        self.input_handler.mouse_pos_now = (0.0, 0.0);
+        self.input_handler.mouse_pos_prev = (0.0, 0.0);
     }
 
     /// called to update game as much as possible
@@ -134,43 +134,52 @@ impl Game {
                 rot_up, rot_down, rot_right, rot_left
             ] = inputs {
                 if *up { 
-                    camera.controller.action(CameraAction::MOVE_Y, 1.0);
+                    camera.controller.action(CameraAction::MOVE_Y, 0.2);
 				}
                 if *down { 
-                    camera.controller.action(CameraAction::MOVE_Y, -1.0);
+                    camera.controller.action(CameraAction::MOVE_Y, -0.2);
 				}
                 if *right { 
-                    camera.controller.action(CameraAction::MOVE_X, 1.0);
+                    camera.controller.action(CameraAction::MOVE_X, 0.2);
 				}
                 if *left { 
-                    camera.controller.action(CameraAction::MOVE_X, -1.0);
+                    camera.controller.action(CameraAction::MOVE_X, -0.2);
 				}
                 if *forward { 
-                    camera.controller.action(CameraAction::MOVE_Z, 1.0);
+                    camera.controller.action(CameraAction::MOVE_Z, 0.2);
 				}
                 if *backward { 
-                    camera.controller.action(CameraAction::MOVE_Z, -1.0);
+                    // log::debug!("moving backward");
+                    camera.controller.action(CameraAction::MOVE_Z, -0.2);
 				}
                 if *zoom_in { 
-                    camera.controller.action(CameraAction::ZOOM, 1.0);
+                    // log::debug!("zoom in");
+                    camera.controller.action(CameraAction::ZOOM, 0.2);
 				}
                 if *zoom_out { 
-                    camera.controller.action(CameraAction::ZOOM, -1.0);
+                    camera.controller.action(CameraAction::ZOOM, -0.2);
 				}
                 if *rot_up { 
-                    camera.controller.action(CameraAction::ROTATE_Y, 1.0);
+                    camera.controller.action(CameraAction::ROTATE_Y, 0.2);
 				}
                 if *rot_down { 
-                    camera.controller.action(CameraAction::ROTATE_Y, -1.0);
+                    camera.controller.action(CameraAction::ROTATE_Y, -0.2);
 				}
                 if *rot_right { 
-                    camera.controller.action(CameraAction::ROTATE_X, 1.0);
+                    camera.controller.action(CameraAction::ROTATE_X, 0.2);
 				}
                 if *rot_left { 
-                    camera.controller.action(CameraAction::ROTATE_X, -1.0);
+                    camera.controller.action(CameraAction::ROTATE_X, -0.2);
 				}
             }
-            camera.controller.update(&mut camera.transform, 1.0);
+
+            let mnow = self.input_handler.mouse_pos_now; 
+            let mprev = self.input_handler.mouse_pos_prev;
+            let (dx, dy): (f64, f64) = (mnow.0 - mprev.0, mnow.1 - mprev.1);
+            // camera.transform.rotate(dx as f32, dy as f32);
+
+            camera.controller.update(&mut camera.transform, 0.1);
+            camera.uploader.upload(&camera.transform);
         }
     }
 }

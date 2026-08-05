@@ -90,6 +90,107 @@ impl Mesh {
             transform_id,
         };
     }
+
+    pub fn make_cube(
+        device: &wgpu::Device,
+        material_id: renderer::material::MaterialID,
+        pipeline_id: renderer::pipeline::PipelineID,
+        transform_id: renderer::transform::TransformID,
+        pos: [f32; 3],
+        dim: [f32; 3],
+    ) -> Self {
+        let (x, y, z) = (pos[0], pos[1], pos[2]);
+        let (w, h, d) = (dim[0], dim[1], dim[2]);
+
+        let (x0, x1) = (x, x + w);
+        let (y0, y1) = (y, y + h);
+        let (z0, z1) = (z, z + d);
+
+        let white = glam::Vec3::new(1.0, 0.5, 1.0);
+
+        let vertices: [Vertex; 24] = [
+            // Front (+Z)
+            Vertex { position: glam::Vec3::new(x0, y0, z1), color: white },
+            Vertex { position: glam::Vec3::new(x1, y0, z1), color: white },
+            Vertex { position: glam::Vec3::new(x1, y1, z1), color: white },
+            Vertex { position: glam::Vec3::new(x0, y1, z1), color: white },
+
+            // Back (-Z)
+            Vertex { position: glam::Vec3::new(x1, y0, z0), color: white },
+            Vertex { position: glam::Vec3::new(x0, y0, z0), color: white },
+            Vertex { position: glam::Vec3::new(x0, y1, z0), color: white },
+            Vertex { position: glam::Vec3::new(x1, y1, z0), color: white },
+
+            // Left (-X)
+            Vertex { position: glam::Vec3::new(x0, y0, z0), color: white },
+            Vertex { position: glam::Vec3::new(x0, y0, z1), color: white },
+            Vertex { position: glam::Vec3::new(x0, y1, z1), color: white },
+            Vertex { position: glam::Vec3::new(x0, y1, z0), color: white },
+
+            // Right (+X)
+            Vertex { position: glam::Vec3::new(x1, y0, z1), color: white },
+            Vertex { position: glam::Vec3::new(x1, y0, z0), color: white },
+            Vertex { position: glam::Vec3::new(x1, y1, z0), color: white },
+            Vertex { position: glam::Vec3::new(x1, y1, z1), color: white },
+
+            // Top (+Y)
+            Vertex { position: glam::Vec3::new(x0, y1, z1), color: white },
+            Vertex { position: glam::Vec3::new(x1, y1, z1), color: white },
+            Vertex { position: glam::Vec3::new(x1, y1, z0), color: white },
+            Vertex { position: glam::Vec3::new(x0, y1, z0), color: white },
+
+            // Bottom (-Y)
+            Vertex { position: glam::Vec3::new(x0, y0, z0), color: white },
+            Vertex { position: glam::Vec3::new(x1, y0, z0), color: white },
+            Vertex { position: glam::Vec3::new(x1, y0, z1), color: white },
+            Vertex { position: glam::Vec3::new(x0, y0, z1), color: white },
+        ];
+
+        let indices: [u16; 36] = [
+            // Front
+            0, 1, 2,
+            2, 3, 0,
+
+            // Back
+            4, 5, 6,
+            6, 7, 4,
+
+            // Left
+            8, 9, 10,
+            10, 11, 8,
+
+            // Right
+            12, 13, 14,
+            14, 15, 12,
+
+            // Top
+            16, 17, 18,
+            18, 19, 16,
+
+            // Bottom
+            20, 21, 22,
+            22, 23, 20,
+        ];
+
+        let byte_vertex: &[u8] = unsafe { any_as_u8_slice(&vertices) };
+        let byte_index: &[u8] = unsafe { any_as_u8_slice(&indices) };
+        let merge: &[u8] = &[byte_vertex, byte_index].concat();
+
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("CubeBuffer"),
+            contents: merge,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::INDEX,
+        });
+
+        return Self {
+            buffer,
+            offset: byte_vertex.len() as u64,
+            index_count: 36,
+            material_id,
+            pipeline_id,
+            transform_id,
+        };
+    }
 }
 
 pub struct MeshStorage {

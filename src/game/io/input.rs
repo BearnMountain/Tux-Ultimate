@@ -80,8 +80,6 @@ impl Input {
             bindings.insert(KeyCode::ArrowLeft, GameActions::CAMERA_LEFT);
             bindings.insert(KeyCode::Space, GameActions::CAMERA_UP);
             bindings.insert(KeyCode::ShiftLeft, GameActions::CAMERA_DOWN);
-            // bindings.insert(KeyCode::, GameActions::CAMERA_ZOOM_IN);
-            // bindings.insert(KeyCode::, GameActions::CAMERA_ZOOM_OUT);
             // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_UP);
             // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_DOWN);
             // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_RIGHT);

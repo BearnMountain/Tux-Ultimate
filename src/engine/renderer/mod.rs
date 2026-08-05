@@ -133,8 +133,8 @@ impl Renderer {
             ops: wgpu::Operations {
                 load: wgpu::LoadOp::Clear(wgpu::Color {
                     r: 0.0,
-                    g: 0.7,
-                    b: 0.3,
+                    g: 0.0,
+                    b: 0.0,
                     a: 0.5,
                 }),
                 store: wgpu::StoreOp::Store,
@@ -173,17 +173,17 @@ impl Renderer {
         self.graphics.update_surface();
     }
 
+    pub fn update_transform_snapshots(&mut self) {
+        self.transform_cache.snapshot_previous();
+        self.camera.snapshot_previous();
+    }
+
     pub fn update_transform(&mut self) {
         self.transform_cache.interpolate(self.interpolation_alpha);
         self.transform_cache.upload();
 
         // update camera
         self.camera.update_render_transform(self.interpolation_alpha);
-    }
-
-    pub fn update_transform_snapshots(&mut self) {
-        self.transform_cache.snapshot_previous();
-        self.camera.snapshot_previous();
     }
 
     /// adding items to cache

@@ -136,8 +136,6 @@ impl ApplicationHandler for App {
                 let alpha = self.accumulator.as_secs_f32() / self.dt.as_secs_f32();
                 game.engine.renderer.interpolation_alpha = alpha.clamp(0.0, 1.0);
 
-                game.engine.renderer.update_transform();
-
                 // draw
                 if let Err(e) = game.engine.renderer.render() {
                     eprintln!("render error: {e:?}");
@@ -165,9 +163,6 @@ impl ApplicationHandler for App {
 
         // general polling
         game.update(frame_time);
-        if self.accumulator >= self.dt {
-            game.engine.renderer.update_transform_snapshots();
-        }
         
         // renders frame 1/tick freqency
         let max_ticks_per_frame = 5;

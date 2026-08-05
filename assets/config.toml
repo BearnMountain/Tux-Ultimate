@@ -1,5 +1,5 @@
 [app]
-tick_rate = 60
+tick_rate = 20
 
 [window]
 width = 800
