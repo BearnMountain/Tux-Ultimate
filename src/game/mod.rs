@@ -1,6 +1,6 @@
 use std::{path::Path, sync::Arc, time::Duration};
 
-use glam::Vec3;
+use glam::{Vec2, Vec3};
 use winit::window::Window;
 
 use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, mesh, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
@@ -110,9 +110,11 @@ impl Game {
         let _ = self.engine.renderer.render();
         self.tick = tick;
 
-        // reset mouse input
-        self.input_handler.mouse_pos_now = (0.0, 0.0);
-        self.input_handler.mouse_pos_prev = (0.0, 0.0);
+        // ---- RESET ----
+
+        // reseting inputs
+        self.input_handler.mouse_delta = Vec2::ZERO;
+        self.input_handler.mouse_scroll_delta = Vec2::ZERO;
     }
 
     /// called to update game as much as possible
@@ -130,7 +132,6 @@ impl Game {
             // matches inputs to what type of change should happen to the camera
             if let [
                 up, down, right, left, forward, backward,
-                zoom_in, zoom_out, 
                 rot_up, rot_down, rot_right, rot_left
             ] = inputs {
                 if *up { 
@@ -149,15 +150,7 @@ impl Game {
                     camera.controller.action(CameraAction::MOVE_Z, 0.2);
 				}
                 if *backward { 
-                    // log::debug!("moving backward");
                     camera.controller.action(CameraAction::MOVE_Z, -0.2);
-				}
-                if *zoom_in { 
-                    // log::debug!("zoom in");
-                    camera.controller.action(CameraAction::ZOOM, 0.2);
-				}
-                if *zoom_out { 
-                    camera.controller.action(CameraAction::ZOOM, -0.2);
 				}
                 if *rot_up { 
                     camera.controller.action(CameraAction::ROTATE_Y, 0.2);
@@ -173,13 +166,28 @@ impl Game {
 				}
             }
 
-            let mnow = self.input_handler.mouse_pos_now; 
-            let mprev = self.input_handler.mouse_pos_prev;
-            let (dx, dy): (f64, f64) = (mnow.0 - mprev.0, mnow.1 - mprev.1);
-            // camera.transform.rotate(dx as f32, dy as f32);
+            camera.controller.action(CameraAction::ROTATE_X, self.input_handler.mouse_delta.x as f32 * 0.02);
+            camera.controller.action(CameraAction::ROTATE_Y, self.input_handler.mouse_delta.y as f32 * -0.02);
+            camera.controller.action(CameraAction::ZOOM, self.input_handler.mouse_scroll_delta.y);
 
-            camera.controller.update(&mut camera.transform, 0.1);
-            camera.uploader.upload(&camera.transform);
+            if camera.controller.update(&mut camera.transform, 0.1) {
+                camera.uploader.upload(&camera.transform);
+            }
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

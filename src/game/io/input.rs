@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use glam::Vec2;
 use winit::{dpi::PhysicalPosition, event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase}, keyboard::KeyCode};
 
 use crate::util::config::{Config};
@@ -17,8 +18,6 @@ pub enum GameActions {
     CAMERA_LEFT,
     CAMERA_FORWARD,
     CAMERA_BACKWARD,
-    CAMERA_ZOOM_IN,
-    CAMERA_ZOOM_OUT,
     CAMERA_ROTATE_UP,
     CAMERA_ROTATE_DOWN,
     CAMERA_ROTATE_RIGHT,
@@ -39,16 +38,22 @@ impl GameActions {
     pub const TOTAL_ACTIONS: usize = GameActions::PLACEHOLDER as usize + 1;
 }
 
+pub struct MouseButtons {
+    pub left: bool,
+    pub middle: bool,
+    pub right: bool,
+}
+
 pub struct Input {
     // true = pressed, false = released
     pub action_state: [bool; GameActions::TOTAL_ACTIONS],
     bindings: HashMap<KeyCode, GameActions>,
 
     // mouse input
-    pub mouse_button: (bool, bool, bool), // left, middle, right
-    pub mouse_scroll: (f64, f64), 
-    pub mouse_pos_now: (f64, f64), // delta position by subtracting
-    pub mouse_pos_prev: (f64, f64),
+    pub mouse_buttons: MouseButtons,
+    pub mouse_position: Vec2,
+    pub mouse_scroll_delta: Vec2, 
+    pub mouse_delta: Vec2, 
 }
 
 impl Input {
@@ -91,95 +96,72 @@ impl Input {
         return Self {
             action_state: [false; GameActions::TOTAL_ACTIONS],
             bindings,
-            // mouse_position: (0.0, 0.0),
-            mouse_scroll: (0.0, 0.0),
-            mouse_button: (false, false, false),
-            mouse_pos_now: (0.0, 0.0),
-            mouse_pos_prev: (0.0, 0.0),
+            mouse_buttons: MouseButtons{ 
+                left: false, 
+                middle: false, 
+                right: false, 
+            },
+            mouse_position: Vec2::new(0.0, 0.0),
+            mouse_scroll_delta: Vec2::new(0.0, 0.0),
+            mouse_delta: Vec2::new(0.0, 0.0),
         }
     }
 
-    pub fn mouse_wheel(&mut self, delta: &MouseScrollDelta, phase: &TouchPhase) {
-        match phase {
-            TouchPhase::Started => {
-                if self.mouse_scroll.1 < 0.0 {
-                    self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = true
-                } else {
-                    self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = true
-                }
-            },
-            TouchPhase::Moved => {
-                if self.mouse_scroll.1 < 0.0 {
-                    self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = true
-                } else {
-                    self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = true
-                }
-            },
-            TouchPhase::Ended => {
-                self.mouse_scroll = (0.0, 0.0);
-                self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = false;
-                self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = false;
-            },
-            TouchPhase::Cancelled => self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = false,
-        }
+    pub fn mouse_wheel(&mut self, delta: &MouseScrollDelta, _phase: &TouchPhase) {
+        // match phase {
+        //     TouchPhase::Started => {
+        //         if self.mouse_scroll_delta < 0.0 {
+        //             self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = true
+        //         } else {
+        //             self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = true
+        //         }
+        //     },
+        //     TouchPhase::Moved => {
+        //         if self.mouse_scroll.1 < 0.0 {
+        //             self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = true
+        //         } else {
+        //             self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = true
+        //         }
+        //     },
+        //     TouchPhase::Ended => {
+        //         self.mouse_scroll = (0.0, 0.0);
+        //         self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = false;
+        //         self.action_state[GameActions::CAMERA_ZOOM_OUT as usize] = false;
+        //     },
+        //     TouchPhase::Cancelled => self.action_state[GameActions::CAMERA_ZOOM_IN as usize] = false,
+        // }
 
-        let (x, y) = match delta {
-            MouseScrollDelta::LineDelta(x, y) => (*x as f64, *y as f64),
-            MouseScrollDelta::PixelDelta(pos) => (pos.x, pos.y),
+        let delta = match delta {
+            MouseScrollDelta::LineDelta(x, y) => Vec2::new(*x, *y),
+            MouseScrollDelta::PixelDelta(pos) => Vec2::new(pos.x as f32, pos.y as f32),
         };
 
-        println!("{x} {y}");
+        log::debug!("{:?}", delta);
 
-        self.mouse_scroll = (x, y);
+        self.mouse_scroll_delta += delta;
     }
 
     pub fn mouse_button(&mut self, state: &ElementState, button: &MouseButton) {
+        let pressed = matches!(state, ElementState::Pressed);
         match button {
-            MouseButton::Left => {
-                if matches!(state, ElementState::Pressed) {
-                    self.mouse_button.0 = true;
-                } else {
-                    self.mouse_button.0 = false;
-                }
-            },
-            MouseButton::Right => {
-                if matches!(state, ElementState::Pressed) {
-                    self.mouse_button.2 = true;
-                } else {
-                    self.mouse_button.2 = false;
-                }
-            },
-            MouseButton::Middle => {
-                if matches!(state, ElementState::Pressed) {
-                    self.mouse_button.1 = true;
-                } else {
-                    self.mouse_button.1 = false;
-                }
-            },
-            MouseButton::Back => {
-                log::debug!("mouse input back not implemented");
-            },
-            MouseButton::Forward => {
-                log::debug!("mouse input forward not implemented");
-            },
-            MouseButton::Other(_) => {
-                log::debug!("mouse input other not implemented");
-            },
+            MouseButton::Left => self.mouse_buttons.left = pressed,
+            MouseButton::Right => self.mouse_buttons.right = pressed,
+            MouseButton::Middle => self.mouse_buttons.middle = pressed,
+            MouseButton::Back => log::debug!("mouse input back not implemented"),
+            MouseButton::Forward => log::debug!("mouse input forward not implemented"),
+            MouseButton::Other(_) => log::debug!("mouse input other not implemented"),
         };
     }
 
-    pub fn mouse_movement(&mut self, position: PhysicalPosition<f64>) {
-        self.mouse_pos_prev = self.mouse_pos_now;
-        self.mouse_pos_now = (position.x, position.y);
+    pub fn mouse_movement(&mut self, x: f32, y: f32) {
+        self.mouse_delta += Vec2::new(x, y);
+
+        // log::debug!("{:?}", self.mouse_position);
     }
 
     pub fn keyboard(&mut self, key: &KeyCode, state: &ElementState) {
         if let Some(action) = self.bindings.get(key) {
-            if matches!(state, ElementState::Pressed) {
-                self.action_state[*action as usize] = true;
-            } else {
-                self.action_state[*action as usize] = false;
-            }
+            self.action_state[*action as usize] = matches!(state, ElementState::Pressed);
         }
     }
 

@@ -8,7 +8,7 @@ use std::{sync::Arc, time::{Duration, Instant}};
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, dpi::LogicalSize, event::{WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, dpi::{LogicalSize, PhysicalPosition}, event::{DeviceEvent, MouseScrollDelta, TouchPhase, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
 };
 
 use crate::game::Game;
@@ -57,6 +57,12 @@ impl ApplicationHandler for App {
         let window = Arc::new(
             event_loop.create_window(attrs).unwrap()
         );
+
+        // cursor
+        window.set_cursor_grab(winit::window::CursorGrabMode::Locked)
+            .expect("cant take control of cursor");
+        window.set_cursor_visible(false);
+
         self.game = Some(Game::init(window.clone()));
         self.window = Some(window);
         self.window.as_ref().unwrap().request_redraw();
@@ -105,17 +111,17 @@ impl ApplicationHandler for App {
             },
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
             // WindowEvent::Ime(ime) => todo!(),
-            WindowEvent::CursorMoved { 
-                device_id: _, 
-                position 
-            } => game.input_handler.mouse_movement(position),
+            // WindowEvent::CursorMoved { 
+            //     device_id: _, 
+            //     position 
+            // } => game.input_handler.mouse_movement(position),
             // WindowEvent::CursorEntered { device_id } => todo!(),
             // WindowEvent::CursorLeft { device_id } => todo!(),
-            WindowEvent::MouseWheel { 
-                device_id: _, 
-                delta, 
-                phase 
-            } => game.input_handler.mouse_wheel(&delta, &phase), 
+            // WindowEvent::MouseWheel { 
+            //     device_id: _, 
+            //     delta, 
+            //     phase 
+            // } => game.input_handler.mouse_wheel(&delta, &phase), 
             WindowEvent::MouseInput { 
                 device_id: _, 
                 state, 
@@ -144,6 +150,32 @@ impl ApplicationHandler for App {
                 }
                 // self.window.as_ref().unwrap().request_redraw();
             },
+            _ => {},
+        }
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    )
+    {
+        let Some(game) = &mut self.game else { return };
+
+        match event {
+            DeviceEvent::MouseMotion { delta } => {
+                game.input_handler.mouse_movement(delta.0 as f32, delta.1 as f32);
+            },
+            DeviceEvent::MouseWheel { delta } => {
+                game.input_handler.mouse_wheel(&delta, &TouchPhase::Started);
+            },
+            // DeviceEvent::Key(raw_key_event) => {
+            //     // usually ignore this because WindowEvent::KeyboardInput is easier
+            // },
+            // DeviceEvent::Motion { axis, value } => {
+            //     // joystick/raw axis events
+            // },
             _ => {},
         }
     }
@@ -199,7 +231,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let event_loop = EventLoop::new()?;
 
-    event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
+    // event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
 
     let mut app = App::new();
     event_loop.run_app(&mut app)?;

@@ -90,7 +90,7 @@ impl CameraController {
         return Self {
             move_speed: 5.0,
             rotate_speed: 1.5,
-            zoom_speed: 30.0,
+            zoom_speed: 3.0,
             movement: Vec3::ZERO,
             rotation: (0.0, 0.0),
             zoom: 0.0,
@@ -110,7 +110,13 @@ impl CameraController {
         }
     }
 
-    pub fn update(&mut self, camera: &mut CameraTransform, dt: f32) {
+    pub fn update(&mut self, camera: &mut CameraTransform, dt: f32) -> bool {
+        if self.movement == Vec3::ZERO &&
+           self.rotation == (0.0, 0.0) &&
+           self.zoom == 0.0 {
+            return false;
+        }
+
         // rotation
         camera.rotate(
             self.rotation.0 * self.rotate_speed * dt,
@@ -144,6 +150,8 @@ impl CameraController {
         self.movement = Vec3::ZERO;
         self.rotation = (0.0, 0.0);
         self.zoom = 0.0;
+
+        return true;
     }
 }
 
