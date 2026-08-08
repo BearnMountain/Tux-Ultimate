@@ -1,21 +1,21 @@
+use glam::Vec3;
 use wgpu::util::DeviceExt;
 
 use crate::engine::renderer::{self, coordinate::Coordinate, transform::TransformID};
 use super::math::any_as_u8_slice;
+use super::transform::Transform;
 
 #[repr(C)] // want c layout for memory
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     position: glam::Vec3,
-    color: glam::Vec3,
 }
 
 impl Vertex {
     pub fn get_layout() -> wgpu::VertexBufferLayout<'static> {
-        const ATTRIBUTES: [wgpu::VertexAttribute; 2] = 
+        const ATTRIBUTES: [wgpu::VertexAttribute; 1] = 
             wgpu::vertex_attr_array![
                 0 => Float32x3, 
-                1 => Float32x3,
             ];
 
         return wgpu::VertexBufferLayout {
@@ -41,109 +41,55 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn make_quad(
-        device: &wgpu::Device, 
-        material_id: renderer::material::MaterialID,
-        pipeline_id: renderer::pipeline::PipelineID,
-        transform_id: renderer::transform::TransformID,
-        pos: [f32; 2],
-        dim: [f32; 2],
-    ) -> Mesh {
-        let (x, y) = (pos[0], pos[1]);
-        let (w, h) = (dim[0], dim[1]);
-
-        let vertices: [Vertex; 4] = [
-            Vertex { position: glam::Vec3::new(x,     y - h, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: glam::Vec3::new(x + w, y - h, 0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: glam::Vec3::new(x + w, y,     0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
-            Vertex { position: glam::Vec3::new(x,     y,     0.0), color: glam::Vec3::new(1.0, 1.0, 1.0)},
-        ];
-        let indices: [u16; 6] = [
-            0, 1, 2,
-            2, 3, 0
-        ];
-
-        let bytes_vertex: &[u8] = unsafe {
-            any_as_u8_slice(&vertices)
-        };
-        let bytes_index: &[u8] = unsafe {
-            any_as_u8_slice(&indices)
-        };
-        let bytes_merged: &[u8] = &[
-            bytes_vertex,
-            bytes_index,
-        ].concat();
-
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("VertexBuffer"),
-            contents: bytes_merged,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::INDEX,
-        });
-        let offset: u64 = bytes_vertex.len().try_into().unwrap();
-
-        return Mesh {
-            buffer,
-            offset,
-            index_count: 6,
-            material_id,
-            pipeline_id,
-            transform_id,
-        };
-    }
-
     pub fn make_cube(
         device: &wgpu::Device,
         material_id: renderer::material::MaterialID,
         pipeline_id: renderer::pipeline::PipelineID,
         transform_id: renderer::transform::TransformID,
-        pos: [f32; 3],
         dim: [f32; 3],
     ) -> Self {
-        let (x, y, z) = (pos[0], pos[1], pos[2]);
         let (w, h, d) = (dim[0], dim[1], dim[2]);
 
-        let (x0, x1) = (x, x + w);
-        let (y0, y1) = (y, y + h);
-        let (z0, z1) = (z, z + d);
-
-        let white = glam::Vec3::new(1.0, 0.5, 1.0);
+        let (x0, x1) = (0.0, w);
+        let (y0, y1) = (0.0, h);
+        let (z0, z1) = (0.0, d);
 
         let vertices: [Vertex; 24] = [
             // Front (+Z)
-            Vertex { position: glam::Vec3::new(x0, y0, z1), color: white },
-            Vertex { position: glam::Vec3::new(x1, y0, z1), color: white },
-            Vertex { position: glam::Vec3::new(x1, y1, z1), color: white },
-            Vertex { position: glam::Vec3::new(x0, y1, z1), color: white },
+            Vertex { position: Vec3::new(x0, y0, z1) },
+            Vertex { position: Vec3::new(x1, y0, z1) },
+            Vertex { position: Vec3::new(x1, y1, z1) },
+            Vertex { position: Vec3::new(x0, y1, z1) },
 
             // Back (-Z)
-            Vertex { position: glam::Vec3::new(x1, y0, z0), color: white },
-            Vertex { position: glam::Vec3::new(x0, y0, z0), color: white },
-            Vertex { position: glam::Vec3::new(x0, y1, z0), color: white },
-            Vertex { position: glam::Vec3::new(x1, y1, z0), color: white },
+            Vertex { position: Vec3::new(x1, y0, z0) },
+            Vertex { position: Vec3::new(x0, y0, z0) },
+            Vertex { position: Vec3::new(x0, y1, z0) },
+            Vertex { position: Vec3::new(x1, y1, z0) },
 
             // Left (-X)
-            Vertex { position: glam::Vec3::new(x0, y0, z0), color: white },
-            Vertex { position: glam::Vec3::new(x0, y0, z1), color: white },
-            Vertex { position: glam::Vec3::new(x0, y1, z1), color: white },
-            Vertex { position: glam::Vec3::new(x0, y1, z0), color: white },
+            Vertex { position: Vec3::new(x0, y0, z0) },
+            Vertex { position: Vec3::new(x0, y0, z1) },
+            Vertex { position: Vec3::new(x0, y1, z1) },
+            Vertex { position: Vec3::new(x0, y1, z0) },
 
             // Right (+X)
-            Vertex { position: glam::Vec3::new(x1, y0, z1), color: white },
-            Vertex { position: glam::Vec3::new(x1, y0, z0), color: white },
-            Vertex { position: glam::Vec3::new(x1, y1, z0), color: white },
-            Vertex { position: glam::Vec3::new(x1, y1, z1), color: white },
+            Vertex { position: Vec3::new(x1, y0, z1) },
+            Vertex { position: Vec3::new(x1, y0, z0) },
+            Vertex { position: Vec3::new(x1, y1, z0) },
+            Vertex { position: Vec3::new(x1, y1, z1) },
 
             // Top (+Y)
-            Vertex { position: glam::Vec3::new(x0, y1, z1), color: white },
-            Vertex { position: glam::Vec3::new(x1, y1, z1), color: white },
-            Vertex { position: glam::Vec3::new(x1, y1, z0), color: white },
-            Vertex { position: glam::Vec3::new(x0, y1, z0), color: white },
+            Vertex { position: Vec3::new(x0, y1, z1) },
+            Vertex { position: Vec3::new(x1, y1, z1) },
+            Vertex { position: Vec3::new(x1, y1, z0) },
+            Vertex { position: Vec3::new(x0, y1, z0) },
 
             // Bottom (-Y)
-            Vertex { position: glam::Vec3::new(x0, y0, z0), color: white },
-            Vertex { position: glam::Vec3::new(x1, y0, z0), color: white },
-            Vertex { position: glam::Vec3::new(x1, y0, z1), color: white },
-            Vertex { position: glam::Vec3::new(x0, y0, z1), color: white },
+            Vertex { position: Vec3::new(x0, y0, z0) },
+            Vertex { position: Vec3::new(x1, y0, z0) },
+            Vertex { position: Vec3::new(x1, y0, z1) },
+            Vertex { position: Vec3::new(x0, y0, z1) },
         ];
 
         let indices: [u16; 36] = [

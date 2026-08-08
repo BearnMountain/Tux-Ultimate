@@ -136,8 +136,6 @@ impl Input {
             MouseScrollDelta::PixelDelta(pos) => Vec2::new(pos.x as f32, pos.y as f32),
         };
 
-        log::debug!("{:?}", delta);
-
         self.mouse_scroll_delta += delta;
     }
 
@@ -155,8 +153,6 @@ impl Input {
 
     pub fn mouse_movement(&mut self, x: f32, y: f32) {
         self.mouse_delta += Vec2::new(x, y);
-
-        // log::debug!("{:?}", self.mouse_position);
     }
 
     pub fn keyboard(&mut self, key: &KeyCode, state: &ElementState) {

@@ -22,8 +22,6 @@ pub enum CameraAction {
 pub struct Camera {
     pub uploader: CameraUploader,
     pub transform: CameraTransform, // current 
-    previous_transform: CameraTransform, // prev
-    render_transform: CameraTransform, // gets uploaded - step between prev and current in ticks
     pub controller: CameraController,
 }
 
@@ -41,15 +39,9 @@ impl Camera {
 
         return Self {
             uploader,
-            previous_transform: transform,
-            render_transform: transform,
             transform,
             controller: CameraController::new(),
         }
-    }
-
-    pub fn snapshot_previous(&mut self) {
-        self.previous_transform = self.transform;
     }
 
     pub fn update(
@@ -66,11 +58,6 @@ impl Camera {
     }
     pub fn tick(&mut self, dt: f32) {
         self.controller.update(&mut self.transform, dt);
-    }
-
-    pub fn update_render_transform(&mut self, alpha: f32) {
-        self.render_transform = self.previous_transform.lerp(&self.transform, alpha);
-        self.uploader.upload(&self.render_transform);
     }
 }
 
@@ -175,7 +162,7 @@ impl CameraTransform {
     ) -> Self {
         return Self {
             position,
-            yaw: -std::f32::consts::FRAC_2_PI,
+            yaw: -std::f32::consts::FRAC_PI_2,
             pitch: 0.0,
             fov_y: 60f32.to_radians(),
             aspect,

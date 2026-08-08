@@ -143,7 +143,7 @@ impl ApplicationHandler for App {
                 game.engine.renderer.interpolation_alpha = alpha.clamp(0.0, 1.0);
 
                 // draw
-                if let Err(e) = game.engine.renderer.render() {
+                if let Err(e) = game.frame(self.dt, self.tick) {
                     eprintln!("render error: {e:?}");
                     game.engine.renderer.update_surface();
                     game.engine.resize(None);
@@ -193,15 +193,11 @@ impl ApplicationHandler for App {
         }
         self.accumulator += frame_time;
 
-        // general polling
-        game.update(frame_time);
-        
         // renders frame 1/tick freqency
         let max_ticks_per_frame = 5;
         let mut ticks = 0;
         while self.accumulator >= self.dt && ticks < max_ticks_per_frame {
-            game.engine.renderer.update_transform_snapshots();
-            game.frame(self.dt, self.tick);
+            game.update(frame_time, self.tick);
 
             self.accumulator -= self.dt;
             self.tick += 1;
@@ -231,7 +227,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let event_loop = EventLoop::new()?;
 
-    // event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
+    event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
 
     let mut app = App::new();
     event_loop.run_app(&mut app)?;

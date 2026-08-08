@@ -7,11 +7,17 @@ use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, me
 
 mod io;
 
+struct RequireUpload {
+    camera: bool,
+}
+
 pub struct Game {
     tick: u64,
 
     pub engine: Engine,
     pub input_handler: io::input::Input,
+
+    pub upload_list: RequireUpload,
 }
 
 impl Game {
@@ -69,32 +75,35 @@ impl Game {
             &device, 
             &material_layout
         );
-        let transform_id_0 = engine.renderer.add_transform(
-            transform::Transform::new()
-        );
-
-        // upload to gpu
-        engine.renderer.update_transform_snapshots();
-        engine.renderer.update_transform(); 
-        
+       
         // get stuff renderable each loop
         let material_id = engine.renderer.add_material(material);
         let pipeline_id = engine.renderer.add_pipeline(pipeline);
         {
-            let camera = &engine.renderer.camera.transform;
-            let spawn_pos = camera.position + camera.forward_direction() * 5.0;
-            let size = Vec3::splat(1.0);
-            let pos = spawn_pos - size * 0.5;
+            // let camera = &engine.renderer.camera.transform;
+            // let spawn_pos = camera.position + camera.forward_direction() * 5.0;
+            // let size = Vec3::splat(1.0);
+            // let pos = spawn_pos - size * 0.5;
+
+            let mut transform0 = transform::Transform::default();
+            transform0.position = Vec3::new(0.0, 2.0, -8.0);
+
+            let transform_id = engine.renderer.add_transform(transform0);
+
 
             let mesh0 = mesh::Mesh::make_cube(
                 &device, 
                 material_id,
                 pipeline_id,
-                transform_id_0,
-                pos.to_array(), // pos
+                transform_id,
                 [1.0, 1.0, 1.0], // volume
             );
+
             let _mesh_id = engine.renderer.add_mesh(mesh0);
+            engine.renderer.update_transforms();
+
+            // println!("{:?}", transform0.matrix());
+
         }
 
         
@@ -102,24 +111,40 @@ impl Game {
             tick: 0,
             engine,
             input_handler,
+            upload_list: RequireUpload { 
+                camera: false, 
+            },
         };
     }
 
-    pub fn frame(&mut self, dt: Duration, tick: u64) {
-        let _ = dt;
-        let _ = self.engine.renderer.render();
-        self.tick = tick;
+    /// called at monitor refresh rate
+    pub fn frame(&mut self, _dt: Duration, _tick: u64) -> anyhow::Result<()> {
+        // upload data to shaders 
+        {
+            let upload_list = &mut self.upload_list;
+            if upload_list.camera {
+                // self.engine.renderer.camera.uploader.upload(&self.engine.renderer.camera.transform);
+                upload_list.camera = false;
+            }
+        }
+
+        // update screen
+        self.engine.renderer.render()?;
 
         // ---- RESET ----
+
+        return Ok(());
+    }
+
+    /// called every tick
+    pub fn update(&mut self, _dt: Duration, tick: u64) {
+        self.update_from_input();
 
         // reseting inputs
         self.input_handler.mouse_delta = Vec2::ZERO;
         self.input_handler.mouse_scroll_delta = Vec2::ZERO;
-    }
 
-    /// called to update game as much as possible
-    pub fn update(&mut self, _frame_time: Duration) {
-        self.update_from_input();
+        self.tick = tick;
     }
 
     /// all winit input events update game here
@@ -171,7 +196,8 @@ impl Game {
             camera.controller.action(CameraAction::ZOOM, self.input_handler.mouse_scroll_delta.y);
 
             if camera.controller.update(&mut camera.transform, 0.1) {
-                camera.uploader.upload(&camera.transform);
+                self.upload_list.camera = true;
+                self.engine.renderer.camera.uploader.upload(&self.engine.renderer.camera.transform);
             }
         }
     }

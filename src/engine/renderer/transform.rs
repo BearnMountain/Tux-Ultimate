@@ -21,7 +21,19 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub fn new() -> Self {
+    pub fn new(
+        position: Vec3,
+        rotation: Quat,
+        scale: Vec3,
+    ) -> Self {
+        return Self {
+            position,
+            rotation,
+            scale,
+        };
+    }
+
+    pub fn default() -> Self {
         return Self {
             position: Vec3::ZERO,
             rotation: Quat::IDENTITY,
@@ -65,8 +77,8 @@ pub struct TransformStorage {
     pub bind_group: wgpu::BindGroup,
     capacity: u64,
     transforms: Vec<Transform>,
-    previous_transforms: Vec<Transform>, // snapstock each tick
-    render_transforms: Vec<Transform>, // interpolated
+    // previous_transforms: Vec<Transform>, // snapstock each tick
+    // render_transforms: Vec<Transform>, // interpolated
 
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -89,7 +101,7 @@ impl TransformStorage {
         });
         let layout = bind_group::LayoutBuilder::new(device)
             .add_buffer(
-                wgpu::ShaderStages::VERTEX,
+                wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                 wgpu::BufferBindingType::Storage { read_only: true },
             )
             .build("transform bind group layout");
@@ -102,8 +114,8 @@ impl TransformStorage {
             bind_group,
             capacity,
             transforms: Vec::new(),
-            previous_transforms: Vec::new(),
-            render_transforms: Vec::new(),
+            // previous_transforms: Vec::new(),
+            // render_transforms: Vec::new(),
             device: device.clone(),
             queue: queue.clone(),
             layout,
@@ -124,33 +136,33 @@ impl TransformStorage {
     }
 
     /// smoothing out animation and transforms
-    pub fn snapshot_previous(&mut self) {
-        self.previous_transforms.clear();
-        self.previous_transforms.extend_from_slice(&self.transforms);
-    }
-
-    pub fn interpolate(&mut self, alpha: f32) {
-        debug_assert_eq!(
-            self.previous_transforms.len(), self.transforms.len(),
-            "transform mismatch, cant add between snapshot and interpolate functions"
-        );
-        self.render_transforms.clear();
-        self.render_transforms.reserve(self.transforms.len());
-
-        for (i, current) in self.transforms.iter().enumerate() {
-            if let Some(previous) = self.previous_transforms.get(i) {
-                // Both exist: smoothly interpolate
-                self.render_transforms.push(previous.lerp(current, alpha));
-            } else {
-                // Newly spawned entity (no snapshot history yet): render directly at current position
-                self.render_transforms.push(*current);
-            }
-        }
-    }
+    // pub fn snapshot_previous(&mut self) {
+    //     self.previous_transforms.clear();
+    //     self.previous_transforms.extend_from_slice(&self.transforms);
+    // }
+    //
+    // pub fn interpolate(&mut self, alpha: f32) {
+    //     debug_assert_eq!(
+    //         self.previous_transforms.len(), self.transforms.len(),
+    //         "transform mismatch, cant add between snapshot and interpolate functions"
+    //     );
+    //     self.render_transforms.clear();
+    //     self.render_transforms.reserve(self.transforms.len());
+    //
+    //     for (i, current) in self.transforms.iter().enumerate() {
+    //         if let Some(previous) = self.previous_transforms.get(i) {
+    //             // Both exist: smoothly interpolate
+    //             self.render_transforms.push(previous.lerp(current, alpha));
+    //         } else {
+    //             // Newly spawned entity (no snapshot history yet): render directly at current position
+    //             self.render_transforms.push(*current);
+    //         }
+    //     }
+    // }
 
     pub fn upload(&mut self) {
         let needed = self.transforms.len() as u64;
-        
+
         // accounts for change in transformer size
         if needed > self.capacity {
             let new_capacity = (needed * 2).max(self.capacity * 2);
@@ -168,10 +180,13 @@ impl TransformStorage {
         }
 
         // Convert interpolated render_transforms to matrices
-        let matrices: Vec<Mat4> = self.render_transforms.iter().map(|t| t.matrix()).collect();
+        let matrices: Vec<Mat4> = self.transforms
+            .iter()
+            .map(|t| t.matrix())
+            .collect();
 
         // uploads to gpu
-        let bytes = unsafe { math::any_as_u8_slice(&matrices) };
+        let bytes = unsafe { math::any_slice_as_u8_slice(&matrices) };
         self.queue.write_buffer(&self.buffer, 0, bytes);
     }
 }

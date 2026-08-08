@@ -27,8 +27,6 @@ pub struct Renderer {
 
     // renderables
     meshes_cache: mesh::MeshStorage,
-
-    
 }
 
 impl Renderer {
@@ -173,17 +171,8 @@ impl Renderer {
         self.graphics.update_surface();
     }
 
-    pub fn update_transform_snapshots(&mut self) {
-        self.transform_cache.snapshot_previous();
-        self.camera.snapshot_previous();
-    }
-
-    pub fn update_transform(&mut self) {
-        self.transform_cache.interpolate(self.interpolation_alpha);
+    pub fn update_transforms(&mut self) {
         self.transform_cache.upload();
-
-        // update camera
-        self.camera.update_render_transform(self.interpolation_alpha);
     }
 
     /// adding items to cache
