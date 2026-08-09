@@ -8,9 +8,10 @@ pub mod material;
 pub mod coordinate;
 pub mod math;
 pub mod transform;
-// pub mod model_loader;
+pub mod model_loader;
 
 use glam::Vec3;
+use gltf::scene::Transform;
 use winit::dpi::PhysicalSize;
 
 use crate::engine::scene::camera;
@@ -86,6 +87,7 @@ impl Renderer {
                 }
             
                 // renders basic mesh to screen
+                pass.set_immediates(0, &(mesh.transform_id as u32).to_ne_bytes());
                 pass.set_vertex_buffer(0, mesh.buffer.slice(0..mesh.offset));
                 pass.set_index_buffer(mesh.buffer.slice(mesh.offset..), wgpu::IndexFormat::Uint16);
                 pass.draw_indexed(0..mesh.index_count, 0, 0..1);
@@ -196,5 +198,11 @@ impl Renderer {
     }
     pub fn get_transform_layout(&self) -> &bind_group::LayoutInfo {
         return &self.transform_cache.layout;
+    }
+    pub fn get_transform(
+        &mut self, 
+        i: transform::TransformID
+    ) -> Option<&mut transform::Transform> {
+        return self.transform_cache.get(i);
     }
 }

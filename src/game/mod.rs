@@ -3,7 +3,7 @@ use std::{path::Path, sync::Arc, time::Duration};
 use glam::{Vec2, Vec3};
 use winit::window::Window;
 
-use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, mesh, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
+use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, mesh, model_loader::Model, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
 
 mod io;
 
@@ -27,12 +27,15 @@ impl Game {
 
         // testing engine
         let device = engine.renderer.get_render_context().device.clone();
+        let queue = engine.renderer.get_render_context().queue.clone();
 
         // gather test data
-        let (shader_text, texture_raw) = pollster::block_on(async {
+        let (shader_text, texture_raw, gltf_json, gltf_bin) = pollster::block_on(async {
             tokio::try_join!(
                 server::Server::preload_text(Path::new("shaders/shader.wgsl")),
                 server::Server::preload_raw(Path::new("textures/brick-texture-54.png")),
+                server::Server::preload_text(Path::new("characters/test/tux/scene.gltf")),
+                server::Server::preload_raw(Path::new("characters/test/tux/scene.bin")),
             )
         }).expect("rip");
 
@@ -86,7 +89,7 @@ impl Game {
             // let pos = spawn_pos - size * 0.5;
 
             let mut transform0 = transform::Transform::default();
-            transform0.position = Vec3::new(0.0, 2.0, -8.0);
+            transform0.position = Vec3::new(0.0, 0.0, -8.0);
 
             let transform_id = engine.renderer.add_transform(transform0);
 
@@ -106,6 +109,15 @@ impl Game {
 
         }
 
+        // load models
+        {
+            let _model = Model::create_from_gltf(
+                &gltf_json,
+                &device,
+                &queue,
+            );
+        }
+
         
         return Self {
             tick: 0,
@@ -123,7 +135,7 @@ impl Game {
         {
             let upload_list = &mut self.upload_list;
             if upload_list.camera {
-                // self.engine.renderer.camera.uploader.upload(&self.engine.renderer.camera.transform);
+                self.engine.renderer.camera.uploader.upload(&self.engine.renderer.camera.transform);
                 upload_list.camera = false;
             }
         }
@@ -197,23 +209,28 @@ impl Game {
 
             if camera.controller.update(&mut camera.transform, 0.1) {
                 self.upload_list.camera = true;
-                self.engine.renderer.camera.uploader.upload(&self.engine.renderer.camera.transform);
+                // self.engine.renderer.camera.uploader.upload(&self.engine.renderer.camera.transform);
             }
+        }
+
+        { // player
+            if let Some(player) = self.engine.renderer.get_transform(0) {
+                if self.input_handler.action_state[GameActions::PLAYER_LEFT as usize] {
+                    player.position.x -= 0.2;
+                }
+                if self.input_handler.action_state[GameActions::PLAYER_RIGHT as usize] {
+                    player.position.x += 0.2;
+                }
+                if self.input_handler.action_state[GameActions::PLAYER_UP as usize] {
+                    player.position.y += 0.2;
+                }
+                if self.input_handler.action_state[GameActions::PLAYER_DOWN as usize] {
+                    player.position.y -= 0.2;
+                }
+            } else {
+                log::error!("player doesnt exist");
+            }
+            self.engine.renderer.update_transforms();
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
