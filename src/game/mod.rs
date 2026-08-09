@@ -1,11 +1,11 @@
+mod io;
+
 use std::{path::Path, sync::Arc, time::Duration};
 
 use glam::{Vec2, Vec3};
 use winit::window::Window;
 
-use crate::{engine::{Engine, assets::server, renderer::{bind_group, material, mesh, model_loader::Model, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
-
-mod io;
+use crate::{engine::{Engine, assets::server, physics::{PhysicsWorld, physics_body::{self, RigidBody}}, renderer::{bind_group, material, mesh, model_loader::Model, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
 
 struct RequireUpload {
     camera: bool,
@@ -16,6 +16,7 @@ pub struct Game {
 
     pub engine: Engine,
     pub input_handler: io::input::Input,
+    pub physics_world: PhysicsWorld,
 
     pub upload_list: RequireUpload,
 }
@@ -118,9 +119,12 @@ impl Game {
             );
         }
 
+        let mut physics_world = PhysicsWorld::default();
+        physics_world.bodies.push(RigidBody::new(0));
         
         return Self {
             tick: 0,
+            physics_world,
             engine,
             input_handler,
             upload_list: RequireUpload { 
@@ -149,14 +153,14 @@ impl Game {
     }
 
     /// called every tick
-    pub fn update(&mut self, _dt: Duration, tick: u64) {
+    pub fn update(&mut self, _dt: Duration) {
+        self.tick += 1;
+
         self.update_from_input();
 
         // reseting inputs
         self.input_handler.mouse_delta = Vec2::ZERO;
         self.input_handler.mouse_scroll_delta = Vec2::ZERO;
-
-        self.tick = tick;
     }
 
     /// all winit input events update game here
@@ -214,22 +218,31 @@ impl Game {
         }
 
         { // player
-            if let Some(player) = self.engine.renderer.get_transform(0) {
-                if self.input_handler.action_state[GameActions::PLAYER_LEFT as usize] {
-                    player.position.x -= 0.2;
-                }
-                if self.input_handler.action_state[GameActions::PLAYER_RIGHT as usize] {
-                    player.position.x += 0.2;
-                }
-                if self.input_handler.action_state[GameActions::PLAYER_UP as usize] {
-                    player.position.y += 0.2;
-                }
-                if self.input_handler.action_state[GameActions::PLAYER_DOWN as usize] {
-                    player.position.y -= 0.2;
-                }
-            } else {
-                log::error!("player doesnt exist");
+            let transform_cache = self.engine.renderer.get_transform_cache();
+            self.physics_world.update(
+                transform_cache, 
+                1.0/60.0,
+            );
+
+            let player = &mut self.physics_world.bodies[0];
+            player.desired_direction.x = 0.0;
+
+            if self.input_handler.action_state[GameActions::PLAYER_LEFT as usize] {
+                player.desired_direction.x -= 0.2;
             }
+
+            if self.input_handler.action_state[GameActions::PLAYER_RIGHT as usize] {
+                player.desired_direction.x += 0.2;
+            }
+
+            if self.input_handler.action_state[GameActions::PLAYER_UP as usize] {
+                player.desired_direction.y += 2.2;
+            }
+
+            if self.input_handler.action_state[GameActions::PLAYER_DOWN as usize] {
+                player.desired_direction.y -= 0.2;
+            }
+
             self.engine.renderer.update_transforms();
         }
     }

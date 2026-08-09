@@ -14,7 +14,7 @@ use glam::Vec3;
 use gltf::scene::Transform;
 use winit::dpi::PhysicalSize;
 
-use crate::engine::scene::camera;
+use crate::engine::{renderer::transform::TransformStorage, scene::camera};
 
 pub struct Renderer {
     graphics: context::RenderContext,
@@ -204,5 +204,9 @@ impl Renderer {
         i: transform::TransformID
     ) -> Option<&mut transform::Transform> {
         return self.transform_cache.get(i);
+    }
+
+    pub fn get_transform_cache(&mut self) -> &mut TransformStorage {
+        return &mut self.transform_cache;
     }
 }

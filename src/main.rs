@@ -197,7 +197,7 @@ impl ApplicationHandler for App {
         let max_ticks_per_frame = 5;
         let mut ticks = 0;
         while self.accumulator >= self.dt && ticks < max_ticks_per_frame {
-            game.update(frame_time, self.tick);
+            game.update(frame_time);
 
             self.accumulator -= self.dt;
             self.tick += 1;
