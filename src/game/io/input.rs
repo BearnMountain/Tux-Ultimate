@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use glam::Vec2;
-use winit::{dpi::PhysicalPosition, event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase}, keyboard::KeyCode};
+use winit::{event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase}, keyboard::KeyCode};
 
 use crate::util::config::{Config};
 

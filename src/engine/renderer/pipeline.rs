@@ -57,7 +57,7 @@ impl<'a> Builder<'a> {
             &wgpu::PipelineLayoutDescriptor {
                 label: Some(label),
                 bind_group_layouts: &self.bind_group_layouts,
-                immediate_size: 0,
+                immediate_size: 4,
             }
         );
 

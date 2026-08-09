@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{default, sync::Arc};
 
 use winit::{dpi::PhysicalSize, window::Window};
 
@@ -57,8 +57,13 @@ impl RenderContext {
         // logical device and command queue for graphic calls
         let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("ContextDevice"),
-            required_features: wgpu::Features::empty(),
-            required_limits: wgpu::Limits::default(),
+            required_features: wgpu::Features::IMMEDIATES,
+            required_limits: wgpu::Limits {
+                // to allow transform index uploading
+                // - index into storage model buffer
+                max_immediate_size: 4, 
+                ..Default::default()
+            },
             experimental_features: wgpu::ExperimentalFeatures::disabled(),
             memory_hints: wgpu::MemoryHints::Performance,
             trace: wgpu::Trace::Off,

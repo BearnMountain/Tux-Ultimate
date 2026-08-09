@@ -1,3 +1,5 @@
+/// math file for gpu uploading
+
 #[allow(unsafe_op_in_unsafe_fn)]
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
     return ::core::slice::from_raw_parts(

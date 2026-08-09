@@ -30,15 +30,23 @@ pub struct RawSource {
 impl RawSource {
     pub async fn new(file_path: &Path) -> anyhow::Result<Self> {
         let source = tokio::fs::read(file_path).await?;
-        let img = image::load_from_memory(&source)?;
-        let rgba = img.to_rgba8();
-        let (width, height) = rgba.dimensions();
+        
+        if let Ok(img) = image::load_from_memory(&source) {
+            let rgba = img.to_rgba8();
+            let (width, height) = rgba.dimensions();
 
-        return Ok(Self {
-            pixels: rgba.into_raw(),
-            width,
-            height,
-        });
+            return Ok(Self {
+                pixels: rgba.into_raw(),
+                width,
+                height,
+            });
+        } else {
+            Ok(Self {
+                pixels: source,
+                width: 0,
+                height: 0,
+            })
+        }
     }
 }
 

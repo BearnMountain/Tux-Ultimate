@@ -17,19 +17,23 @@ struct VertexPayload {
 	@location(0) uv: vec2<f32>,
 };
 
+struct Immediates {
+	model_index: u32,
+}
+
+var<immediate> immediates: Immediates;
+
 @vertex
 fn vs_main(
-	@builtin(instance_index) instance_index: u32,
 	vertex: Vertex,
 ) -> VertexPayload {
 	var out: VertexPayload;
-	let world_pos =	models[0] * vec4<f32>(vertex.position, 1.0f);
-	out.position = view_projection * world_pos;
+	out.position = view_projection * models[immediates.model_index] * vec4<f32>(vertex.position, 1.0f);
     out.uv = vec2<f32>(0.5 * (vertex.position.x + 1f), -0.5 * (vertex.position.y + 1f));
 	return out;
 }
 
 @fragment 
 fn fs_main(in: VertexPayload) -> @location(0) vec4<f32> {
-    return vec4(models[0][3].xy, 1.0, 1.0) * textureSample(texture_ref, sampler_ref, in.uv);
+    return textureSample(texture_ref, sampler_ref, in.uv);
 }
