@@ -7,19 +7,19 @@ use crate::engine::renderer::transform::{TransformID};
 #[derive(Copy, Clone)]
 pub struct RigidBody {
     pub transform_id: TransformID,
-    
+
     // Motion
     pub velocity: Vec2,
     pub acceleration: Vec2,
-
+    
     // Input for this frame
     pub desired_direction: Vec2,
-
+    
     // Constants
     pub move_acceleration: f32,
     pub damping: f32,
     pub gravity: f32,
-
+    
     pub grounded: bool,
 }
 

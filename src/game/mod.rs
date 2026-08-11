@@ -5,7 +5,11 @@ use std::{path::Path, sync::Arc, time::Duration};
 use glam::{Vec2, Vec3};
 use winit::window::Window;
 
-use crate::{engine::{Engine, assets::server, physics::{PhysicsWorld, physics_body::{self, RigidBody}}, renderer::{bind_group, material, mesh, model_loader::Model, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
+use crate::{
+    engine::{
+        Engine, assets::server, physics::{
+            PhysicsWorld, rigid_body::RigidBody
+        }, renderer::{bind_group, material, mesh, model_loader::Model, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
 
 struct RequireUpload {
     camera: bool,
@@ -13,6 +17,7 @@ struct RequireUpload {
 
 pub struct Game {
     tick: u64,
+    frames: u64,
 
     pub engine: Engine,
     pub input_handler: io::input::Input,
@@ -124,6 +129,7 @@ impl Game {
         
         return Self {
             tick: 0,
+            frames: 0,
             physics_world,
             engine,
             input_handler,
