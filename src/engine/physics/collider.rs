@@ -69,9 +69,7 @@ impl Collider {
         self.translation = translation;
     }
 
-
     fn fit_aabb(&mut self) {
 
     }
-
 }
