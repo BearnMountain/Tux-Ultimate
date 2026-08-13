@@ -23,6 +23,11 @@ pub struct MTV {
 /// - only encapsulates convex shapes
 /// - convex decomposisition check before loading this struct
 pub struct OBB {
+    // model space info
+    local_corners: Vec<Vec2>,
+    position: Vec2,
+    angle: f32,
+
     pub corners: Vec<Vec2>, // all faces of a convex shape
     axis: Vec<Vec2>, // all axis for intersection testing
 }
@@ -31,50 +36,76 @@ impl OBB {
     pub fn new(
         corners: Vec<Vec2>,
     ) -> Self {
-        return Self {
-            corners,
-            axis: Vec::new(),
+        let mut obb = Self { 
+            local_corners: corners, 
+            position: Vec2::ZERO,
+            angle: 0.0,
+            corners: Vec::new(),
+            axis: Vec::new() 
         };
+
+        obb.transform(Vec2::ZERO, 0.0);
+        return obb;
+    }
+
+    pub fn transform(&mut self, position: Vec2, angle: f32) {
+        if position == self.position && angle == self.angle {
+            return;
+        }
+
+        self.position = position;
+        self.angle = angle;
+
+        let (sin, cos) = angle.sin_cos();
+        self.corners.clear();
+        self.corners.extend(self.local_corners.iter().map(|p| {
+            Vec2::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos) + position
+        }));
+
+        self.update_axis();
     }
 
     /// vertices or rotation change/recalculate
     pub fn update_axis(&mut self) {
         self.axis.clear();
-        for i in 0..self.corners.len() {
-            if i == self.corners.len() - 1 {
-                self.axis.push(OBB::face_normal(
-                    self.corners[i], 
-                    self.corners[0], 
-                ));
-                break;
-            }
-            self.axis.push(OBB::face_normal(
-                self.corners[i], 
-                self.corners[i + 1], 
-            ));
+        let n = self.corners.len();
+        for i in 0..n {
+            let next = (i + 1) % n;
+            self.axis.push(Self::face_normal(self.corners[i], self.corners[next]));
         }
     }
 
-    /// ...
-    pub fn intersects(
-        &self, 
-        _other: &OBB, 
-        _translation: Vec2, // from 0,0
-        _angle: f32, // angular 0-360
-    ) -> MTV {
-        // for axis in self.axis.iter().chain(other.axis.iter()) {
-        //     let (min0, max0) = OBB::project(&self.corners, axis);
-        //     let (min1, max1) = OBB::project(&other.corners, axis);
-        //
-        //     if max0 < min1 || max1 < min0 {
-        //         return false;
-        //     }
-        // }
+    /// Minimal Translation Vector returned if collision
+    pub fn collision(&self, other: &OBB) -> Option<MTV> {
+        let mut min_overlap = f32::MAX;
+        let mut min_axis = Vec2::ZERO;
 
-        return MTV {
-            magnitude: 0.0,
-            direction: Vec2::new(0.0, 0.0),
-        };
+        for axis in self.axis.iter().chain(other.axis.iter()) {
+            let (min0, max0) = Self::project(&self.corners, axis);
+            let (min1, max1) = Self::project(&other.corners, axis);
+
+            if max0 < min1 || max1 < min0 {
+                return None;
+            }
+
+            let overlap = max0.min(max1) - min0.max(min1);
+            if overlap < min_overlap {
+                min_overlap = overlap;
+                min_axis = *axis;
+            }
+        }
+
+        // finds mtv
+        let self_center = Self::centroid(&self.corners);
+        let other_center = Self::centroid(&other.corners);
+        if (other_center - self_center).dot(min_axis) < 0.0 {
+            min_axis = -min_axis;
+        }
+
+        return Some(MTV { 
+            magnitude: min_overlap, 
+            direction: min_axis 
+        });
     }
 
     fn face_normal(p1: Vec2, p2: Vec2) -> Vec2 {
@@ -95,13 +126,18 @@ impl OBB {
 
         return (min, max);
     }
+
+    fn centroid(poly: &[Vec2]) -> Vec2 {
+        let sum: Vec2 = poly.iter().fold(Vec2::ZERO, |acc, &v| acc + v);
+        return sum / poly.len() as f32;
+    }
 }
 
 /// oriented aabb rectangular bb
 /// - simple collision checks
 /// - helps reduce higher cost polygon checks
 pub struct AABB {
-    // recomputes transform from these values, stay "const"
+    // recomputes model transform from these values, stay "const"
     half_extents: Vec2, // x/y from 0,0,0
     local_center: Vec2, // centroid of local model, might not be 0,0
     local_angle: f32,
@@ -169,7 +205,7 @@ impl AABB {
         } 
     }
 
-    pub fn intersects(&mut self, other: &AABB) -> bool {
+    pub fn collision(&mut self, other: &AABB) -> bool {
         for axis in self.axis.iter().chain(other.axis.iter()) {
             let (min0, max0) = AABB::project(&self.world_corners, axis);
             let (min1, max1) = AABB::project(&other.world_corners, axis);

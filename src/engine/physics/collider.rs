@@ -8,8 +8,11 @@ use super::bounding_box::{OBB, AABB, MTV};
 pub struct Collider {
     first_layer: AABB, 
     second_layer: OBB, 
+
+    // polygon itself
     angle: f32,
     translation: Vec2,
+    local_corners: Vec<Vec2>,
 }
 
 impl Collider {
