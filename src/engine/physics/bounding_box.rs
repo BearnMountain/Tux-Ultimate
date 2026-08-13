@@ -19,10 +19,10 @@ pub struct MTV {
     pub direction: Vec2,
 }
 
-/// oriented bounding box
+/// convex oriented bounding box
 /// - only encapsulates convex shapes
 /// - convex decomposisition check before loading this struct
-pub struct OBB {
+pub struct COBB {
     // model space info
     local_corners: Vec<Vec2>,
     position: Vec2,
@@ -32,7 +32,7 @@ pub struct OBB {
     axis: Vec<Vec2>, // all axis for intersection testing
 }
 
-impl OBB {
+impl COBB {
     pub fn new(
         corners: Vec<Vec2>,
     ) -> Self {
@@ -76,7 +76,7 @@ impl OBB {
     }
 
     /// Minimal Translation Vector returned if collision
-    pub fn collision(&self, other: &OBB) -> Option<MTV> {
+    pub fn collision(&self, other: &COBB) -> MTV {
         let mut min_overlap = f32::MAX;
         let mut min_axis = Vec2::ZERO;
 
@@ -85,7 +85,10 @@ impl OBB {
             let (min1, max1) = Self::project(&other.corners, axis);
 
             if max0 < min1 || max1 < min0 {
-                return None;
+                return MTV {
+                    magnitude: 0.0,
+                    direction: Vec2::ZERO,
+                };
             }
 
             let overlap = max0.min(max1) - min0.max(min1);
@@ -102,10 +105,10 @@ impl OBB {
             min_axis = -min_axis;
         }
 
-        return Some(MTV { 
+        return MTV { 
             magnitude: min_overlap, 
             direction: min_axis 
-        });
+        };
     }
 
     fn face_normal(p1: Vec2, p2: Vec2) -> Vec2 {
@@ -232,12 +235,3 @@ impl AABB {
         return (min, max);
     }
 }
-
-
-
-
-
-
-
-
-

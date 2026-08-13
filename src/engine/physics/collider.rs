@@ -1,78 +1,187 @@
 use glam::Vec2;
 
-use super::bounding_box::{OBB, AABB, MTV};
+use super::bounding_box::{COBB, AABB, MTV};
 
 /// Each collider has a rectangular bb with a fitted polygonal bb
 /// - First layer provides basic check for rectangular aabb intersection
 /// - Second layer is a fit polygon for accurate intersections
 pub struct Collider {
     first_layer: AABB, 
-    second_layer: OBB, 
+    second_layer: COBB, 
 
-    // polygon itself
+    position: Vec2,
     angle: f32,
-    translation: Vec2,
-    local_corners: Vec<Vec2>,
 }
 
 impl Collider {
     /// all corners of the polygon, 0 and len-1 connect back to each other
     pub fn new(
-        _polygon: Vec<Vec2>, 
+        polygon: Vec<Vec2>, 
+        position: Vec2,
+        angle: f32,
     ) -> Self {
-        let aabb_corners = [
-            Vec2::ZERO,
-            Vec2::ZERO,
-            Vec2::ZERO,
-            Vec2::ZERO,
-        ];
-        let obb_corners = Vec::new();
+        let aabb_oriented_rect = Collider::fit_aabb(&polygon);
 
         return Self {
-            first_layer: AABB::new(aabb_corners),
-            second_layer: OBB::new(obb_corners),
-            angle: 0.0,
-            translation: Vec2::new(0.0, 0.0),
+            first_layer: AABB::new(aabb_oriented_rect),
+            second_layer: OBB::new(polygon),
+            position,
+            angle,
         };
     }
 
-    pub fn intersects(
+    pub fn collision(
         &mut self,
         other: &Collider,
     ) -> MTV {
-        if self.first_layer.intersects(
+        if self.first_layer.collision(
             &other.first_layer,
-            self.translation,
-            self.angle,
         ) {
-            return self.second_layer.intersects(
+            return self.second_layer.collision(
                 &other.second_layer, 
-                self.translation, 
-                self.angle,
             );
         }
 
         return MTV {
             magnitude: 0.0,
-            direction: Vec2::new(0.0, 0.0),
+            direction: Vec2::ZERO,
         };
     }
 
     /// ---- Change Collider Data ----
-    /// set new polygon bb
+    /// set new polygon bb, recalculate everything
     pub fn set_bounding_box(&mut self, bb: Vec<Vec2>) {
+        self.first_layer = AABB::new(Collider::fit_aabb(&bb));
         self.second_layer.corners = bb;
         self.second_layer.update_axis(); // update faces with new normal axis
-        self.fit_aabb(); // updates first_layer
     }
     pub fn set_rotation(&mut self, angle: f32) {
         self.angle = (angle % 360.0 + 360.0) % 360.0;
     }
     pub fn set_translation(&mut self, translation: Vec2) {
-        self.translation = translation;
+        self.position = translation;
     }
 
-    fn fit_aabb(&mut self) {
+    /// todo: this going to fuck things up, dam caves
+    fn convex_polygon_decomposition(
+        _polygon: Vec<Vec2>,
+    ) {
 
+    }
+
+    /// Rotating Calipers Method
+    fn fit_aabb(polygon: &Vec<Vec2>) -> [Vec2; 4] {
+
+        // Gift Wrapping (Jarvis March) -> hull for calipers
+        let mut hull: Vec<Vec2>;
+        let n = polygon.len();
+        
+        // There must be at least 3 polygon to form a hull.
+        if n < 3 {
+            hull = polygon.to_vec();
+        } else {
+            // - based off https://github.com/WillKirkmanM/gift-wrapping/tree/master
+            // - hopefully works
+            hull = Vec::new();
+
+            // Step 1: Find the leftmost point (min x).
+            // If x is same, pick the one with min y.
+            let mut l = 0;
+            for i in 1..n {
+                if polygon[i].x < polygon[l].x || (polygon[i].x == polygon[l].x && polygon[i].y < polygon[l].y) {
+                    l = i;
+                }
+            }
+
+            // Start from the leftmost point
+            let mut p = l;
+            let mut q; 
+
+            loop {
+                hull.push(polygon[p]);
+
+                // Step 2: Search for a point 'q' such that orientation(p, q, x) 
+                // is counter-clockwise for all other polygon 'x'.
+                
+                // Initialize q as the next point in the list to start comparisons
+                q = (p + 1) % n;
+
+                for i in 0..n {
+                    // If i is more counter-clockwise than current q, then i is a better candidate.
+                    let (a,b,c) = (polygon[p], polygon[i], polygon[q]);
+                    if (b-a).perp_dot(c-a) > 0.0 {
+                        q = i;
+                    }
+                }
+
+                // Set p as q for the next iteration
+                p = q;
+
+                // Step 3: Stop if we have returned to the starting point
+                if p == l {
+                    break;
+                }
+            }
+        }
+
+        // Calipers
+        let h = hull.len();
+        if h < 3 {
+            return [
+                Vec2::ZERO,
+                Vec2::ZERO,
+                Vec2::ZERO,
+                Vec2::ZERO,
+            ];
+        }
+
+        let get_edge = |i: usize| -> Vec2 {
+            if i == n - 1 {
+                return polygon[0] - polygon[i];
+            } else {
+                return polygon[i+1] - polygon[i];
+            }
+        };
+
+        let mut best_area = f32::MAX;
+        let mut best_corners = [Vec2::ZERO; 4];
+
+        for i in 0..h {
+            let edge = get_edge(i);
+            if edge.length_squared() < 1e-12 {
+                continue;
+            }
+            let u = edge.normalize();
+            let v = Vec2::new(-u.y, u.x); // perpendicular
+
+            let mut min_u = f32::MAX;
+            let mut max_u = f32::MIN;
+            let mut min_v = f32::MAX;
+            let mut max_v = f32::MIN;
+
+            for &pt in &hull {
+                let pu = pt.dot(u);
+                let pv = pt.dot(v);
+                min_u = min_u.min(pu);
+                max_u = max_u.max(pu);
+                min_v = min_v.min(pv);
+                max_v = max_v.max(pv);
+            }
+
+            let area = (max_u - min_u) * (max_v - min_v);
+            if area < best_area {
+                best_area = area;
+                // Reconstruct the 4 corners in world space
+                best_corners = [
+                    u * min_u + v * min_v,
+                    u * max_u + v * min_v,
+                    u * max_u + v * max_v,
+                    u * min_u + v * max_v,
+                ];
+            }
+        }
+
+        // final tight fit
+        return best_corners;
     }
 }
