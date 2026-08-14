@@ -1,3 +1,3 @@
 
 
-/// Superating Axis Theorem
+/// Seperating Axis Theorem

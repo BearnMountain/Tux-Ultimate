@@ -62,11 +62,6 @@ impl COBB {
             Vec2::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos) + position
         }));
 
-        self.update_axis();
-    }
-
-    /// vertices or rotation change/recalculate
-    pub fn update_axis(&mut self) {
         self.axis.clear();
         let n = self.corners.len();
         for i in 0..n {

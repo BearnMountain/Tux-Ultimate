@@ -34,9 +34,11 @@ impl Collider {
         &mut self,
         other: &Collider,
     ) -> MTV {
+        self.first_layer.transform(self.position, self.angle);
         if self.first_layer.collision(
             &other.first_layer,
         ) {
+            self.second_layer.transform(self.position, self.angle);
             return self.second_layer.collision(
                 &other.second_layer, 
             );
@@ -52,8 +54,7 @@ impl Collider {
     /// set new polygon bb, recalculate everything
     pub fn set_bounding_box(&mut self, bb: Vec<Vec2>) {
         self.first_layer = AABB::new(Collider::fit_aabb(&bb));
-        self.second_layer.corners = bb;
-        self.second_layer.update_axis(); // update faces with new normal axis
+        self.second_layer = COBB::new(bb);
     }
     pub fn set_rotation(&mut self, angle: f32) {
         self.angle = (angle % 360.0 + 360.0) % 360.0;
@@ -66,12 +67,11 @@ impl Collider {
     fn convex_polygon_decomposition(
         _polygon: Vec<Vec2>,
     ) {
-
+        log::debug!("convex_polygon_decomposition not implemented yet");
     }
 
     /// Rotating Calipers Method
     fn fit_aabb(polygon: &Vec<Vec2>) -> [Vec2; 4] {
-
         // Gift Wrapping (Jarvis March) -> hull for calipers
         let mut hull: Vec<Vec2>;
         let n = polygon.len();

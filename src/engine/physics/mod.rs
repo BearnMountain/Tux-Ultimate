@@ -1,11 +1,14 @@
 use glam::{Vec2, Vec3};
 
-use crate::engine::{physics::{body::RigidBody, collider::Collider}, renderer::transform::TransformStorage};
+use crate::engine::{
+    physics::{body::RigidBody, collider::Collider}, renderer::transform::TransformStorage
+};
 
 pub mod body;
 pub mod collider;
 pub mod collisions;
-pub mod bounding_box;
+mod bounding_box;
+mod test;
 
 pub struct PhysicsWorld {
     // cortessian based quadrant bounds
@@ -30,6 +33,17 @@ impl Default for PhysicsWorld {
 }
 
 impl PhysicsWorld {
+    pub fn update(
+        &mut self, 
+        tick: f32,
+    ) {
+        
+        for body in &mut self.bodies {
+            
+        }
+    }
+
+
     // TODO: quad tree for great efficiency
     pub fn add(&mut self, body: RigidBody, collider: Collider) -> usize {
         self.bodies.push(body);

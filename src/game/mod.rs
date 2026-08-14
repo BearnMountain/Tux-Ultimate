@@ -225,10 +225,10 @@ impl Game {
 
         { // player
             let transform_cache = self.engine.renderer.get_transform_cache();
-            self.physics_world.update(
-                transform_cache, 
-                1.0/60.0,
-            );
+            // self.physics_world.update(
+            //     transform_cache, 
+            //     1.0/60.0,
+            // );
 
             let player = &mut self.physics_world.bodies[0];
             player.desired_direction.x = 0.0;
