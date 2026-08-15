@@ -14,6 +14,7 @@ checking intersections
 
 */
 
+#[derive(Clone, Copy)]
 pub struct MTV {
     pub magnitude: f32,
     pub direction: Vec2,

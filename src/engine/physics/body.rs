@@ -26,11 +26,11 @@ pub struct RigidBody {
     // Frame Input
     pub desired_direction: Vec2,
 
-    // Constants --- some things left pub, update later
-    mass: f32,
-    inv_mass: f32,
-    moment_of_inertia: f32,
-    inv_moment_of_inertia: f32,
+    // Constants
+    pub mass: f32,
+    pub inv_mass: f32,
+    pub moment_of_inertia: f32,
+    pub inv_moment_of_inertia: f32,
     pub move_acceleration: f32,
     pub damping: f32,
     pub angular_damping: f32,
@@ -84,10 +84,31 @@ impl RigidBody {
         };
     }
 
-    pub fn apply_force(&mut self, force: Vec2) {}
-    pub fn apply_torque(&mut self, torque: Vec2) {}
-    pub fn apply_knockback(&mut self, direction: Vec2, force: f32) {}
-    pub fn apply_impulse(&mut self, impulse: Vec2) {}
+    pub fn apply_force(&mut self, force: Vec2) {
+        self.force_accumulator += force;
+    }
+    pub fn apply_torque(&mut self, torque: f32) {
+        self.torque_accumulator += torque;
+    }
+    pub fn apply_knockback(&mut self, direction: Vec2, force: f32) {
+        self.apply_impulse(direction.normalize_or_zero() * force);
+    }
+    /// player updates itself
+    pub fn apply_impulse(&mut self, impulse: Vec2) {
+        self.impulse_accumulator += impulse;
+    }
+    /// other updates player
+    pub fn apply_impulse_at_point(
+        &mut self, 
+        impulse: Vec2, 
+        contact_point: Vec2, 
+        center_of_mass: Vec2
+    ) {
+        let r = contact_point - center_of_mass;
+        let torque = r.x * impulse.y - r.y * impulse.x;
+        self.impulse_accumulator += impulse;
+        self.torque_accumulator += torque;
+    }
 
     // update object
     pub fn update(
@@ -96,7 +117,7 @@ impl RigidBody {
         world_gravity: Vec2,
         transform: &mut Transform 
     ) {
-        if self.is_static || dt <= 0.0 {
+        if dt <= 0.0 {
             return;
         }
 
@@ -127,13 +148,27 @@ impl RigidBody {
         self.torque_accumulator = 0.0;
         self.grounded = false; // just incase mtv updates obj
     }
+
     pub fn resolve_collision(
         &mut self, 
         mtv: MTV, 
         other_inv_mass: f32, 
         transform: &mut Transform
     ) {
+        let total_inv_mass = self.inv_mass + other_inv_mass;
+        let percent_self_mass = if total_inv_mass > 0.0 { self.inv_mass / total_inv_mass} 
+            else { 1.0 };
+        transform.position += (mtv.direction * mtv.magnitude * percent_self_mass)
+            .extend(0.0);
 
+        let v_along_norm = self.velocity.dot(mtv.direction);
+        if v_along_norm < 0.0 {
+            self.velocity -= mtv.direction * v_along_norm * (1.0 + self.resitution);
+        }
+
+        if mtv.direction.y > 0.7 {
+            self.grounded = true;
+        }
     }
 
 }

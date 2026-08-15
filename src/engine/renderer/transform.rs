@@ -126,6 +126,29 @@ impl TransformStorage {
         return self.transforms.get_mut(id);
     }
 
+    pub fn get2(&mut self, id1: TransformID, id2: TransformID) -> Option<(&mut Transform, &mut Transform)> {
+        if id1 == id2 {
+            return None;
+        }
+
+        let (low, high, swapped) = if id1 < id2 {
+            (id1, id2, false)
+        } else {
+            (id2, id1, true)
+        };
+
+        let (left, right) = self.transforms.split_at_mut(high);
+
+        let a = left.get_mut(low)?;
+        let b = right.get_mut(0)?; // `high` is the first element of `right`
+
+        if swapped {
+            return Some((b, a));
+        } else {
+            return Some((a, b));
+        }
+    }
+
     pub fn add(&mut self, transform: Transform) -> TransformID {
         self.transforms.push(transform);
         return self.transforms.len() - 1;

@@ -5,7 +5,7 @@ pub mod scene;
 pub mod assets;
 // pub mod input;
 pub mod physics;
-// pub mod math;
+pub mod math;
 // pub mod animation;
 // pub mod audio;
 // pub mod net;

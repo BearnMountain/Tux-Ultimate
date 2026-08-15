@@ -24,7 +24,7 @@ impl Collider {
 
         return Self {
             first_layer: AABB::new(aabb_oriented_rect),
-            second_layer: OBB::new(polygon),
+            second_layer: COBB::new(polygon),
             position,
             angle,
         };
@@ -56,11 +56,11 @@ impl Collider {
         self.first_layer = AABB::new(Collider::fit_aabb(&bb));
         self.second_layer = COBB::new(bb);
     }
-    pub fn set_rotation(&mut self, angle: f32) {
+    pub fn set_angle(&mut self, angle: f32) {
         self.angle = (angle % 360.0 + 360.0) % 360.0;
     }
-    pub fn set_translation(&mut self, translation: Vec2) {
-        self.position = translation;
+    pub fn set_position(&mut self, position: Vec2) {
+        self.position = position;
     }
 
     /// todo: this going to fuck things up, dam caves
