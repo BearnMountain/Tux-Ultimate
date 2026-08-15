@@ -16,6 +16,13 @@ use winit::dpi::PhysicalSize;
 
 use crate::engine::{renderer::transform::TransformStorage, scene::camera};
 
+pub struct RenderResources {
+    pub pipeline: pipeline::PipelineID,
+    pub material: material::MaterialID,
+    pub transform: transform::TransformID,
+    pub mesh: mesh::MeshID,
+}
+
 pub struct Renderer {
     graphics: context::RenderContext,
     pub camera: camera::Camera,

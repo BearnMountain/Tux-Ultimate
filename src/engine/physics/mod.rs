@@ -1,12 +1,11 @@
 use glam::{Vec2, Vec3, Vec3Swizzles};
 
 use crate::engine::{
-    math::EngineMath, physics::{body::RigidBody, bounding_box::MTV, collider::Collider}, renderer::transform::{self, TransformStorage}
+    math::EngineMath, physics::{body::RigidBody, bounding_box::MTV, collider::Collider}, renderer::transform::{self, Transform, TransformStorage}
 };
 
 pub mod body;
 pub mod collider;
-pub mod collisions;
 mod bounding_box;
 
 pub struct PhysicsWorld {
@@ -22,8 +21,8 @@ pub struct PhysicsWorld {
 impl Default for PhysicsWorld {
     fn default() -> Self {
         return Self { 
-            bound_q1: Vec2::new(1000.0, 1000.0),
-            bound_q3: Vec2::new(-1000.0, -1000.0),
+            bound_q1: Vec2::new(-1000.0, -1000.0),
+            bound_q3: Vec2::new(1000.0, 1000.0),
             bodies: Vec::new(),
             colliders: Vec::new(),
             gravity: Vec2::new(0.0, -9.81),
@@ -40,6 +39,7 @@ impl PhysicsWorld {
     ) {
         // update bodies + colliders
         let n = self.bodies.len();
+
         for i in 0..n {
             if self.bodies[i].is_static {
                 continue;
@@ -70,12 +70,12 @@ impl PhysicsWorld {
 
         // collision
         for i in 0..n {
-            let (coll_left, coll_right) = self.colliders.split_at_mut(i);
-            let (bodies_left, bodies_right) = self.bodies.split_at_mut(i);
+            let (coll_left, coll_right) = self.colliders.split_at_mut(i + 1);
+            let (bodies_left, bodies_right) = self.bodies.split_at_mut(i + 1);
             let coll_i = &mut coll_left[i];
             let body_i = &mut bodies_left[i];
 
-            for j in 0..(n-i) {
+            for j in 0..bodies_right.len() {
                 let body_j = &mut bodies_right[j];
                 if body_i.is_static && body_j.is_static {
                     continue;
@@ -88,25 +88,26 @@ impl PhysicsWorld {
                     continue;
                 }
 
-                let (tran_i, tran_j) = transform_storage.get2(
-                    body_i.transform_id,
-                    body_j.transform_id,
-                ).expect("rigid body created with incorrect transform id: {i}");
-                body_i.resolve_collision(
-                    mtv, 
-                    body_j.inv_mass, 
+                let (tran_i, tran_j) = transform_storage
+                    .get2(body_i.transform_id, body_j.transform_id)
+                    .expect("rigid body created with incorrect transform id: {i}");
+
+                Self::resolve_collision_position(
+                    mtv,
+                    body_i,
+                    body_j,
                     tran_i,
-                );
-                body_j.resolve_collision(
-                    MTV { magnitude: mtv.magnitude, direction: -mtv.direction}, 
-                    body_i.inv_mass, 
                     tran_j,
                 );
+
+                body_i.resolve_collision_velocity(mtv);
+                body_j.resolve_collision_velocity(MTV {
+                    magnitude: mtv.magnitude,
+                    direction: -mtv.direction,
+                });
             }
         }
-
     }
-
 
     // TODO: quad tree for great efficiency
     pub fn add(&mut self, body: RigidBody, collider: Collider) -> usize {
@@ -115,58 +116,25 @@ impl PhysicsWorld {
         return self.bodies.len() - 1;
     }
 
+    fn resolve_collision_position(
+        mtv: MTV,
+        body_a: &RigidBody,
+        body_b: &RigidBody,
+        transform_a: &mut Transform,
+        transform_b: &mut Transform,
+    ) {
+        let total_inv_mass = body_a.inv_mass + body_b.inv_mass;
 
+        if total_inv_mass <= 0.0 {
+            return;
+        }
 
-    // pub fn update(
-    //     &mut self,
-    //     transforms: &mut TransformStorage,
-    //     dt: f32,
-    // ) {
-    //
-    //     for body in &mut self.bodies {
-    //         let Some(transform) = transforms.get(body.transform_id) else {
-    //             continue;
-    //         };
-    //
-    //         //--------------------------------------------------
-    //         // Movement
-    //         //--------------------------------------------------
-    //
-    //         body.acceleration.x =
-    //             body.desired_direction.x * body.move_acceleration;
-    //
-    //         body.acceleration.y = 
-    //             body.desired_direction.y * 
-    //             body.move_acceleration -
-    //             body.gravity;
-    //
-    //
-    //         body.velocity += body.acceleration * dt;
-    //
-    //         body.velocity.x *= body.damping.powf(dt);
-    //
-    //         // update transform
-    //         transform.position += Vec3::new(
-    //             body.velocity.x * dt,
-    //             body.velocity.y * dt,
-    //             0.0
-    //         );
-    //
-    //         // Fake ground, remove and replace with collider later
-    //         if transform.position.y < -5.0 {
-    //             transform.position.y = -5.0;
-    //
-    //             if body.velocity.y < 0.0 {
-    //                 body.velocity.y = 0.0;
-    //             }
-    //
-    //             body.grounded = true;
-    //         } else {
-    //             body.grounded = false;
-    //         }
-    //
-    //         // clean for next frame
-    //         body.desired_direction = Vec2::ZERO;    
-    //     }
-    // }
+        let correction = mtv.direction * mtv.magnitude;
+
+        let a_percent = body_a.inv_mass / total_inv_mass;
+        let b_percent = body_b.inv_mass / total_inv_mass;
+
+        transform_a.position -= (correction * a_percent).extend(0.0);
+        transform_b.position += (correction * b_percent).extend(0.0);
+    }
 }

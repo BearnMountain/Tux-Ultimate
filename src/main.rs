@@ -63,7 +63,11 @@ impl ApplicationHandler for App {
             .expect("cant take control of cursor");
         window.set_cursor_visible(false);
 
-        self.game = Some(Game::init(window.clone()));
+        let mut game = Game::init(window.clone());
+
+        game.setup_game();
+
+        self.game = Some(game);
         self.window = Some(window);
         self.window.as_ref().unwrap().request_redraw();
 

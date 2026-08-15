@@ -17,16 +17,14 @@ impl Collider {
     /// all corners of the polygon, 0 and len-1 connect back to each other
     pub fn new(
         polygon: Vec<Vec2>, 
-        position: Vec2,
-        angle: f32,
     ) -> Self {
         let aabb_oriented_rect = Collider::fit_aabb(&polygon);
 
         return Self {
             first_layer: AABB::new(aabb_oriented_rect),
             second_layer: COBB::new(polygon),
-            position,
-            angle,
+            position: Vec2::new(0.0, 0.0),
+            angle: 0.0,
         };
     }
 

@@ -19,6 +19,7 @@ use crate::engine::assets::server;
 pub struct Engine {
     pub renderer: renderer::Renderer,
     pub asset_server: assets::server::Server,
+    pub physics_world: physics::PhysicsWorld,
 }
 
 impl Engine {
@@ -42,6 +43,7 @@ impl Engine {
         return Self {
             renderer,
             asset_server,
+            physics_world: physics::PhysicsWorld::default(),
         };
     }
     

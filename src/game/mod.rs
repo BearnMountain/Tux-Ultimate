@@ -8,8 +8,8 @@ use winit::window::Window;
 use crate::{
     engine::{
         Engine, assets::server, physics::{
-            PhysicsWorld, rigid_body::RigidBody
-        }, renderer::{bind_group, material, mesh, model_loader::Model, pipeline, transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
+            body::RigidBody, collider::Collider
+        }, renderer::{RenderResources, bind_group, material::{self, MaterialID}, mesh::{self, MeshID}, model_loader::Model, pipeline::{self, PipelineID}, transform::{self}}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
 
 struct RequireUpload {
     camera: bool,
@@ -21,7 +21,6 @@ pub struct Game {
 
     pub engine: Engine,
     pub input_handler: io::input::Input,
-    pub physics_world: PhysicsWorld,
 
     pub upload_list: RequireUpload,
 }
@@ -86,34 +85,8 @@ impl Game {
         );
        
         // get stuff renderable each loop
-        let material_id = engine.renderer.add_material(material);
-        let pipeline_id = engine.renderer.add_pipeline(pipeline);
-        {
-            // let camera = &engine.renderer.camera.transform;
-            // let spawn_pos = camera.position + camera.forward_direction() * 5.0;
-            // let size = Vec3::splat(1.0);
-            // let pos = spawn_pos - size * 0.5;
-
-            let mut transform0 = transform::Transform::default();
-            transform0.position = Vec3::new(0.0, 0.0, -8.0);
-
-            let transform_id = engine.renderer.add_transform(transform0);
-
-
-            let mesh0 = mesh::Mesh::make_cube(
-                &device, 
-                material_id,
-                pipeline_id,
-                transform_id,
-                [1.0, 1.0, 1.0], // volume
-            );
-
-            let _mesh_id = engine.renderer.add_mesh(mesh0);
-            engine.renderer.update_transforms();
-
-            // println!("{:?}", transform0.matrix());
-
-        }
+        let _material_id = engine.renderer.add_material(material);
+        let _pipeline_id = engine.renderer.add_pipeline(pipeline);
 
         // load models
         {
@@ -123,20 +96,36 @@ impl Game {
                 &queue,
             );
         }
-
-        let mut physics_world = PhysicsWorld::default();
-        physics_world.bodies.push(RigidBody::new(0));
         
         return Self {
             tick: 0,
             frames: 0,
-            physics_world,
             engine,
             input_handler,
             upload_list: RequireUpload { 
                 camera: false, 
             },
         };
+    }
+
+    pub fn setup_game(&mut self) {
+        self.create_cube(
+            0, 
+            0, 
+            Vec3::new(0.0, 10.0, -8.0), 
+            [1.0, 1.0, 1.0], 
+            false
+        );
+
+        self.create_cube(
+            0, 
+            0, 
+            Vec3::new(-5.0, -5.0, -13.0), 
+            [10.0, 1.0, 10.0], 
+            true
+        );
+
+        self.engine.renderer.update_transforms();
     }
 
     /// called at monitor refresh rate
@@ -163,6 +152,10 @@ impl Game {
         self.tick += 1;
 
         self.update_from_input();
+        self.engine.physics_world.update(
+            1.0/60.0, 
+            self.engine.renderer.get_transform_cache()
+        );
 
         // reseting inputs
         self.input_handler.mouse_delta = Vec2::ZERO;
@@ -224,14 +217,9 @@ impl Game {
         }
 
         { // player
-            let transform_cache = self.engine.renderer.get_transform_cache();
-            // self.physics_world.update(
-            //     transform_cache, 
-            //     1.0/60.0,
-            // );
-
-            let player = &mut self.physics_world.bodies[0];
+            let player = &mut self.engine.physics_world.bodies[0];
             player.desired_direction.x = 0.0;
+            player.desired_direction.y = 0.0;
 
             if self.input_handler.action_state[GameActions::PLAYER_LEFT as usize] {
                 player.desired_direction.x -= 0.2;
@@ -242,7 +230,7 @@ impl Game {
             }
 
             if self.input_handler.action_state[GameActions::PLAYER_UP as usize] {
-                player.desired_direction.y += 2.2;
+                player.desired_direction.y += 30.0;
             }
 
             if self.input_handler.action_state[GameActions::PLAYER_DOWN as usize] {
@@ -252,4 +240,47 @@ impl Game {
             self.engine.renderer.update_transforms();
         }
     }
+
+    fn create_cube(
+        &mut self,
+        pipeline_id: PipelineID,
+        material_id: MaterialID,
+        position: Vec3,
+        volume: [f32; 3], // width, height, depth
+        is_static: bool,
+    ) -> RenderResources {
+        let mut transform = transform::Transform::default();
+        transform.position = position;
+
+        let transform_id = self.engine.renderer.add_transform(transform);
+        let polygon: Vec<Vec2> = vec![
+            Vec2::new(0.0,       0.0),
+            Vec2::new(0.0,       volume[1]),
+            Vec2::new(volume[0], volume[1]),
+            Vec2::new(volume[0], 0.0),
+        ];
+
+        self.engine.physics_world.add(
+            if is_static { RigidBody::new_static(transform_id) } else { RigidBody::new(transform_id, 1.0)}, 
+            Collider::new(polygon),
+        );
+
+        let mesh1 = mesh::Mesh::make_cube(
+            &self.engine.renderer.get_render_context().device, 
+            material_id,
+            pipeline_id,
+            transform_id,
+            volume, // volume
+        );
+
+        let mesh_id = self.engine.renderer.add_mesh(mesh1);
+
+        return RenderResources {
+            pipeline: pipeline_id,
+            material: material_id,
+            transform: transform_id,
+            mesh: mesh_id,
+        };
+    }
+
 }

@@ -45,7 +45,22 @@ impl COBB {
             axis: Vec::new() 
         };
 
-        obb.transform(Vec2::ZERO, 0.0);
+        let (sin, cos) = obb.angle.sin_cos();
+        obb.corners.clear();
+        obb.corners.extend(obb.local_corners.iter().map(|p| {
+            Vec2::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos) + obb.position
+        }));
+
+        obb.axis.clear();
+        let n = obb.corners.len();
+        for i in 0..n {
+            let next = (i + 1) % n;
+            obb.axis.push(COBB::face_normal(
+                obb.corners[i], 
+                obb.corners[next])
+            );
+        }
+
         return obb;
     }
 
@@ -169,6 +184,31 @@ impl AABB {
         };
 
         aabb.transform(Vec2::ZERO, 0.0);
+
+        let world_angle: f32 = aabb.local_angle + aabb.angle;
+        let (sin, cos) = world_angle.sin_cos();
+        let ax = Vec2::new(cos, sin);
+        let ay = Vec2::new(-sin, cos);
+
+        // rotate the local object into world space positioning
+        let (msin, mcos) = aabb.angle.sin_cos();
+        let rotated_center = Vec2::new(
+            aabb.local_center.x * mcos - aabb.local_center.y * msin,
+            aabb.local_center.x * msin + aabb.local_center.y * mcos,
+        );
+        let center = aabb.position + rotated_center;
+
+        let ex = ax * aabb.half_extents.x;
+        let ey = ay * aabb.half_extents.y;
+
+        aabb.axis = [ax, ay];
+        aabb.world_corners = [
+            center - ex - ey,
+            center + ex - ey,
+            center + ex + ey,
+            center - ex + ey,
+        ];
+
         return aabb;
     }
 
