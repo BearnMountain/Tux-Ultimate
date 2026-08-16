@@ -50,9 +50,9 @@ impl Mesh {
     ) -> Self {
         let (w, h, d) = (dim[0], dim[1], dim[2]);
 
-        let (x0, x1) = (0.0, w);
-        let (y0, y1) = (0.0, h);
-        let (z0, z1) = (0.0, d);
+        let (x0, x1) = (-w/2.0, w/2.0);
+        let (y0, y1) = (-h/2.0, h/2.0);
+        let (z0, z1) = (-d/2.0, d/2.0);
 
         let vertices: [Vertex; 24] = [
             // Front (+Z)

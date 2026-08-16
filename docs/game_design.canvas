@@ -1,0 +1,7 @@
+{
+	"nodes":[
+		{"id":"7cdb456ff151988b","x":-130,"y":-85,"width":250,"height":60,"type":"text","text":"Main Menu"},
+		{"id":"080cf3c6cab5137b","x":-173,"y":37,"width":250,"height":60,"type":"text","text":"Game Mode Select"}
+	],
+	"edges":[]
+}

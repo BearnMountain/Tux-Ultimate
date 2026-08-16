@@ -8,7 +8,12 @@ use std::{sync::Arc, time::{Duration, Instant}};
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, dpi::{LogicalSize, PhysicalPosition}, event::{DeviceEvent, MouseScrollDelta, TouchPhase, WindowEvent}, event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, keyboard::{KeyCode, PhysicalKey::{self}}, window::{Window, WindowAttributes, WindowId},
+    application::ApplicationHandler, 
+    dpi::{LogicalSize}, 
+    event::{DeviceEvent, TouchPhase, WindowEvent}, 
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, 
+    keyboard::{KeyCode, PhysicalKey::{self}}, 
+    window::{Window, WindowAttributes, WindowId},
 };
 
 use crate::game::Game;

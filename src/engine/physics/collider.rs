@@ -36,6 +36,7 @@ impl Collider {
         if self.first_layer.collision(
             &other.first_layer,
         ) {
+            // passes first test, so recalculation required collider testing
             self.second_layer.transform(self.position, self.angle);
             other.second_layer.transform(other.position, other.angle);
             let mtv = self.second_layer.collision(
@@ -57,9 +58,11 @@ impl Collider {
         self.first_layer = AABB::new(Collider::fit_aabb(&bb));
         self.second_layer = COBB::new(bb);
     }
+    // second layer only transformed if collision, expensive calculation otherwise
+    // - set_angle & set_position
     pub fn set_angle(&mut self, angle: f32) {
         self.angle = (angle % 360.0 + 360.0) % 360.0;
-        self.first_layer.transform(self.position, self.angle);
+        self.first_layer.transform(self.position, self.angle); 
     }
     pub fn set_position(&mut self, position: Vec2) {
         self.position = position;

@@ -10,6 +10,7 @@ use crate::util::config::{Config};
 #[allow(non_camel_case_types)]
 #[repr(u16)]
 #[derive(Copy, Clone)]
+#[allow(dead_code)]
 pub enum GameActions {
     // camera
     CAMERA_UP,
@@ -28,8 +29,7 @@ pub enum GameActions {
     PLAYER_RIGHT,
     PLAYER_UP,
     PLAYER_DOWN,
-
-
+    PLAYER_ROTATE,
 
     PLACEHOLDER, // just for total number of game actions
 }
@@ -85,7 +85,7 @@ impl Input {
             bindings.insert(KeyCode::ArrowLeft, GameActions::CAMERA_LEFT);
             bindings.insert(KeyCode::Space, GameActions::CAMERA_UP);
             bindings.insert(KeyCode::ShiftLeft, GameActions::CAMERA_DOWN);
-            // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_UP);
+            bindings.insert(KeyCode::KeyR, GameActions::PLAYER_ROTATE);
             // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_DOWN);
             // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_RIGHT);
             // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_LEFT);

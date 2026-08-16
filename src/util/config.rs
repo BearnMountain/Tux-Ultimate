@@ -37,7 +37,7 @@ static CONFIG: OnceLock<RwLock<Config>> = OnceLock::new();
 
 impl Config {
     pub fn init(path: &str) {
-        /// only op that should use blocking file loading
+        // only op that should use blocking file loading
         let contents = std::fs::read_to_string(path)
             .expect("Failed to read config.toml");
         let config: Config = toml::from_str(&contents)

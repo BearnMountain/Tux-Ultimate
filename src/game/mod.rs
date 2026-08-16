@@ -7,9 +7,10 @@ use winit::window::Window;
 
 use crate::{
     engine::{
-        Engine, assets::server, physics::{
+        Engine, assets::server::Server, physics::{
             body::RigidBody, collider::Collider
-        }, renderer::{RenderResources, bind_group, material::{self, MaterialID}, mesh::{self, MeshID}, model_loader::Model, pipeline::{self, PipelineID}, transform::{self}}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}};
+        }, renderer::{RenderResources, bind_group::{self, LayoutBuilder}, material::{Material, MaterialID}, mesh::{self, Mesh}, model_loader::Model, pipeline::{self, PipelineID}, transform::Transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}
+};
 
 struct RequireUpload {
     camera: bool,
@@ -37,10 +38,10 @@ impl Game {
         // gather test data
         let (shader_text, texture_raw, gltf_json, gltf_bin) = pollster::block_on(async {
             tokio::try_join!(
-                server::Server::preload_text(Path::new("shaders/shader.wgsl")),
-                server::Server::preload_raw(Path::new("textures/brick-texture-54.png")),
-                server::Server::preload_text(Path::new("characters/test/tux/scene.gltf")),
-                server::Server::preload_raw(Path::new("characters/test/tux/scene.bin")),
+                Server::preload_text(Path::new("shaders/shader.wgsl")),
+                Server::preload_raw(Path::new("textures/brick-texture-54.png")),
+                Server::preload_text(Path::new("characters/test/tux/scene.gltf")),
+                Server::preload_raw(Path::new("characters/test/tux/scene.bin")),
             )
         }).expect("rip");
 
@@ -53,7 +54,7 @@ impl Game {
             .load_texture(texture_raw)
             .expect("failed to load texture source");
         
-        let material_layout = bind_group::LayoutBuilder::new(&device)
+        let material_layout = LayoutBuilder::new(&device)
             .add_texture_view(
                 wgpu::ShaderStages::FRAGMENT, 
                 wgpu::TextureSampleType::Float { filterable: true }, 
@@ -77,7 +78,7 @@ impl Game {
                 .build_pipeline("pipeline test")
         };
         
-        let material = material::Material::new(
+        let material = Material::new(
             "test material", 
             engine.asset_server.get_texture(texture_handle).unwrap(), 
             &device, 
@@ -237,6 +238,10 @@ impl Game {
                 player.desired_direction.y -= 0.2;
             }
 
+            if self.input_handler.action_state[GameActions::PLAYER_ROTATE as usize] {
+                player.apply_torque(30.0);
+            }
+
             self.engine.renderer.update_transforms();
         }
     }
@@ -250,15 +255,15 @@ impl Game {
         is_static: bool,
     ) -> RenderResources {
         let transform_id = self.engine.renderer
-            .add_transform(transform::Transform {
+            .add_transform(Transform {
                 position,
                 ..Default::default()
             });
         let polygon: Vec<Vec2> = vec![
-            Vec2::new(0.0,       0.0),
-            Vec2::new(0.0,       volume[1]),
-            Vec2::new(volume[0], volume[1]),
-            Vec2::new(volume[0], 0.0),
+            Vec2::new(-volume[0]/2.0, -volume[1]/2.0),
+            Vec2::new(-volume[0]/2.0, volume[1]/2.0),
+            Vec2::new(volume[0]/2.0, volume[1]/2.0),
+            Vec2::new(volume[0]/2.0, -volume[1]/2.0),
         ];
 
         self.engine.physics_world.add(
@@ -267,7 +272,7 @@ impl Game {
             Collider::new(polygon),
         );
 
-        let mesh = mesh::Mesh::make_cube(
+        let mesh = Mesh::make_cube(
             &self.engine.renderer.get_render_context().device, 
             material_id,
             pipeline_id,
