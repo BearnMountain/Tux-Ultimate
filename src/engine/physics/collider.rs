@@ -6,7 +6,7 @@ use super::bounding_box::{COBB, AABB, MTV};
 /// - First layer provides basic check for rectangular aabb intersection
 /// - Second layer is a fit polygon for accurate intersections
 pub struct Collider {
-    first_layer: AABB, 
+    pub first_layer: AABB, 
     second_layer: COBB, 
 
     position: Vec2,
@@ -18,10 +18,11 @@ impl Collider {
     pub fn new(
         polygon: Vec<Vec2>, 
     ) -> Self {
-        let aabb_oriented_rect = Collider::fit_aabb(&polygon);
+        // let aabb_oriented_rect = Collider::fit_aabb(&polygon);
+        let aabb_rect: [Vec2; 4] = polygon[0..4].try_into().unwrap();
 
         return Self {
-            first_layer: AABB::new(aabb_oriented_rect),
+            first_layer: AABB::new(aabb_rect),
             second_layer: COBB::new(polygon),
             position: Vec2::new(0.0, 0.0),
             angle: 0.0,
@@ -30,16 +31,18 @@ impl Collider {
 
     pub fn collision(
         &mut self,
-        other: &Collider,
+        other: &mut Collider,
     ) -> MTV {
-        self.first_layer.transform(self.position, self.angle);
         if self.first_layer.collision(
             &other.first_layer,
         ) {
             self.second_layer.transform(self.position, self.angle);
-            return self.second_layer.collision(
+            other.second_layer.transform(other.position, other.angle);
+            let mtv = self.second_layer.collision(
                 &other.second_layer, 
             );
+
+            return mtv;
         }
 
         return MTV {
@@ -56,9 +59,11 @@ impl Collider {
     }
     pub fn set_angle(&mut self, angle: f32) {
         self.angle = (angle % 360.0 + 360.0) % 360.0;
+        self.first_layer.transform(self.position, self.angle);
     }
     pub fn set_position(&mut self, position: Vec2) {
         self.position = position;
+        self.first_layer.transform(self.position, self.angle);
     }
 
     /// todo: this going to fuck things up, dam caves

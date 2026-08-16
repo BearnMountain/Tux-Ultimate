@@ -249,10 +249,11 @@ impl Game {
         volume: [f32; 3], // width, height, depth
         is_static: bool,
     ) -> RenderResources {
-        let mut transform = transform::Transform::default();
-        transform.position = position;
-
-        let transform_id = self.engine.renderer.add_transform(transform);
+        let transform_id = self.engine.renderer
+            .add_transform(transform::Transform {
+                position,
+                ..Default::default()
+            });
         let polygon: Vec<Vec2> = vec![
             Vec2::new(0.0,       0.0),
             Vec2::new(0.0,       volume[1]),
@@ -261,11 +262,12 @@ impl Game {
         ];
 
         self.engine.physics_world.add(
-            if is_static { RigidBody::new_static(transform_id) } else { RigidBody::new(transform_id, 1.0)}, 
+            if is_static { RigidBody::new_static(transform_id) } 
+            else { RigidBody::new(transform_id, 1.0) }, 
             Collider::new(polygon),
         );
 
-        let mesh1 = mesh::Mesh::make_cube(
+        let mesh = mesh::Mesh::make_cube(
             &self.engine.renderer.get_render_context().device, 
             material_id,
             pipeline_id,
@@ -273,7 +275,7 @@ impl Game {
             volume, // volume
         );
 
-        let mesh_id = self.engine.renderer.add_mesh(mesh1);
+        let mesh_id = self.engine.renderer.add_mesh(mesh);
 
         return RenderResources {
             pipeline: pipeline_id,

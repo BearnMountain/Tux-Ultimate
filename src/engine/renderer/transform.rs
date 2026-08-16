@@ -20,6 +20,16 @@ pub struct Transform {
     pub scale: Vec3,
 }
 
+impl Default for Transform {
+    fn default() -> Self {
+        return Self { 
+            position: Vec3::ZERO,
+            rotation: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        };
+    }
+}
+
 impl Transform {
     pub fn new(
         position: Vec3,
@@ -30,14 +40,6 @@ impl Transform {
             position,
             rotation,
             scale,
-        };
-    }
-
-    pub fn default() -> Self {
-        return Self {
-            position: Vec3::ZERO,
-            rotation: Quat::IDENTITY,
-            scale: Vec3::ONE,
         };
     }
 

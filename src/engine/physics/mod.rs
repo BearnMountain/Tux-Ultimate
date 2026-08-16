@@ -41,13 +41,21 @@ impl PhysicsWorld {
         let n = self.bodies.len();
 
         for i in 0..n {
-            if self.bodies[i].is_static {
+            let body = &mut self.bodies[i];
+            let collider = &mut self.colliders[i];
+    
+            let transform_ref = transform_storage
+                .get(body.transform_id)
+                .expect("rigid body created with incorrect transform id");
+
+            // sync collider transforms with bodies
+            collider.set_position(transform_ref.position.xy());
+            collider.set_angle(EngineMath::quat_to_xy(transform_ref.rotation));
+
+            // updates objects based on internal states
+            if body.is_static {
                 continue;
             }
-
-            let transform_ref = transform_storage
-                .get(self.bodies[i].transform_id)
-                .expect("rigid body created with incorrect transform id");
 
             let pos_xy = transform_ref.position.xy();
             if !(pos_xy.x >= self.bound_q1.x && 
@@ -58,14 +66,7 @@ impl PhysicsWorld {
                 continue;
             }
 
-            let body = &mut self.bodies[i];
-            let collider = &mut self.colliders[i];
-
-            body.update(dt, self.gravity, transform_ref);
-
-            // sync collider transforms with bodies
-            collider.set_position(transform_ref.position.xy());
-            collider.set_angle(EngineMath::quat_to_xy(transform_ref.rotation));
+            self.bodies[i].update(dt, self.gravity, transform_ref);
         }
 
         // collision
@@ -99,6 +100,12 @@ impl PhysicsWorld {
                     tran_i,
                     tran_j,
                 );
+
+                coll_i.set_position(tran_i.position.xy());
+                coll_i.set_angle(EngineMath::quat_to_xy(tran_i.rotation));
+                
+                coll_j.set_position(tran_j.position.xy());
+                coll_j.set_angle(EngineMath::quat_to_xy(tran_j.rotation));
 
                 body_i.resolve_collision_velocity(mtv);
                 body_j.resolve_collision_velocity(MTV {

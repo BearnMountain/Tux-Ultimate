@@ -160,27 +160,4 @@ impl RigidBody {
                 mtv.direction * v_along_normal * (1.0 + self.resitution);
         }
     }
-
-    // pub fn resolve_collision(
-    //     &mut self, 
-    //     mtv: MTV, 
-    //     other_inv_mass: f32, 
-    //     transform: &mut Transform
-    // ) {
-    //     let total_inv_mass = self.inv_mass + other_inv_mass;
-    //     let percent_self_mass = if total_inv_mass > 0.0 { self.inv_mass / total_inv_mass} 
-    //         else { 1.0 };
-    //     transform.position -= (mtv.direction * mtv.magnitude * percent_self_mass)
-    //         .extend(0.0);
-    //
-    //     let v_along_norm = self.velocity.dot(mtv.direction);
-    //     if v_along_norm > 0.0 {
-    //         self.velocity -= mtv.direction * v_along_norm * (1.0 + self.resitution);
-    //     }
-    //
-    //     if mtv.direction.y > 0.7 {
-    //         self.grounded = true;
-    //     }
-    // }
-    //
 }

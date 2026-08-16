@@ -14,7 +14,7 @@ checking intersections
 
 */
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct MTV {
     pub magnitude: f32,
     pub direction: Vec2,
@@ -115,6 +115,8 @@ impl COBB {
         if (other_center - self_center).dot(min_axis) < 0.0 {
             min_axis = -min_axis;
         }
+        
+        log::debug!("mtv");
 
         return MTV { 
             magnitude: min_overlap, 
@@ -157,8 +159,8 @@ pub struct AABB {
     local_angle: f32,
 
     // world transforms
-    position: Vec2,
-    angle: f32, 
+    pub position: Vec2,
+    pub angle: f32, 
 
     // world space
     axis: [Vec2; 2], 
@@ -170,7 +172,7 @@ impl AABB {
     pub fn new(corners: [Vec2; 4]) -> Self {
         let edge = corners[1] - corners[0];
 
-        let mut aabb =  Self {
+        return Self {
             half_extents: Vec2::new(
                 (corners[1] - corners[0]).length() * 0.5,
                 (corners[2] - corners[1]).length() * 0.5,
@@ -182,66 +184,40 @@ impl AABB {
             axis: [Vec2::X, Vec2::Y],
             world_corners: [Vec2::ZERO; 4],
         };
+    }
 
-        aabb.transform(Vec2::ZERO, 0.0);
+    /// update if object changes
+    pub fn transform(&mut self, position: Vec2, angle: f32) {
+        if angle == self.angle && position == self.position {
+            return;
+        }
 
-        let world_angle: f32 = aabb.local_angle + aabb.angle;
+        self.position = position;
+        self.angle = angle;
+
+        let world_angle: f32 = self.local_angle + angle;
         let (sin, cos) = world_angle.sin_cos();
         let ax = Vec2::new(cos, sin);
         let ay = Vec2::new(-sin, cos);
 
         // rotate the local object into world space positioning
-        let (msin, mcos) = aabb.angle.sin_cos();
+        let (msin, mcos) = angle.sin_cos();
         let rotated_center = Vec2::new(
-            aabb.local_center.x * mcos - aabb.local_center.y * msin,
-            aabb.local_center.x * msin + aabb.local_center.y * mcos,
+            self.local_center.x * mcos - self.local_center.y * msin,
+            self.local_center.x * msin + self.local_center.y * mcos,
         );
-        let center = aabb.position + rotated_center;
+        let center = position + rotated_center;
 
-        let ex = ax * aabb.half_extents.x;
-        let ey = ay * aabb.half_extents.y;
+        let ex = ax * self.half_extents.x;
+        let ey = ay * self.half_extents.y;
 
-        aabb.axis = [ax, ay];
-        aabb.world_corners = [
+        self.axis = [ax, ay];
+        self.world_corners = [
             center - ex - ey,
             center + ex - ey,
             center + ex + ey,
             center - ex + ey,
         ];
-
-        return aabb;
-    }
-
-    /// update if object changes
-    pub fn transform(&mut self, position: Vec2, angle: f32) {
-        if angle != self.angle || position != self.position {
-            self.position = position;
-            self.angle = angle;
-
-            let world_angle: f32 = self.local_angle + angle;
-            let (sin, cos) = world_angle.sin_cos();
-            let ax = Vec2::new(cos, sin);
-            let ay = Vec2::new(-sin, cos);
-
-            // rotate the local object into world space positioning
-            let (msin, mcos) = angle.sin_cos();
-            let rotated_center = Vec2::new(
-                self.local_center.x * mcos - self.local_center.y * msin,
-                self.local_center.x * msin + self.local_center.y * mcos,
-            );
-            let center = position + rotated_center;
-
-            let ex = ax * self.half_extents.x;
-            let ey = ay * self.half_extents.y;
-
-            self.axis = [ax, ay];
-            self.world_corners = [
-                center - ex - ey,
-                center + ex - ey,
-                center + ex + ey,
-                center - ex + ey,
-            ];
-        } 
     }
 
     pub fn collision(&mut self, other: &AABB) -> bool {
