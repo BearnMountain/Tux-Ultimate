@@ -9,7 +9,7 @@ pub mod math;
 // pub mod animation;
 // pub mod audio;
 // pub mod net;
-// pub mod ui;
+pub mod ui;
 
 use std::sync::Arc;
 use winit::{dpi::PhysicalSize, window::Window};
@@ -20,6 +20,8 @@ pub struct Engine {
     pub renderer: renderer::Renderer,
     pub asset_server: assets::server::Server,
     pub physics_world: physics::PhysicsWorld,
+
+    pub ui: ui::UI,
 }
 
 impl Engine {
@@ -29,6 +31,8 @@ impl Engine {
 
             return (context,);
         });
+
+        let ui = ui::UI::init(&window, &graphics);
 
         let renderer = renderer::Renderer::new(
             graphics,
@@ -44,6 +48,7 @@ impl Engine {
             renderer,
             asset_server,
             physics_world: physics::PhysicsWorld::default(),
+            ui,
         };
     }
     

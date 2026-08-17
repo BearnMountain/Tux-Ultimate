@@ -112,7 +112,7 @@ impl ApplicationHandler for App {
                 is_synthetic: _,
             } => {
                 if let PhysicalKey::Code(key) = event.physical_key {
-                    if key == KeyCode::Escape {
+                    if key == KeyCode::KeyQ {
                         event_loop.exit();
                     }
                     game.input_handler.keyboard(&key, &event.state);

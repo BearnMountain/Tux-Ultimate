@@ -116,8 +116,6 @@ impl COBB {
             min_axis = -min_axis;
         }
         
-        log::debug!("mtv");
-
         return MTV { 
             magnitude: min_overlap, 
             direction: min_axis 

@@ -5,6 +5,7 @@ use glam::{
 };
 
 use crate::engine::renderer::bind_group::LayoutInfo;
+use crate::util::handle::Handle;
 
 use super::bind_group;
 use super::math;
@@ -124,19 +125,23 @@ impl TransformStorage {
         };
     }
 
-    pub fn get(&mut self, id: TransformID) -> Option<&mut Transform> {
-        return self.transforms.get_mut(id);
+    pub fn get(&mut self, handle: Handle<Transform>) -> Option<&mut Transform> {
+        return self.transforms.get_mut(handle.id);
     }
 
-    pub fn get2(&mut self, id1: TransformID, id2: TransformID) -> Option<(&mut Transform, &mut Transform)> {
-        if id1 == id2 {
+    pub fn get2(
+        &mut self, 
+        handle1: Handle<Transform>, 
+        handle2: Handle<Transform>
+    ) -> Option<(&mut Transform, &mut Transform)> {
+        if handle1.id == handle2.id {
             return None;
         }
 
-        let (low, high, swapped) = if id1 < id2 {
-            (id1, id2, false)
+        let (low, high, swapped) = if handle1.id < handle2.id {
+            (handle1.id, handle2.id, false)
         } else {
-            (id2, id1, true)
+            (handle2.id, handle1.id, true)
         };
 
         let (left, right) = self.transforms.split_at_mut(high);
@@ -151,9 +156,9 @@ impl TransformStorage {
         }
     }
 
-    pub fn add(&mut self, transform: Transform) -> TransformID {
+    pub fn add(&mut self, transform: Transform) -> Handle<Transform> {
         self.transforms.push(transform);
-        return self.transforms.len() - 1;
+        return Handle::new(self.transforms.len() - 1);
     }
 
     pub fn iter(&self) -> std::slice::Iter<'_, Transform> {

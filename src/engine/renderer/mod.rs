@@ -9,32 +9,23 @@ pub mod coordinate;
 pub mod math;
 pub mod transform;
 pub mod model_loader;
+pub mod render_resource;
 
 use glam::Vec3;
-use gltf::scene::Transform;
 use winit::dpi::PhysicalSize;
 
-use crate::engine::{renderer::transform::TransformStorage, scene::camera};
-
-pub struct RenderResources {
-    pub pipeline: pipeline::PipelineID,
-    pub material: material::MaterialID,
-    pub transform: transform::TransformID,
-    pub mesh: mesh::MeshID,
-}
+use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}}, scene::camera}, util::handle::Handle};
 
 pub struct Renderer {
     graphics: context::RenderContext,
     pub camera: camera::Camera,
 
-    pipeline_cache: pipeline::PipelineStorage,
-    materials_cache: material::MaterialStorage,
+    renderables: Vec<RenderResources>,
 
-    pub interpolation_alpha: f32,
-    transform_cache: transform::TransformStorage,
-
-    // renderables
-    meshes_cache: mesh::MeshStorage,
+    pipeline_cache: RenderStorage<wgpu::RenderPipeline>,
+    materials_cache: RenderStorage<Material>,
+    transform_cache: TransformStorage,
+    meshes_cache: RenderStorage<Mesh>,
 }
 
 impl Renderer {
@@ -49,14 +40,15 @@ impl Renderer {
             Vec3::new(0.0, 0.0, 0.0), 
             width / height,
         );
+
         return Self {
             graphics,
             camera,
-            pipeline_cache: pipeline::PipelineStorage::new(),
-            materials_cache: material::MaterialStorage::new(),
-            interpolation_alpha: 0.0,
+            renderables: Vec::new(),
+            pipeline_cache: RenderStorage::new(),
+            materials_cache: RenderStorage::new(),
             transform_cache,
-            meshes_cache: mesh::MeshStorage::new(),
+            meshes_cache: RenderStorage::new(),
         };
     }
 
@@ -154,7 +146,13 @@ impl Renderer {
                 &wgpu::RenderPassDescriptor {
                     label: Some("Renderpass"),
                     color_attachments: &[Some(screen_reset)],
-                    depth_stencil_attachment: None,
+                    depth_stencil_attachment: Some(
+                        wgpu::RenderPassDepthStencilAttachment {
+                            view: ,
+                            depth_ops: todo!(),
+                            stencil_ops: todo!(),
+                        }
+                    ),
                     timestamp_writes: None,
                     occlusion_query_set: None,
                     multiview_mask: None,
@@ -186,16 +184,28 @@ impl Renderer {
 
     /// adding items to cache
     /// all take ownership
-    pub fn add_material(&mut self, material: material::Material) -> material::MaterialID {
+    pub fn add_material(
+        &mut self, 
+        material: material::Material
+    ) -> Handle<Material> {
         return self.materials_cache.add(material);
     }
-    pub fn add_pipeline(&mut self, pipeline: wgpu::RenderPipeline) -> pipeline::PipelineID {
+    pub fn add_pipeline(
+        &mut self, 
+        pipeline: wgpu::RenderPipeline
+    ) -> Handle<wgpu::RenderPipeline> {
         return self.pipeline_cache.add(pipeline);
     }
-    pub fn add_transform(&mut self, transform: transform::Transform) -> transform::TransformID {
+    pub fn add_transform(
+        &mut self, 
+        transform: transform::Transform
+    ) -> Handle<Transform> {
         return self.transform_cache.add(transform);
     }
-    pub fn add_mesh(&mut self, mesh: mesh::Mesh) -> mesh::MeshID {
+    pub fn add_mesh(
+        &mut self, 
+        mesh: mesh::Mesh
+    ) -> Handle<Mesh> {
         return self.meshes_cache.add(mesh);
     }
 
@@ -208,7 +218,7 @@ impl Renderer {
     }
     pub fn get_transform(
         &mut self, 
-        i: transform::TransformID
+        i: Handle<Transform>,
     ) -> Option<&mut transform::Transform> {
         return self.transform_cache.get(i);
     }

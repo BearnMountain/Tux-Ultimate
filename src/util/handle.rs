@@ -1,4 +1,3 @@
-// generic is never used, phantom removes error
 use std::marker::PhantomData;
 
 pub struct Handle<T> {

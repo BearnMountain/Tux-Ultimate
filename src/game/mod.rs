@@ -75,6 +75,9 @@ impl Game {
                 .add_bind_group_layout(&material_layout.layout.clone()) // idx: 0
                 .add_bind_group_layout(&engine.renderer.get_transform_layout().layout.clone()) // idx: 1
                 .add_bind_group_layout(&engine.renderer.camera.uploader.layout.layout.clone()) // idx: 2
+                .set_depth(true, true)
+                .set_blend(None)
+                .set_depth_format(wgpu::TextureFormat::Depth32Float)
                 .build_pipeline("pipeline test")
         };
         

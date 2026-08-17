@@ -3,16 +3,16 @@ pub struct LayoutInfo {
     pub layout: wgpu::BindGroupLayout,
 }
 
-pub struct LayoutBuilder<'a> {
-    device: &'a wgpu::Device,
+pub struct LayoutBuilder {
+    device: wgpu::Device,
     entries: Vec<wgpu::BindGroupLayoutEntry>,
 }
 
 /// 
-impl<'a> LayoutBuilder<'a> {
-    pub fn new (device: &'a wgpu::Device) -> Self {
+impl LayoutBuilder {
+    pub fn new (device: &wgpu::Device) -> Self {
         return Self {
-            device: device,
+            device: device.clone(),
             entries: Vec::new(),
         }
     }
@@ -114,7 +114,7 @@ impl<'a> LayoutBuilder<'a> {
 }
 
 pub struct ResourceBuilder<'a> {
-    device: &'a wgpu::Device,
+    device: wgpu::Device,
     layout: &'a LayoutInfo,
 
     entries: Vec<wgpu::BindGroupEntry<'a>>,
@@ -122,11 +122,11 @@ pub struct ResourceBuilder<'a> {
 
 impl<'a> ResourceBuilder<'a> {
     pub fn new(
-        device: &'a wgpu::Device, 
+        device: &wgpu::Device, 
         layout: &'a LayoutInfo,
     ) -> Self {
         return Self {
-            device,
+            device: device.clone(),
             layout,
             entries: Vec::new(),
             

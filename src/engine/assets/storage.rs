@@ -1,5 +1,6 @@
 use std::{collections::HashMap};
-use crate::engine::assets::handle::Handle;
+
+use crate::util::handle::Handle;
 
 pub struct Storage<T> {
     assets: HashMap<usize, T>,

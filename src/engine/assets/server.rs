@@ -1,10 +1,11 @@
 use std::{path::Path};
 
-use crate::engine::assets::{
-    handle::Handle, storage::Storage, types::{
+use crate::{engine::assets::{
+    storage::Storage, 
+    types::{
         RawSource, TextSource, shader::Shader, texture::Texture,
     },
-};
+}, util::handle::Handle};
 
 pub struct Server {
     device: wgpu::Device,

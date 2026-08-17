@@ -34,18 +34,11 @@ pub struct Mesh {
     pub buffer: wgpu::Buffer,
     pub offset: u64,
     pub index_count: u32,
-
-    pub material_id: renderer::material::MaterialID,
-    pub pipeline_id: renderer::pipeline::PipelineID,
-    pub transform_id: renderer::transform::TransformID,
 }
 
 impl Mesh {
     pub fn make_cube(
         device: &wgpu::Device,
-        material_id: renderer::material::MaterialID,
-        pipeline_id: renderer::pipeline::PipelineID,
-        transform_id: renderer::transform::TransformID,
         dim: [f32; 3],
     ) -> Self {
         let (w, h, d) = (dim[0], dim[1], dim[2]);
@@ -132,39 +125,36 @@ impl Mesh {
             buffer,
             offset: byte_vertex.len() as u64,
             index_count: 36,
-            material_id,
-            pipeline_id,
-            transform_id,
         };
     }
 }
 
-pub struct MeshStorage {
-    meshes: Vec<Mesh>,
-}
-
-impl MeshStorage {
-    pub fn new() -> Self {
-        return Self {
-            meshes: Vec::new(),
-        };
-    }
-
-    // pipeline -> material
-    pub fn get_all_sorted(&mut self) -> &[Mesh] {
-        self.meshes.sort_by_key(|mesh| (
-            mesh.pipeline_id,
-            mesh.material_id,
-        ));
-        return &self.meshes;
-    }
-
-    pub fn get(&self, id: MeshID) -> Option<&Mesh> {
-        return self.meshes.get(id);
-    }
-
-    pub fn add(&mut self, mesh: Mesh) -> MeshID {
-        self.meshes.push(mesh);
-        return self.meshes.len() - 1;
-    }
-}
+// pub struct MeshStorage {
+//     meshes: Vec<Mesh>,
+// }
+//
+// impl MeshStorage {
+//     pub fn new() -> Self {
+//         return Self {
+//             meshes: Vec::new(),
+//         };
+//     }
+//
+//     // pipeline -> material
+//     pub fn get_all_sorted(&mut self) -> &[Mesh] {
+//         self.meshes.sort_by_key(|mesh| (
+//             mesh.pipeline_id,
+//             mesh.material_id,
+//         ));
+//         return &self.meshes;
+//     }
+//
+//     pub fn get(&self, id: MeshID) -> Option<&Mesh> {
+//         return self.meshes.get(id);
+//     }
+//
+//     pub fn add(&mut self, mesh: Mesh) -> MeshID {
+//         self.meshes.push(mesh);
+//         return self.meshes.len() - 1;
+//     }
+// }
