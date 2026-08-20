@@ -13,7 +13,7 @@ use crate::engine::{physics::bounding_box::MTV, renderer::transform::{Transform,
 #[derive(Copy, Clone)]
 pub struct RigidBody {
     // stores all information about obj state
-    pub transform_id: TransformID,
+    pub transform_id: Handle<Transform>,
 
     // linear motion
     pub velocity: Vec2,

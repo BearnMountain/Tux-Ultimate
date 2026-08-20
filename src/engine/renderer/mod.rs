@@ -10,6 +10,8 @@ pub mod math;
 pub mod transform;
 pub mod model_loader;
 pub mod render_resource;
+pub mod render_pass;
+    pub mod test;
 
 use glam::Vec3;
 use winit::dpi::PhysicalSize;
@@ -52,7 +54,24 @@ impl Renderer {
         };
     }
 
-    fn render_pass(&mut self, pass: &mut wgpu::RenderPass) {
+    fn render_pass(&mut self, command_encoder: &mut wgpu::CommandEncoder) {
+        let mut pass = command_encoder.begin_render_pass(
+            &wgpu::RenderPassDescriptor {
+                label: Some("Renderpass"),
+                color_attachments: &[Some(screen_reset)],
+                depth_stencil_attachment: Some(
+                    wgpu::RenderPassDepthStencilAttachment {
+                        view: ,
+                        depth_ops: todo!(),
+                        stencil_ops: todo!(),
+                    }
+                ),
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            }
+        );
+
         { // self.meshes_cache run
             // sorting meshes pipeline -> material
             let meshes = self.meshes_cache.get_all_sorted(); 
@@ -142,25 +161,8 @@ impl Renderer {
 
         // submit render pass commands
         {
-            let mut pass = command_encoder.begin_render_pass(
-                &wgpu::RenderPassDescriptor {
-                    label: Some("Renderpass"),
-                    color_attachments: &[Some(screen_reset)],
-                    depth_stencil_attachment: Some(
-                        wgpu::RenderPassDepthStencilAttachment {
-                            view: ,
-                            depth_ops: todo!(),
-                            stencil_ops: todo!(),
-                        }
-                    ),
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                    multiview_mask: None,
-                }
-            );
-
             // pass through each pipeline and render
-            self.render_pass(&mut pass);
+            self.render_pass(&mut command_encoder);
         }
 
         self.graphics.queue.submit(std::iter::once(command_encoder.finish()));
