@@ -1,3 +1,8 @@
+pub enum RenderPassDesc {
+    UI,
+    GAME,
+}
+
 pub struct RenderPassStorage {
     pass_descriptors: Vec<wgpu::RenderPassDescriptor<'static>>,
 }
@@ -32,13 +37,36 @@ impl RenderPassStorage {
         return storage;
     }
 
+    pub fn get(
+        desc: &RenderPassDesc
+    ) -> anyhow::Result<&wgpu::RenderPassDescriptor<'static>> {
+        unimplemented!();
+    }
+
+
     pub fn get_ui(
         &self,
         surface: &wgpu::Surface,
-    ) -> &wgpu::RenderPassDescriptor<'static> {
+    ) -> anyhow::Result<&wgpu::RenderPassDescriptor<'static>> {
         let pass = &mut self.pass_descriptors[0];
-        let output = surface.get_current_texture()?;
-        let color_view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let surface_texture = match surface.get_current_texture() {
+            wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
+            wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
+            // wgpu::CurrentSurfaceTexture::Timeout |
+            // wgpu::CurrentSurfaceTexture::Occluded => return Ok(()),
+            // wgpu::CurrentSurfaceTexture::Outdated |
+            // wgpu::CurrentSurfaceTexture::Lost => {
+            //     self.graphics.resize(self.graphics.size.width, self.graphics.size.height);
+            //     return Ok(());
+            // },
+            // wgpu::CurrentSurfaceTexture::Validation => {
+            //     panic!("Surface validation failed");
+            // },
+            _ => panic!("Surface validation failed"),
+        };
+
+
+        let color_view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         pass.color_attachments = &[Some(wgpu::RenderPassColorAttachment {
             view: &color_view,

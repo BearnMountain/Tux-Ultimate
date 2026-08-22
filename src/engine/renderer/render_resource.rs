@@ -8,12 +8,29 @@ use super::{
 
 use crate::util::handle::Handle;
 
+#[derive(PartialEq, Eq)]
 pub struct RenderResources {
     // pub render_pass: Handle<...>,
     pub pipeline: Handle<wgpu::RenderPipeline>,
     pub material: Handle<Material>,
     pub transform: Handle<Transform>,
     pub mesh: Handle<Mesh>,
+}
+
+impl Ord for RenderResources {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        return self.pipeline.id
+            .cmp(&other.pipeline.id)
+            .then(self.material.id.cmp(&other.material.id))
+            .then(self.transform.id.cmp(&other.transform.id))
+            .then(self.mesh.id.cmp(&other.mesh.id));
+    }
+}
+
+impl PartialOrd for RenderResources {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        return Some(self.cmp(other));
+    }
 }
 
 pub struct RenderStorage<T> {
@@ -43,7 +60,7 @@ impl<T> RenderStorage<T> {
         return self.assets[handle.id].take();
     }
 
-    pub fn get(&self, handle: Handle<T>) -> Option<&T> {
+    pub fn get(&self, handle: &Handle<T>) -> Option<&T> {
         return self.assets[handle.id].as_ref();
     }
 }

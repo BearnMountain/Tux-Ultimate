@@ -148,8 +148,8 @@ impl ApplicationHandler for App {
             // WindowEvent::Occluded(_) => todo!(),
             WindowEvent::RedrawRequested => {
                 // compute render interpolation
-                let alpha = self.accumulator.as_secs_f32() / self.dt.as_secs_f32();
-                game.engine.renderer.interpolation_alpha = alpha.clamp(0.0, 1.0);
+                // let alpha = self.accumulator.as_secs_f32() / self.dt.as_secs_f32();
+                // game.engine.renderer.interpolation_alpha = alpha.clamp(0.0, 1.0);
 
                 // draw
                 if let Err(e) = game.frame(self.dt, self.tick) {

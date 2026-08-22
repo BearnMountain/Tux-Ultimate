@@ -11,12 +11,11 @@ pub mod transform;
 pub mod model_loader;
 pub mod render_resource;
 pub mod render_pass;
-    pub mod test;
 
 use glam::Vec3;
 use winit::dpi::PhysicalSize;
 
-use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}}, scene::camera}, util::handle::Handle};
+use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_pass::{RenderPassDesc, RenderPassStorage}, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}}, scene::camera}, util::handle::Handle};
 
 pub struct Renderer {
     graphics: context::RenderContext,
@@ -56,27 +55,15 @@ impl Renderer {
 
     fn render_pass(&mut self, command_encoder: &mut wgpu::CommandEncoder) {
         let mut pass = command_encoder.begin_render_pass(
-            &wgpu::RenderPassDescriptor {
-                label: Some("Renderpass"),
-                color_attachments: &[Some(screen_reset)],
-                depth_stencil_attachment: Some(
-                    wgpu::RenderPassDepthStencilAttachment {
-                        view: ,
-                        depth_ops: todo!(),
-                        stencil_ops: todo!(),
-                    }
-                ),
-                timestamp_writes: None,
-                occlusion_query_set: None,
-                multiview_mask: None,
-            }
+            RenderPassStorage::get(&RenderPassDesc::GAME).unwrap()
         );
 
         { // self.meshes_cache run
             // sorting meshes pipeline -> material
-            let meshes = self.meshes_cache.get_all_sorted(); 
+            self.renderables.sort();
+            let renderables = &self.renderables; 
 
-            if meshes.len() == 0 {
+            if renderables.len() == 0 {
                 return;
             }
 
@@ -84,28 +71,29 @@ impl Renderer {
             pass.set_bind_group(2, &self.camera.uploader.bind_group, &[]);
 
             // binds new pipeline/material(bind groups) whenever needed
-            let mut current_pipeline: Option<pipeline::PipelineID> = None;
-            let mut current_material: Option<pipeline::PipelineID> = None;
+            let mut current_pipeline: Option<&Handle<wgpu::RenderPipeline>> = None;
+            let mut current_material: Option<&Handle<Material>> = None;
 
-            for mesh in meshes {
-                if current_pipeline != Some(mesh.pipeline_id) {
-                    current_pipeline = Some(mesh.pipeline_id);
+            for resource in renderables {
+                if current_pipeline != Some(&resource.pipeline) {
+                    current_pipeline = Some(&resource.pipeline);
                     pass.set_pipeline(
-                        &self.pipeline_cache.get(mesh.pipeline_id).unwrap()
+                        &self.pipeline_cache.get(&resource.pipeline).unwrap()
                     );
                 }
             
-                if current_material != Some(mesh.material_id) {
-                    current_material = Some(mesh.material_id);
+                if current_material != Some(&resource.material) {
+                    current_material = Some(&resource.material);
                     pass.set_bind_group(
                         0,
-                        &self.materials_cache.get(mesh.material_id).unwrap().bind_group,
+                        &self.materials_cache.get(&resource.material).unwrap().bind_group,
                         &[]
                     );
                 }
             
-                // renders basic mesh to screen
-                pass.set_immediates(0, &(mesh.transform_id as u32).to_ne_bytes());
+                // renders basic resource to screen
+                let mesh = self.meshes_cache.get(&resource.mesh).unwrap();
+                pass.set_immediates(0, &(resource.transform.id as u32).to_ne_bytes());
                 pass.set_vertex_buffer(0, mesh.buffer.slice(0..mesh.offset));
                 pass.set_index_buffer(mesh.buffer.slice(mesh.offset..), wgpu::IndexFormat::Uint16);
                 pass.draw_indexed(0..mesh.index_count, 0, 0..1);

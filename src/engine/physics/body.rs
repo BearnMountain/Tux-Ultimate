@@ -1,6 +1,6 @@
 use glam::{Quat, Vec2};
 
-use crate::engine::{physics::bounding_box::MTV, renderer::transform::{Transform, TransformID}};
+use crate::engine::{physics::bounding_box::MTV, renderer::transform::{Transform}};
 
 // good idea, maybe
 // #[derive(Clone, Copy, PartialEq, Eq)]
@@ -46,7 +46,7 @@ pub struct RigidBody {
 }
 
 impl RigidBody {
-    pub fn new(transform_id: TransformID, mass: f32) -> Self {
+    pub fn new(transform_id: Handle<Transform>, mass: f32) -> Self {
         let moment_of_inertia = mass; // TODO: for now, update for characters
         let inv_mass = if mass > 0.0 { 1.0 / mass } else { 0.0 };
         let inv_moment_of_inertia = if moment_of_inertia > 0.0 { 1.0 / moment_of_inertia } else { 0.0 };
@@ -75,7 +75,7 @@ impl RigidBody {
         };
     }
 
-    pub fn new_static(transform_id: TransformID) -> Self {
+    pub fn new_static(transform_id: Handle<Transform>) -> Self {
         return Self { 
             is_static: true, 
             mass: 0.0, 

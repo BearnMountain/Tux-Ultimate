@@ -10,8 +10,6 @@ use crate::util::handle::Handle;
 use super::bind_group;
 use super::math;
 
-pub type TransformID = usize;
-
 const MAX_TRANSFORMS: u64 = 1024;
 
 #[derive(Clone, Copy)]

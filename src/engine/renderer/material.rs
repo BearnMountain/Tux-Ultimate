@@ -2,8 +2,7 @@ use crate::engine::{
     assets::types::texture::Texture, 
     renderer::bind_group::{self, LayoutBuilder, LayoutInfo}};
 
-pub type MaterialID = usize;
-
+#[derive(PartialEq)]
 pub struct Material {
     pub bind_group: wgpu::BindGroup,
 }
@@ -36,24 +35,3 @@ impl Material {
         };
     }
 }
-
-// pub struct MaterialStorage {
-//     materials: Vec<Material>,
-// }
-//
-// impl MaterialStorage {
-//     pub fn new() -> Self {
-//         return Self {
-//             materials: Vec::new(),
-//         };
-//     }
-//
-//     pub fn get(&self, id: MaterialID) -> Option<&Material> {
-//         return self.materials.get(id);
-//     }
-//
-//     pub fn add(&mut self, material: Material) -> MaterialID {
-//         self.materials.push(material);
-//         return self.materials.len() - 1;
-//     }
-// }

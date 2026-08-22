@@ -6,6 +6,7 @@ pub struct Config {
     pub app: AppConfig,
     pub window: WindowConfig,
     pub graphics: GraphicsConfig,
+    pub network: NetworkConfig,
     pub keybinds: KeybindConfig,
 }
 
@@ -23,6 +24,11 @@ pub struct WindowConfig {
 #[derive(Debug, Deserialize)]
 pub struct GraphicsConfig {
     pub backend: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NetworkConfig {
+    pub server_port: u32,
 }
 
 #[derive(Debug, Deserialize)]

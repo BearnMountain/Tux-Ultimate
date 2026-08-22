@@ -1,7 +1,7 @@
 use glam::Vec3;
 use wgpu::util::DeviceExt;
 
-use crate::engine::renderer::{self, coordinate::Coordinate, transform::TransformID};
+use crate::engine::renderer::{self, coordinate::Coordinate};
 use super::math::any_as_u8_slice;
 use super::transform::Transform;
 
@@ -25,8 +25,6 @@ impl Vertex {
         };
     }
 }
-
-pub type MeshID = usize;
 
 pub struct Mesh {
     // 0 - offset: vertex_buffer
@@ -128,33 +126,3 @@ impl Mesh {
         };
     }
 }
-
-// pub struct MeshStorage {
-//     meshes: Vec<Mesh>,
-// }
-//
-// impl MeshStorage {
-//     pub fn new() -> Self {
-//         return Self {
-//             meshes: Vec::new(),
-//         };
-//     }
-//
-//     // pipeline -> material
-//     pub fn get_all_sorted(&mut self) -> &[Mesh] {
-//         self.meshes.sort_by_key(|mesh| (
-//             mesh.pipeline_id,
-//             mesh.material_id,
-//         ));
-//         return &self.meshes;
-//     }
-//
-//     pub fn get(&self, id: MeshID) -> Option<&Mesh> {
-//         return self.meshes.get(id);
-//     }
-//
-//     pub fn add(&mut self, mesh: Mesh) -> MeshID {
-//         self.meshes.push(mesh);
-//         return self.meshes.len() - 1;
-//     }
-// }

@@ -1,7 +1,5 @@
 use crate::engine::assets::{types::shader::Shader};
 
-pub type PipelineID = usize;
-
 pub struct Builder<'a> {
     shader: Option<&'a Shader>,
 
@@ -153,24 +151,3 @@ impl<'a> Builder<'a> {
         return render_pipeline;
     }
 }
-
-// pub struct PipelineStorage {
-//     pipelines: Vec<wgpu::RenderPipeline>,
-// }
-//
-// impl PipelineStorage {
-//     pub fn new() -> Self {
-//         return Self {
-//             pipelines: Vec::new(),
-//         };
-//     }
-//
-//     pub fn get(&self, id: PipelineID) -> Option<&wgpu::RenderPipeline> {
-//         return self.pipelines.get(id);
-//     }
-//
-//     pub fn add(&mut self, pipeline: wgpu::RenderPipeline) -> PipelineID {
-//         self.pipelines.push(pipeline);
-//         return self.pipelines.len() - 1;
-//     }
-// }

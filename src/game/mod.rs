@@ -277,9 +277,6 @@ impl Game {
 
         let mesh = Mesh::make_cube(
             &self.engine.renderer.get_render_context().device, 
-            material_id,
-            pipeline_id,
-            transform_id,
             volume, // volume
         );
 
