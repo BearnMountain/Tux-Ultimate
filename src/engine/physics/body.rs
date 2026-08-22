@@ -1,6 +1,9 @@
 use glam::{Quat, Vec2};
 
-use crate::engine::{physics::bounding_box::MTV, renderer::transform::{Transform}};
+use crate::{
+    engine::{physics::bounding_box::MTV, renderer::transform::Transform},
+    util::handle::Handle,
+};
 
 // good idea, maybe
 // #[derive(Clone, Copy, PartialEq, Eq)]
@@ -49,7 +52,11 @@ impl RigidBody {
     pub fn new(transform_id: Handle<Transform>, mass: f32) -> Self {
         let moment_of_inertia = mass; // TODO: for now, update for characters
         let inv_mass = if mass > 0.0 { 1.0 / mass } else { 0.0 };
-        let inv_moment_of_inertia = if moment_of_inertia > 0.0 { 1.0 / moment_of_inertia } else { 0.0 };
+        let inv_moment_of_inertia = if moment_of_inertia > 0.0 {
+            1.0 / moment_of_inertia
+        } else {
+            0.0
+        };
 
         return Self {
             transform_id,
@@ -76,11 +83,11 @@ impl RigidBody {
     }
 
     pub fn new_static(transform_id: Handle<Transform>) -> Self {
-        return Self { 
-            is_static: true, 
-            mass: 0.0, 
-            moment_of_inertia: 0.0, 
-            ..Self::new(transform_id, 0.0) 
+        return Self {
+            is_static: true,
+            mass: 0.0,
+            moment_of_inertia: 0.0,
+            ..Self::new(transform_id, 0.0)
         };
     }
 
@@ -99,10 +106,10 @@ impl RigidBody {
     }
     /// other updates player
     pub fn apply_impulse_at_point(
-        &mut self, 
-        impulse: Vec2, 
-        contact_point: Vec2, 
-        center_of_mass: Vec2
+        &mut self,
+        impulse: Vec2,
+        contact_point: Vec2,
+        center_of_mass: Vec2,
     ) {
         let r = contact_point - center_of_mass;
         let torque = r.x * impulse.y - r.y * impulse.x;
@@ -111,21 +118,18 @@ impl RigidBody {
     }
 
     // update object
-    pub fn update(
-        &mut self, 
-        dt: f32,
-        world_gravity: Vec2,
-        transform: &mut Transform 
-    ) {
+    pub fn update(&mut self, dt: f32, world_gravity: Vec2, transform: &mut Transform) {
         if dt <= 0.0 {
             return;
         }
 
         // updating from inputs
-        let steering = self.desired_direction.normalize_or_zero() 
-            * self.move_acceleration;
-        let gravity_force = if self.grounded {Vec2::ZERO} 
-            else {world_gravity * self.gravity_scale};
+        let steering = self.desired_direction.normalize_or_zero() * self.move_acceleration;
+        let gravity_force = if self.grounded {
+            Vec2::ZERO
+        } else {
+            world_gravity * self.gravity_scale
+        };
 
         // update self
         self.acceleration = steering + gravity_force + self.force_accumulator * self.inv_mass;
@@ -149,15 +153,11 @@ impl RigidBody {
         self.grounded = false; // just incase mtv updates obj
     }
 
-    pub fn resolve_collision_velocity(
-        &mut self,
-        mtv: MTV,
-    ) {
+    pub fn resolve_collision_velocity(&mut self, mtv: MTV) {
         let v_along_normal = self.velocity.dot(mtv.direction);
 
         if v_along_normal < 0.0 {
-            self.velocity -=
-                mtv.direction * v_along_normal * (1.0 + self.resitution);
+            self.velocity -= mtv.direction * v_along_normal * (1.0 + self.resitution);
         }
     }
 }

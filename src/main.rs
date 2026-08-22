@@ -4,15 +4,21 @@ mod game;
 mod util;
 use util::config::Config;
 
-use std::{sync::Arc, time::{Duration, Instant}};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use env_logger::Env;
 use winit::{
-    application::ApplicationHandler, 
-    dpi::{LogicalSize}, 
-    event::{DeviceEvent, TouchPhase, WindowEvent}, 
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop}, 
-    keyboard::{KeyCode, PhysicalKey::{self}}, 
+    application::ApplicationHandler,
+    dpi::LogicalSize,
+    event::{DeviceEvent, TouchPhase, WindowEvent},
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    keyboard::{
+        KeyCode,
+        PhysicalKey::{self},
+    },
     window::{Window, WindowAttributes, WindowId},
 };
 
@@ -47,7 +53,6 @@ impl App {
 }
 
 impl ApplicationHandler for App {
-
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let global_config = Config::get().read().unwrap();
 
@@ -55,16 +60,15 @@ impl ApplicationHandler for App {
         let attrs = WindowAttributes::default()
             .with_title("Tux Ultimate")
             .with_inner_size(LogicalSize::new(
-                global_config.window.width, 
-                global_config.window.height
+                global_config.window.width,
+                global_config.window.height,
             ));
 
-        let window = Arc::new(
-            event_loop.create_window(attrs).unwrap()
-        );
+        let window = Arc::new(event_loop.create_window(attrs).unwrap());
 
         // cursor
-        window.set_cursor_grab(winit::window::CursorGrabMode::Locked)
+        window
+            .set_cursor_grab(winit::window::CursorGrabMode::Locked)
             .expect("cant take control of cursor");
         window.set_cursor_visible(false);
 
@@ -95,20 +99,20 @@ impl ApplicationHandler for App {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
             WindowEvent::Resized(physical_size) => {
                 game.engine.resize(Some(physical_size));
-            },
+            }
             // WindowEvent::Moved(physical_position) => todo!(),
             WindowEvent::CloseRequested => {
                 // save files etc in the future
                 event_loop.exit();
-            },
+            }
             // WindowEvent::Destroyed => todo!(),
             // WindowEvent::DroppedFile(path_buf) => todo!(),
             // WindowEvent::HoveredFile(path_buf) => todo!(),
             // WindowEvent::HoveredFileCancelled => todo!(),
             // WindowEvent::Focused(_) => todo!(),
-            WindowEvent::KeyboardInput { 
-                device_id: _, 
-                event, 
+            WindowEvent::KeyboardInput {
+                device_id: _,
+                event,
                 is_synthetic: _,
             } => {
                 if let PhysicalKey::Code(key) = event.physical_key {
@@ -117,24 +121,24 @@ impl ApplicationHandler for App {
                     }
                     game.input_handler.keyboard(&key, &event.state);
                 }
-            },
+            }
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
             // WindowEvent::Ime(ime) => todo!(),
-            // WindowEvent::CursorMoved { 
-            //     device_id: _, 
-            //     position 
+            // WindowEvent::CursorMoved {
+            //     device_id: _,
+            //     position
             // } => game.input_handler.mouse_movement(position),
             // WindowEvent::CursorEntered { device_id } => todo!(),
             // WindowEvent::CursorLeft { device_id } => todo!(),
-            // WindowEvent::MouseWheel { 
-            //     device_id: _, 
-            //     delta, 
-            //     phase 
-            // } => game.input_handler.mouse_wheel(&delta, &phase), 
-            WindowEvent::MouseInput { 
-                device_id: _, 
-                state, 
-                button 
+            // WindowEvent::MouseWheel {
+            //     device_id: _,
+            //     delta,
+            //     phase
+            // } => game.input_handler.mouse_wheel(&delta, &phase),
+            WindowEvent::MouseInput {
+                device_id: _,
+                state,
+                button,
             } => game.input_handler.mouse_button(&state, &button),
             // WindowEvent::PinchGesture { device_id, delta, phase } => todo!(),
             // WindowEvent::PanGesture { device_id, delta, phase } => todo!(),
@@ -158,8 +162,8 @@ impl ApplicationHandler for App {
                     game.engine.resize(None);
                 }
                 // self.window.as_ref().unwrap().request_redraw();
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -168,24 +172,24 @@ impl ApplicationHandler for App {
         _event_loop: &ActiveEventLoop,
         _device_id: winit::event::DeviceId,
         event: winit::event::DeviceEvent,
-    )
-    {
+    ) {
         let Some(game) = &mut self.game else { return };
 
         match event {
             DeviceEvent::MouseMotion { delta } => {
-                game.input_handler.mouse_movement(delta.0 as f32, delta.1 as f32);
-            },
+                game.input_handler
+                    .mouse_movement(delta.0 as f32, delta.1 as f32);
+            }
             DeviceEvent::MouseWheel { delta } => {
                 game.input_handler.mouse_wheel(&delta, &TouchPhase::Started);
-            },
+            }
             // DeviceEvent::Key(raw_key_event) => {
             //     // usually ignore this because WindowEvent::KeyboardInput is easier
             // },
             // DeviceEvent::Motion { axis, value } => {
             //     // joystick/raw axis events
             // },
-            _ => {},
+            _ => {}
         }
     }
 
@@ -225,10 +229,7 @@ impl ApplicationHandler for App {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // init system info
-    env_logger::Builder::from_env(
-        Env::default()
-            .default_filter_or("warn,app=debug")
-    ).init();    
+    env_logger::Builder::from_env(Env::default().default_filter_or("warn,app=debug")).init();
     Config::init("assets/config.toml");
 
     let rt = tokio::runtime::Runtime::new().expect("failed to start app");
@@ -243,5 +244,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     return Ok(());
 }
-
-

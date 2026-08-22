@@ -1,6 +1,6 @@
 use wgpu::ShaderModule;
 
-use crate::engine::assets::types::{TextSource};
+use crate::engine::assets::types::TextSource;
 
 // raw data turned to gpu resource
 pub struct Shader {
@@ -19,15 +19,19 @@ impl Shader {
     ) -> anyhow::Result<Self> {
         let shader_source = match source.path.extension().and_then(|e| e.to_str()) {
             Some("wgsl") => wgpu::ShaderSource::Wgsl(source.source.clone().into()),
-            Some(ext) => { return Err(anyhow::anyhow!("Shader extension not supported: {ext}").into()); },
-            None => { return Err(anyhow::anyhow!("No shader extension").into()); },
+            Some(ext) => {
+                return Err(anyhow::anyhow!("Shader extension not supported: {ext}").into());
+            }
+            None => {
+                return Err(anyhow::anyhow!("No shader extension").into());
+            }
         };
 
-        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor { 
-            label: Some("ShaderModule"), 
+        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("ShaderModule"),
             source: shader_source,
         });
-        
+
         return Ok(Self {
             shader_module,
             vertex_entry: vertex_entry.to_string(),

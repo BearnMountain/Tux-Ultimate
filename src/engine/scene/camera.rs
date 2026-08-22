@@ -1,12 +1,9 @@
+use crate::engine::renderer::{bind_group, math};
 use glam::{
     Mat4, Vec3,
-    camera::rh::{
-        view,
-        proj::directx,
-    }
+    camera::rh::{proj::directx, view},
 };
 use wgpu::util::DeviceExt;
-use crate::engine::renderer::{bind_group, math};
 
 #[allow(non_camel_case_types)]
 pub enum CameraAction {
@@ -21,17 +18,12 @@ pub enum CameraAction {
 /// Camera Object Used Outside
 pub struct Camera {
     pub uploader: CameraUploader,
-    pub transform: CameraTransform, // current 
+    pub transform: CameraTransform, // current
     pub controller: CameraController,
 }
 
 impl Camera {
-    pub fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        position: Vec3,
-        aspect: f32,
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, position: Vec3, aspect: f32) -> Self {
         let transform = CameraTransform::new(position, aspect);
         let uploader = CameraUploader::new(device, queue, &transform);
 
@@ -41,14 +33,10 @@ impl Camera {
             uploader,
             transform,
             controller: CameraController::new(),
-        }
+        };
     }
 
-    pub fn update(
-        &mut self,
-        action: CameraAction,
-        change: f32,
-    ) {
+    pub fn update(&mut self, action: CameraAction, change: f32) {
         self.controller.action(action, change);
         self.uploader.upload(&self.transform);
     }
@@ -98,9 +86,7 @@ impl CameraController {
     }
 
     pub fn update(&mut self, camera: &mut CameraTransform, dt: f32) -> bool {
-        if self.movement == Vec3::ZERO &&
-           self.rotation == (0.0, 0.0) &&
-           self.zoom == 0.0 {
+        if self.movement == Vec3::ZERO && self.rotation == (0.0, 0.0) && self.zoom == 0.0 {
             return false;
         }
 
@@ -115,10 +101,8 @@ impl CameraController {
         let right = camera.right();
         let up = Vec3::Y;
 
-        let mut velocity = 
-            right * self.movement.x + 
-            up * self.movement.y + 
-            forward * self.movement.z; 
+        let mut velocity =
+            right * self.movement.x + up * self.movement.y + forward * self.movement.z;
 
         if velocity.length_squared() > 0.0 {
             velocity = velocity.normalize();
@@ -128,10 +112,9 @@ impl CameraController {
 
         // zoom
         camera.fov_y -= self.zoom * self.zoom_speed.to_radians() * dt;
-        camera.fov_y = camera.fov_y.clamp(
-            15.0_f32.to_radians(),
-            120.0_f32.to_radians(),
-        );
+        camera.fov_y = camera
+            .fov_y
+            .clamp(15.0_f32.to_radians(), 120.0_f32.to_radians());
 
         // reset
         self.movement = Vec3::ZERO;
@@ -156,10 +139,7 @@ pub struct CameraTransform {
 }
 
 impl CameraTransform {
-    pub fn new(
-        position: Vec3,
-        aspect: f32
-    ) -> Self {
+    pub fn new(position: Vec3, aspect: f32) -> Self {
         return Self {
             position,
             yaw: -std::f32::consts::FRAC_PI_2,
@@ -177,7 +157,8 @@ impl CameraTransform {
             self.yaw.cos() * self.pitch.cos(),
             self.pitch.sin(),
             self.yaw.sin() * self.pitch.cos(),
-        ).normalize();
+        )
+        .normalize();
     }
 
     pub fn rotate(&mut self, delta_yaw: f32, delta_pitch: f32) {
@@ -194,7 +175,11 @@ impl CameraTransform {
 
     pub fn lerp(&self, other: &CameraTransform, alpha: f32) -> Self {
         let diff = (other.yaw - self.yaw).rem_euclid(std::f32::consts::TAU);
-        let shortest = if diff > std::f32::consts::PI { diff - std::f32::consts::TAU } else { diff };
+        let shortest = if diff > std::f32::consts::PI {
+            diff - std::f32::consts::TAU
+        } else {
+            diff
+        };
 
         return CameraTransform {
             position: self.position.lerp(other.position, alpha),
@@ -209,20 +194,11 @@ impl CameraTransform {
 
     // generating data for shaders
     pub fn view_matrix(&self) -> Mat4 {
-        return view::look_to_mat4(
-            self.position, 
-            self.forward_direction(), 
-            Vec3::Y, 
-        );
+        return view::look_to_mat4(self.position, self.forward_direction(), Vec3::Y);
     }
 
     pub fn projection_matrix(&self) -> Mat4 {
-        return directx::perspective(
-            self.fov_y,
-            self.aspect,
-            self.znear,
-            self.zfar,
-        );
+        return directx::perspective(self.fov_y, self.aspect, self.znear, self.zfar);
     }
 
     pub fn matrix(&self) -> Mat4 {
@@ -240,27 +216,21 @@ pub struct CameraUploader {
 }
 
 impl CameraUploader {
-    pub fn new(
-        device: &wgpu::Device, 
-        queue: &wgpu::Queue, 
-        camera: &CameraTransform
-    ) -> Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, camera: &CameraTransform) -> Self {
         let layout = bind_group::LayoutBuilder::new(device)
-            .add_buffer(
-                wgpu::ShaderStages::VERTEX,
-                wgpu::BufferBindingType::Uniform,
-            ).build("camera bind group layout");
+            .add_buffer(wgpu::ShaderStages::VERTEX, wgpu::BufferBindingType::Uniform)
+            .build("camera bind group layout");
         let matrix = camera.matrix();
         let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("CameraBuffer"),
-            contents: unsafe {
-                math::any_as_u8_slice(&matrix)
-            },
+            contents: unsafe { math::any_as_u8_slice(&matrix) },
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
         let bind_group = bind_group::ResourceBuilder::new(device, &layout)
-            .buffer(&buffer).unwrap()
-            .build("camera bind group").unwrap();
+            .buffer(&buffer)
+            .unwrap()
+            .build("camera bind group")
+            .unwrap();
 
         return Self {
             layout,
@@ -273,12 +243,7 @@ impl CameraUploader {
 
     pub fn upload(&self, camera: &CameraTransform) {
         let matrix = camera.matrix();
-        self.queue.write_buffer(
-            &self.buffer, 
-            0, 
-            unsafe {
-                math::any_as_u8_slice(&matrix)
-            },
-        );
+        self.queue
+            .write_buffer(&self.buffer, 0, unsafe { math::any_as_u8_slice(&matrix) });
     }
 }

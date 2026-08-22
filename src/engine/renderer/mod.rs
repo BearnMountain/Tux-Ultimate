@@ -15,7 +15,7 @@ pub mod render_pass;
 use glam::Vec3;
 use winit::dpi::PhysicalSize;
 
-use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_pass::{RenderPassDesc, RenderPassStorage}, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}}, scene::camera}, util::handle::Handle};
+use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_pass::{RenderPassStage, RenderPassStorage}, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}}, scene::camera}, util::handle::Handle};
 
 pub struct Renderer {
     graphics: context::RenderContext,
@@ -23,6 +23,7 @@ pub struct Renderer {
 
     renderables: Vec<RenderResources>,
 
+    render_pass_cache: RenderPassStorage,
     pipeline_cache: RenderStorage<wgpu::RenderPipeline>,
     materials_cache: RenderStorage<Material>,
     transform_cache: TransformStorage,
@@ -42,10 +43,16 @@ impl Renderer {
             width / height,
         );
 
+        let render_pass_cache = RenderPassStorage::new(
+            &graphics.device, 
+            &graphics.config,
+        );
+
         return Self {
             graphics,
             camera,
             renderables: Vec::new(),
+            render_pass_cache,
             pipeline_cache: RenderStorage::new(),
             materials_cache: RenderStorage::new(),
             transform_cache,
@@ -53,10 +60,12 @@ impl Renderer {
         };
     }
 
-    fn render_pass(&mut self, command_encoder: &mut wgpu::CommandEncoder) {
-        let mut pass = command_encoder.begin_render_pass(
-            RenderPassStorage::get(&RenderPassDesc::GAME).unwrap()
-        );
+    fn render_pass(
+        &mut self, 
+        command_encoder: &mut wgpu::CommandEncoder,
+        image_view: &wgpu::TextureView,
+    ) {
+        let mut pass = self.render_pass_cache.begin_game(command_encoder, image_view);
 
         { // self.meshes_cache run
             // sorting meshes pipeline -> material
@@ -130,27 +139,10 @@ impl Renderer {
                 label: Some("Renderer Encoder"),
             }
         );
-
-        // screen's clear color/reset
-        let screen_reset = wgpu::RenderPassColorAttachment {
-            view: &image_view,
-            depth_slice: None,
-            resolve_target: None,
-            ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 0.5,
-                }),
-                store: wgpu::StoreOp::Store,
-            },
-        };
-
         // submit render pass commands
         {
             // pass through each pipeline and render
-            self.render_pass(&mut command_encoder);
+            self.render_pass(&mut command_encoder, &image_view);
         }
 
         self.graphics.queue.submit(std::iter::once(command_encoder.finish()));
@@ -197,6 +189,13 @@ impl Renderer {
         mesh: mesh::Mesh
     ) -> Handle<Mesh> {
         return self.meshes_cache.add(mesh);
+    }
+
+    pub fn add_render_resource(
+        &mut self,
+        renderable: RenderResources,
+    ) {
+        self.renderables.push(renderable);
     }
 
     // get items from internal struct

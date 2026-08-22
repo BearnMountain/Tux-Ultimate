@@ -1,8 +1,4 @@
-use glam::{
-    Mat4,
-    Quat,
-    Vec3,
-};
+use glam::{Mat4, Quat, Vec3};
 
 use crate::engine::renderer::bind_group::LayoutInfo;
 use crate::util::handle::Handle;
@@ -21,7 +17,7 @@ pub struct Transform {
 
 impl Default for Transform {
     fn default() -> Self {
-        return Self { 
+        return Self {
             position: Vec3::ZERO,
             rotation: Quat::IDENTITY,
             scale: Vec3::ONE,
@@ -30,11 +26,7 @@ impl Default for Transform {
 }
 
 impl Transform {
-    pub fn new(
-        position: Vec3,
-        rotation: Quat,
-        scale: Vec3,
-    ) -> Self {
+    pub fn new(position: Vec3, rotation: Quat, scale: Vec3) -> Self {
         return Self {
             position,
             rotation,
@@ -52,24 +44,13 @@ impl Transform {
     }
 
     /// aint no one rotating a quat by hand
-    pub fn rotate(
-        &mut self,
-        dx: f32, 
-        dy: f32,
-        dz: f32,
-    ) {
-        self.rotation = (
-            self.rotation *
-            Quat::from_euler(glam::EulerRot::YXZ, dy, dx, dz)
-        ).normalize();
+    pub fn rotate(&mut self, dx: f32, dy: f32, dz: f32) {
+        self.rotation =
+            (self.rotation * Quat::from_euler(glam::EulerRot::YXZ, dy, dx, dz)).normalize();
     }
 
     pub fn matrix(&self) -> Mat4 {
-        return Mat4::from_scale_rotation_translation(
-            self.scale,
-            self.rotation,
-            self.position,
-        );
+        return Mat4::from_scale_rotation_translation(self.scale, self.rotation, self.position);
     }
 }
 
@@ -80,17 +61,16 @@ pub struct TransformStorage {
     transforms: Vec<Transform>,
     // previous_transforms: Vec<Transform>, // snapstock each tick
     // render_transforms: Vec<Transform>, // interpolated
-
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    pub layout: bind_group::LayoutInfo
+    pub layout: bind_group::LayoutInfo,
 }
 
 impl TransformStorage {
     /// Requires that pipeline has:
     /// .add_buffer(
-    ///     wgpu::ShaderStages::VERTEX, 
-    ///     wgpu::BufferBindingType::Storage { read_only: true }, // stores 128mb 
+    ///     wgpu::ShaderStages::VERTEX,
+    ///     wgpu::BufferBindingType::Storage { read_only: true }, // stores 128mb
     /// )
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         let capacity = MAX_TRANSFORMS;
@@ -107,7 +87,8 @@ impl TransformStorage {
             )
             .build("transform bind group layout");
         let bind_group = bind_group::ResourceBuilder::new(device, &layout)
-            .buffer(&buffer).unwrap()
+            .buffer(&buffer)
+            .unwrap()
             .build("transform bind group")
             .expect("failed to create transform bind group");
         return Self {
@@ -128,9 +109,9 @@ impl TransformStorage {
     }
 
     pub fn get2(
-        &mut self, 
-        handle1: Handle<Transform>, 
-        handle2: Handle<Transform>
+        &mut self,
+        handle1: Handle<Transform>,
+        handle2: Handle<Transform>,
     ) -> Option<(&mut Transform, &mut Transform)> {
         if handle1.id == handle2.id {
             return None;
@@ -201,17 +182,15 @@ impl TransformStorage {
                 mapped_at_creation: false,
             });
             self.bind_group = bind_group::ResourceBuilder::new(&self.device, &self.layout)
-                .buffer(&self.buffer).unwrap()
+                .buffer(&self.buffer)
+                .unwrap()
                 .build("transform bind group")
                 .expect("failed to create transform bind group");
             self.capacity = new_capacity;
         }
 
         // Convert interpolated render_transforms to matrices
-        let matrices: Vec<Mat4> = self.transforms
-            .iter()
-            .map(|t| t.matrix())
-            .collect();
+        let matrices: Vec<Mat4> = self.transforms.iter().map(|t| t.matrix()).collect();
 
         // uploads to gpu
         let bytes = unsafe { math::any_slice_as_u8_slice(&matrices) };

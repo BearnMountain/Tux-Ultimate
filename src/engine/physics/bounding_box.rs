@@ -9,7 +9,7 @@ Bounding boxes come in a pair:
 First layer is stored as a close fit rect
 Second layer is rotated to fit inside that polygon
 
-All translations and rotations are stored in the collider and used when 
+All translations and rotations are stored in the collider and used when
 checking intersections
 
 */
@@ -30,35 +30,33 @@ pub struct COBB {
     angle: f32,
 
     pub corners: Vec<Vec2>, // all faces of a convex shape
-    axis: Vec<Vec2>, // all axis for intersection testing
+    axis: Vec<Vec2>,        // all axis for intersection testing
 }
 
 impl COBB {
-    pub fn new(
-        corners: Vec<Vec2>,
-    ) -> Self {
-        let mut obb = Self { 
-            local_corners: corners, 
+    pub fn new(corners: Vec<Vec2>) -> Self {
+        let mut obb = Self {
+            local_corners: corners,
             position: Vec2::ZERO,
             angle: 0.0,
             corners: Vec::new(),
-            axis: Vec::new() 
+            axis: Vec::new(),
         };
 
         let (sin, cos) = obb.angle.sin_cos();
         obb.corners.clear();
-        obb.corners.extend(obb.local_corners.iter().map(|p| {
-            Vec2::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos) + obb.position
-        }));
+        obb.corners.extend(
+            obb.local_corners
+                .iter()
+                .map(|p| Vec2::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos) + obb.position),
+        );
 
         obb.axis.clear();
         let n = obb.corners.len();
         for i in 0..n {
             let next = (i + 1) % n;
-            obb.axis.push(COBB::face_normal(
-                obb.corners[i], 
-                obb.corners[next])
-            );
+            obb.axis
+                .push(COBB::face_normal(obb.corners[i], obb.corners[next]));
         }
 
         return obb;
@@ -74,15 +72,18 @@ impl COBB {
 
         let (sin, cos) = angle.sin_cos();
         self.corners.clear();
-        self.corners.extend(self.local_corners.iter().map(|p| {
-            Vec2::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos) + position
-        }));
+        self.corners.extend(
+            self.local_corners
+                .iter()
+                .map(|p| Vec2::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos) + position),
+        );
 
         self.axis.clear();
         let n = self.corners.len();
         for i in 0..n {
             let next = (i + 1) % n;
-            self.axis.push(Self::face_normal(self.corners[i], self.corners[next]));
+            self.axis
+                .push(Self::face_normal(self.corners[i], self.corners[next]));
         }
     }
 
@@ -115,10 +116,10 @@ impl COBB {
         if (other_center - self_center).dot(min_axis) < 0.0 {
             min_axis = -min_axis;
         }
-        
-        return MTV { 
-            magnitude: min_overlap, 
-            direction: min_axis 
+
+        return MTV {
+            magnitude: min_overlap,
+            direction: min_axis,
         };
     }
 
@@ -158,10 +159,10 @@ pub struct AABB {
 
     // world transforms
     pub position: Vec2,
-    pub angle: f32, 
+    pub angle: f32,
 
     // world space
-    axis: [Vec2; 2], 
+    axis: [Vec2; 2],
     world_corners: [Vec2; 4],
 }
 

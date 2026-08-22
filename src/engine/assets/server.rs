@@ -1,11 +1,12 @@
-use std::{path::Path};
+use std::path::Path;
 
-use crate::{engine::assets::{
-    storage::Storage, 
-    types::{
-        RawSource, TextSource, shader::Shader, texture::Texture,
+use crate::{
+    engine::assets::{
+        storage::Storage,
+        types::{RawSource, TextSource, shader::Shader, texture::Texture},
     },
-}, util::handle::Handle};
+    util::handle::Handle,
+};
 
 pub struct Server {
     device: wgpu::Device,
@@ -34,21 +35,21 @@ impl Server {
         let full_path = Path::new("./assets").join(file_path);
         return TextSource::new(&full_path).await;
     }
-    
+
     /// Preload text source async, then call this func after 'join'
     pub fn load_shader(
-        &mut self, 
+        &mut self,
         source: TextSource,
         vertex_entry: Option<&str>,
         fragment_entry: Option<&str>,
     ) -> Option<Handle<Shader>> {
         let ventry = match vertex_entry {
             Some(entry) => entry,
-            None => "vs_main"
+            None => "vs_main",
         };
         let fentry = match fragment_entry {
             Some(entry) => entry,
-            None => "fs_main"
+            None => "fs_main",
         };
 
         let shader = match Shader::new(&self.device, source, ventry, fentry) {
@@ -56,22 +57,19 @@ impl Server {
             Err(err) => {
                 log::error!("Server failed loading texture: {err}");
                 return None;
-            },
+            }
         };
 
         return Some(self.shaders.add(shader));
     }
 
-    pub fn load_texture(
-        &mut self, 
-        source: RawSource,
-    ) -> Option<Handle<Texture>> {
+    pub fn load_texture(&mut self, source: RawSource) -> Option<Handle<Texture>> {
         let texture = match Texture::D2("texture", &self.device, &self.queue, source) {
             Ok(s) => s,
             Err(err) => {
                 log::error!("Server failed loading texture: {err}");
                 return None;
-            },
+            }
         };
 
         return Some(self.textures.add(texture));
@@ -86,4 +84,3 @@ impl Server {
         return self.textures.get(handle);
     }
 }
-

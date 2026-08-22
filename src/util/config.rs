@@ -1,5 +1,5 @@
-use std::sync::{OnceLock, RwLock};
 use serde::Deserialize;
+use std::sync::{OnceLock, RwLock};
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -44,12 +44,12 @@ static CONFIG: OnceLock<RwLock<Config>> = OnceLock::new();
 impl Config {
     pub fn init(path: &str) {
         // only op that should use blocking file loading
-        let contents = std::fs::read_to_string(path)
-            .expect("Failed to read config.toml");
-        let config: Config = toml::from_str(&contents)
-            .expect("Failed to parse {path}");
+        let contents = std::fs::read_to_string(path).expect("Failed to read config.toml");
+        let config: Config = toml::from_str(&contents).expect("Failed to parse {path}");
 
-        CONFIG.set(RwLock::new(config)).expect("Config already initialized");
+        CONFIG
+            .set(RwLock::new(config))
+            .expect("Config already initialized");
     }
 
     pub fn get() -> &'static RwLock<Config> {

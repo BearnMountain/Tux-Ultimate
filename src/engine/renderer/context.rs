@@ -28,9 +28,11 @@ impl RenderContext {
                 "Vulkan" => wgpu::Backends::VULKAN,
                 "DX12" => wgpu::Backends::DX12,
                 _ => {
-                    log::error!("Failed to instance a backend: {}, only supports 
-                        'Metal', 'Vulkan', or 'DX12', format is enforced", 
-                        global_config.graphics.backend);
+                    log::error!(
+                        "Failed to instance a backend: {}, only supports 
+                        'Metal', 'Vulkan', or 'DX12', format is enforced",
+                        global_config.graphics.backend
+                    );
                     log::error!("Instance backend falling back to default");
                     wgpu::Backends::all()
                 }
@@ -47,33 +49,43 @@ impl RenderContext {
         let surface = instance.create_surface(window.clone()).unwrap();
 
         // select physical gpu(igpu or main graphics card)
-        let adapter = instance.request_adapter(&wgpu::RequestAdapterOptionsBase {
-            power_preference: wgpu::PowerPreference::default(),
-            force_fallback_adapter: false,
-            compatible_surface: Some(&surface),
-            apply_limit_buckets: Default::default(),
-        }).await.unwrap();
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptionsBase {
+                power_preference: wgpu::PowerPreference::default(),
+                force_fallback_adapter: false,
+                compatible_surface: Some(&surface),
+                apply_limit_buckets: Default::default(),
+            })
+            .await
+            .unwrap();
 
         // logical device and command queue for graphic calls
-        let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("ContextDevice"),
-            required_features: wgpu::Features::IMMEDIATES,
-            required_limits: wgpu::Limits {
-                // to allow transform index uploading
-                // - index into storage model buffer
-                max_immediate_size: 4, 
-                ..Default::default()
-            },
-            experimental_features: wgpu::ExperimentalFeatures::disabled(),
-            memory_hints: wgpu::MemoryHints::Performance,
-            trace: wgpu::Trace::Off,
-        }).await.unwrap();
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("ContextDevice"),
+                required_features: wgpu::Features::IMMEDIATES,
+                required_limits: wgpu::Limits {
+                    // to allow transform index uploading
+                    // - index into storage model buffer
+                    max_immediate_size: 4,
+                    ..Default::default()
+                },
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                memory_hints: wgpu::MemoryHints::Performance,
+                trace: wgpu::Trace::Off,
+            })
+            .await
+            .unwrap();
 
         // format for surface
         let surface_capabilities = surface.get_capabilities(&adapter);
-        let surface_format = surface_capabilities.formats.iter()
-            .copied().filter(|f| f.is_srgb())
-            .next().unwrap_or(surface_capabilities.formats[0]);
+        let surface_format = surface_capabilities
+            .formats
+            .iter()
+            .copied()
+            .filter(|f| f.is_srgb())
+            .next()
+            .unwrap_or(surface_capabilities.formats[0]);
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -87,7 +99,7 @@ impl RenderContext {
             view_formats: vec![],
         };
         surface.configure(&device, &config);
-   
+
         return Self {
             window,
             instance,

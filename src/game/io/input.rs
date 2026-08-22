@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 use glam::Vec2;
-use winit::{event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase}, keyboard::KeyCode};
+use winit::{
+    event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase},
+    keyboard::KeyCode,
+};
 
-use crate::util::config::{Config};
-
+use crate::util::config::Config;
 
 /// all game binds mapped to actions
 #[allow(non_camel_case_types)]
@@ -52,8 +54,8 @@ pub struct Input {
     // mouse input
     pub mouse_buttons: MouseButtons,
     pub mouse_position: Vec2,
-    pub mouse_scroll_delta: Vec2, 
-    pub mouse_delta: Vec2, 
+    pub mouse_scroll_delta: Vec2,
+    pub mouse_delta: Vec2,
 }
 
 impl Input {
@@ -74,11 +76,16 @@ impl Input {
         };
 
         // setting up all keybinds
-        bind(&config.player_left,  GameActions::PLAYER_LEFT,  "player left");
-        bind(&config.player_right, GameActions::PLAYER_RIGHT, "player right");
-        bind(&config.player_up,    GameActions::PLAYER_UP,    "player up");
-        bind(&config.player_down,  GameActions::PLAYER_DOWN,  "player down");
-        { // for debugging purposes
+        bind(&config.player_left, GameActions::PLAYER_LEFT, "player left");
+        bind(
+            &config.player_right,
+            GameActions::PLAYER_RIGHT,
+            "player right",
+        );
+        bind(&config.player_up, GameActions::PLAYER_UP, "player up");
+        bind(&config.player_down, GameActions::PLAYER_DOWN, "player down");
+        {
+            // for debugging purposes
             bindings.insert(KeyCode::ArrowUp, GameActions::CAMERA_FORWARD);
             bindings.insert(KeyCode::ArrowDown, GameActions::CAMERA_BACKWARD);
             bindings.insert(KeyCode::ArrowRight, GameActions::CAMERA_RIGHT);
@@ -91,20 +98,18 @@ impl Input {
             // bindings.insert(KeyCode::, GameActions::CAMERA_ROTATE_LEFT);
         }
 
-
-
         return Self {
             action_state: [false; GameActions::TOTAL_ACTIONS],
             bindings,
-            mouse_buttons: MouseButtons{ 
-                left: false, 
-                middle: false, 
-                right: false, 
+            mouse_buttons: MouseButtons {
+                left: false,
+                middle: false,
+                right: false,
             },
             mouse_position: Vec2::new(0.0, 0.0),
             mouse_scroll_delta: Vec2::new(0.0, 0.0),
             mouse_delta: Vec2::new(0.0, 0.0),
-        }
+        };
     }
 
     pub fn mouse_wheel(&mut self, delta: &MouseScrollDelta, _phase: &TouchPhase) {

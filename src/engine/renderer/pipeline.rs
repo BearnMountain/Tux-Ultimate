@@ -1,4 +1,4 @@
-use crate::engine::assets::{types::shader::Shader};
+use crate::engine::assets::types::shader::Shader;
 
 pub struct Builder<'a> {
     shader: Option<&'a Shader>,
@@ -40,7 +40,10 @@ impl<'a> Builder<'a> {
         self.shader = None;
     }
 
-    pub fn add_buffer_layout(&mut self, layout: Option<wgpu::VertexBufferLayout<'static>>) -> &mut Self {
+    pub fn add_buffer_layout(
+        &mut self,
+        layout: Option<wgpu::VertexBufferLayout<'static>>,
+    ) -> &mut Self {
         self.vertex_buffer_layout.push(layout);
         return self;
     }
@@ -54,7 +57,7 @@ impl<'a> Builder<'a> {
         self.shader = Some(shader);
         return self;
     }
-    
+
     pub fn set_pixel_format(&mut self, pixel_format: wgpu::TextureFormat) -> &mut Self {
         self.pixel_format = pixel_format;
         return self;
@@ -78,13 +81,13 @@ impl<'a> Builder<'a> {
 
     pub fn build_pipeline(&mut self, label: &str) -> wgpu::RenderPipeline {
         // describes resources available to shaders
-        let pipeline_layout = self.device.create_pipeline_layout(
-            &wgpu::PipelineLayoutDescriptor {
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some(label),
                 bind_group_layouts: &self.bind_group_layouts,
                 immediate_size: 4,
-            }
-        );
+            });
 
         // draw order
         let depth_stencil = if self.depth_enabled {
@@ -107,8 +110,9 @@ impl<'a> Builder<'a> {
         })];
 
         // creates gpu pipeline
-        let render_pipeline = self.device.create_render_pipeline(
-            &wgpu::RenderPipelineDescriptor {
+        let render_pipeline = self
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 label: Some(label),
                 layout: Some(&pipeline_layout),
 
@@ -143,8 +147,7 @@ impl<'a> Builder<'a> {
                 }),
                 multiview_mask: None,
                 cache: None,
-            }
-        );
+            });
 
         self.reset();
 

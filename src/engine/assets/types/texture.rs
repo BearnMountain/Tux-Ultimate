@@ -1,4 +1,4 @@
-use crate::engine::assets::types::{RawSource};
+use crate::engine::assets::types::RawSource;
 
 // raw data turned to gpu resource
 pub struct Texture {
@@ -27,13 +27,13 @@ impl Texture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Depth32Float,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT 
-                | wgpu::TextureUsages::TEXTURE_BINDING,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
 
-        // write data to texture 
+        // write data to texture
         queue.write_texture(
             texture.as_image_copy(),
             &source.pixels,
@@ -46,10 +46,7 @@ impl Texture {
         );
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        
-        return Ok(Self {
-            texture,
-            view,
-        });
+
+        return Ok(Self { texture, view });
     }
 }

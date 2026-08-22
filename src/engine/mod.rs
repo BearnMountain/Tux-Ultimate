@@ -1,14 +1,14 @@
 // pub mod io;
 // pub mod graphics;
+pub mod assets;
 pub mod renderer;
 pub mod scene;
-pub mod assets;
 // pub mod input;
-pub mod physics;
 pub mod math;
+pub mod physics;
 // pub mod animation;
 // pub mod audio;
-pub mod net;
+// pub mod net;
 pub mod ui;
 
 use std::sync::Arc;
@@ -51,17 +51,17 @@ impl Engine {
             ui,
         };
     }
-    
+
     pub fn resize(&mut self, physical_size: Option<PhysicalSize<u32>>) {
         let (width, height) = match physical_size {
             Some(size) => (size.width, size.height),
             None => (
-                self.renderer.get_render_context().size.width, 
-                self.renderer.get_render_context().size.height
+                self.renderer.get_render_context().size.width,
+                self.renderer.get_render_context().size.height,
             ),
         };
 
-        self.renderer.resize(PhysicalSize{width, height});
+        self.renderer.resize(PhysicalSize { width, height });
         self.renderer.camera.transform.aspect = width as f32 / height as f32;
         self.renderer.update_surface();
     }

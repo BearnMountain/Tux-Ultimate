@@ -1,13 +1,13 @@
 use glam::Vec2;
 
-use super::bounding_box::{COBB, AABB, MTV};
+use super::bounding_box::{AABB, COBB, MTV};
 
 /// Each collider has a rectangular bb with a fitted polygonal bb
 /// - First layer provides basic check for rectangular aabb intersection
 /// - Second layer is a fit polygon for accurate intersections
 pub struct Collider {
-    pub first_layer: AABB, 
-    second_layer: COBB, 
+    pub first_layer: AABB,
+    second_layer: COBB,
 
     position: Vec2,
     angle: f32,
@@ -15,9 +15,7 @@ pub struct Collider {
 
 impl Collider {
     /// all corners of the polygon, 0 and len-1 connect back to each other
-    pub fn new(
-        polygon: Vec<Vec2>, 
-    ) -> Self {
+    pub fn new(polygon: Vec<Vec2>) -> Self {
         // let aabb_oriented_rect = Collider::fit_aabb(&polygon);
         let aabb_rect: [Vec2; 4] = polygon[0..4].try_into().unwrap();
 
@@ -29,19 +27,12 @@ impl Collider {
         };
     }
 
-    pub fn collision(
-        &mut self,
-        other: &mut Collider,
-    ) -> MTV {
-        if self.first_layer.collision(
-            &other.first_layer,
-        ) {
+    pub fn collision(&mut self, other: &mut Collider) -> MTV {
+        if self.first_layer.collision(&other.first_layer) {
             // passes first test, so recalculation required collider testing
             self.second_layer.transform(self.position, self.angle);
             other.second_layer.transform(other.position, other.angle);
-            let mtv = self.second_layer.collision(
-                &other.second_layer, 
-            );
+            let mtv = self.second_layer.collision(&other.second_layer);
 
             return mtv;
         }
@@ -62,7 +53,7 @@ impl Collider {
     // - set_angle & set_position
     pub fn set_angle(&mut self, angle: f32) {
         self.angle = (angle % 360.0 + 360.0) % 360.0;
-        self.first_layer.transform(self.position, self.angle); 
+        self.first_layer.transform(self.position, self.angle);
     }
     pub fn set_position(&mut self, position: Vec2) {
         self.position = position;
@@ -70,9 +61,7 @@ impl Collider {
     }
 
     /// todo: this going to fuck things up, dam caves
-    fn convex_polygon_decomposition(
-        _polygon: Vec<Vec2>,
-    ) {
+    fn convex_polygon_decomposition(_polygon: Vec<Vec2>) {
         log::debug!("convex_polygon_decomposition not implemented yet");
     }
 
@@ -81,7 +70,7 @@ impl Collider {
         // Gift Wrapping (Jarvis March) -> hull for calipers
         let mut hull: Vec<Vec2>;
         let n = polygon.len();
-        
+
         // There must be at least 3 polygon to form a hull.
         if n < 3 {
             hull = polygon.to_vec();
@@ -94,28 +83,30 @@ impl Collider {
             // If x is same, pick the one with min y.
             let mut l = 0;
             for i in 1..n {
-                if polygon[i].x < polygon[l].x || (polygon[i].x == polygon[l].x && polygon[i].y < polygon[l].y) {
+                if polygon[i].x < polygon[l].x
+                    || (polygon[i].x == polygon[l].x && polygon[i].y < polygon[l].y)
+                {
                     l = i;
                 }
             }
 
             // Start from the leftmost point
             let mut p = l;
-            let mut q; 
+            let mut q;
 
             loop {
                 hull.push(polygon[p]);
 
-                // Step 2: Search for a point 'q' such that orientation(p, q, x) 
+                // Step 2: Search for a point 'q' such that orientation(p, q, x)
                 // is counter-clockwise for all other polygon 'x'.
-                
+
                 // Initialize q as the next point in the list to start comparisons
                 q = (p + 1) % n;
 
                 for i in 0..n {
                     // If i is more counter-clockwise than current q, then i is a better candidate.
-                    let (a,b,c) = (polygon[p], polygon[i], polygon[q]);
-                    if (b-a).perp_dot(c-a) > 0.0 {
+                    let (a, b, c) = (polygon[p], polygon[i], polygon[q]);
+                    if (b - a).perp_dot(c - a) > 0.0 {
                         q = i;
                     }
                 }
@@ -133,19 +124,14 @@ impl Collider {
         // Calipers
         let h = hull.len();
         if h < 3 {
-            return [
-                Vec2::ZERO,
-                Vec2::ZERO,
-                Vec2::ZERO,
-                Vec2::ZERO,
-            ];
+            return [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO];
         }
 
         let get_edge = |i: usize| -> Vec2 {
             if i == n - 1 {
                 return polygon[0] - polygon[i];
             } else {
-                return polygon[i+1] - polygon[i];
+                return polygon[i + 1] - polygon[i];
             }
         };
 

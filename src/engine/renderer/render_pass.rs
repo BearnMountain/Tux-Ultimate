@@ -1,123 +1,47 @@
-pub enum RenderPassDesc {
+use serde::de;
+
+#[derive(Eq, PartialEq)]
+pub enum RenderPassStage {
     UI,
     GAME,
 }
 
+/// RenderPass storage stores all default renderpasses
+/// for the game
+///     
+/// Notes:
+/// - couple RenderPassStorage::resize with window resize to not have rendering issues
+/// - always start with begin_game(...) as it clears previous frame
 pub struct RenderPassStorage {
-    pass_descriptors: Vec<wgpu::RenderPassDescriptor<'static>>,
+    depth_texture: wgpu::Texture,
+    depth_view: wgpu::TextureView,
 }
 
 impl RenderPassStorage {
-    pub fn init(
-        command_encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        config: &wgpu::SurfaceConfiguration,
-    ) -> Self {
-        let storage = RenderPassStorage {
-            pass_descriptors: Vec::new(),
-        };
-
+    /// creates storage for renderpasses that work for:
+    /// - game
+    /// - ui
+    pub fn new(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> Self {
         let (depth_texture, depth_view) = Self::create_depth_texture(&device, &config);
 
-        let game_pass = wgpu::RenderPassDescriptor {
-            label: Some("game render pass"),
-            color_attachments: &[None],
-            depth_stencil_attachment: None,
-            ..Default::default()
+        return Self {
+            depth_texture,
+            depth_view,
         };
-
-        let ui_pass = wgpu::RenderPassDescriptor {
-            label: Some("ui render pass"),
-            color_attachments: &[None],
-            depth_stencil_attachment: None,
-            ..Default::default()
-        };
-
-
-        return storage;
     }
 
-    pub fn get(
-        desc: &RenderPassDesc
-    ) -> anyhow::Result<&wgpu::RenderPassDescriptor<'static>> {
-        unimplemented!();
+    /// required to update textures for each renderpass
+    pub fn resize(&mut self, device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) {
+        let (depth_texture, depth_view) = Self::create_depth_texture(&device, &config);
+
+        self.depth_texture = depth_texture;
+        self.depth_view = depth_view;
     }
 
-
-    pub fn get_ui(
-        &self,
-        surface: &wgpu::Surface,
-    ) -> anyhow::Result<&wgpu::RenderPassDescriptor<'static>> {
-        let pass = &mut self.pass_descriptors[0];
-        let surface_texture = match surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(surface_texture) => surface_texture,
-            wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
-            // wgpu::CurrentSurfaceTexture::Timeout |
-            // wgpu::CurrentSurfaceTexture::Occluded => return Ok(()),
-            // wgpu::CurrentSurfaceTexture::Outdated |
-            // wgpu::CurrentSurfaceTexture::Lost => {
-            //     self.graphics.resize(self.graphics.size.width, self.graphics.size.height);
-            //     return Ok(());
-            // },
-            // wgpu::CurrentSurfaceTexture::Validation => {
-            //     panic!("Surface validation failed");
-            // },
-            _ => panic!("Surface validation failed"),
-        };
-
-
-        let color_view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        pass.color_attachments = &[Some(wgpu::RenderPassColorAttachment {
-            view: &color_view,
-            resolve_target: None,
-            ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
-            depth_slice: None,
-        })];
-
-
-        return pass;
-    }
-
-    pub fn get_game(
-        &mut self,
+    fn create_depth_texture(
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
-        surface: &wgpu::Surface,
-    ) -> &wgpu::RenderPassDescriptor<'static> {
-        let output = surface.get_current_texture()
-            .expect("failed to grab surface texture");
-        let color_view = output.texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        let (depth_texture, depth_view) = create_depth_texture(&device, &config);
-
-        let pass = &mut self.pass_descriptors[1];
-        pass.color_attachments = &[Some(wgpu::RenderPassColorAttachment {
-            view: &color_view,
-            depth_slice: None,
-            resolve_target: None,
-            ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 0.5,
-                }),
-                store: wgpu::StoreOp::Store,
-            },
-        })];
-        pass.depth_stencil_attachment = Some(wgpu::RenderPassDepthStencilAttachment {
-            view: &depth_view,
-            depth_ops: Some(wgpu::Operations { 
-                load: wgpu::LoadOp::Clear(1.0), 
-                store: wgpu::StoreOp::Store 
-            }),
-            stencil_ops: None,
-        });
-        return &self.pass_descriptors[1];
-    }
-
-    fn create_depth_texture(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> (wgpu::Texture, wgpu::TextureView) {
+    ) -> (wgpu::Texture, wgpu::TextureView) {
         let size = wgpu::Extent3d {
             width: config.width,
             height: config.height,
@@ -135,5 +59,70 @@ impl RenderPassStorage {
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         return (texture, view);
+    }
+
+    /// First in order, everything after
+    pub fn begin_game<'a>(
+        &'a self,
+        encoder: &'a mut wgpu::CommandEncoder,
+        color_view: &'a wgpu::TextureView,
+    ) -> wgpu::RenderPass<'a> {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("game render pass"),
+
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: color_view,
+                resolve_target: None,
+
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 1.0,
+                    }),
+                    store: wgpu::StoreOp::Store,
+                },
+
+                depth_slice: None,
+            })],
+
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &self.depth_view,
+
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: wgpu::StoreOp::Store,
+                }),
+
+                stencil_ops: None,
+            }),
+
+            ..Default::default()
+        })
+    }
+
+    pub fn begin_ui<'a>(
+        &'a self,
+        encoder: &'a mut wgpu::CommandEncoder,
+        color_view: &'a wgpu::TextureView,
+    ) -> wgpu::RenderPass<'a> {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("ui render pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: color_view,
+                resolve_target: None,
+
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+
+                depth_slice: None,
+            })],
+            depth_stencil_attachment: None,
+
+            ..Default::default()
+        })
     }
 }

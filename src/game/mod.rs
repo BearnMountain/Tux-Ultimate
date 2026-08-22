@@ -9,7 +9,16 @@ use crate::{
     engine::{
         Engine, assets::server::Server, physics::{
             body::RigidBody, collider::Collider
-        }, renderer::{RenderResources, bind_group::{self, LayoutBuilder}, material::{Material, MaterialID}, mesh::{self, Mesh}, model_loader::Model, pipeline::{self, PipelineID}, transform::Transform}, scene::camera::CameraAction}, game::io::input::{GameActions, Input}
+        }, renderer::{
+            bind_group::LayoutBuilder, 
+            material::Material, 
+            mesh::{self, Mesh}, 
+            model_loader::Model, 
+            pipeline::{self}, 
+            render_pass::RenderPassStage, 
+            render_resource::RenderResources, transform::Transform
+        }, scene::camera::CameraAction
+    }, game::io::input::{GameActions, Input}, util::handle::Handle
 };
 
 struct RequireUpload {
@@ -113,21 +122,25 @@ impl Game {
     }
 
     pub fn setup_game(&mut self) {
-        self.create_cube(
-            0, 
-            0, 
+        let cube1 = self.create_cube(
+            Handle::new(0), 
+            Handle::new(0), 
             Vec3::new(0.0, 10.0, -8.0), 
             [1.0, 1.0, 1.0], 
             false
         );
 
-        self.create_cube(
-            0, 
-            0, 
+        let cube2 = self.create_cube(
+            Handle::new(0), 
+            Handle::new(0), 
             Vec3::new(-5.0, -5.0, -13.0), 
             [10.0, 1.0, 10.0], 
             true
         );
+
+        let renderer = &mut self.engine.renderer;
+        renderer.add_render_resource(cube1);
+        renderer.add_render_resource(cube2);
 
         self.engine.renderer.update_transforms();
     }
@@ -251,8 +264,8 @@ impl Game {
 
     fn create_cube(
         &mut self,
-        pipeline_id: PipelineID,
-        material_id: MaterialID,
+        pipeline_id: Handle<wgpu::RenderPipeline>,
+        material_id: Handle<Material>,
         position: Vec3,
         volume: [f32; 3], // width, height, depth
         is_static: bool,
@@ -283,6 +296,7 @@ impl Game {
         let mesh_id = self.engine.renderer.add_mesh(mesh);
 
         return RenderResources {
+            render_pass: RenderPassStage::GAME,
             pipeline: pipeline_id,
             material: material_id,
             transform: transform_id,

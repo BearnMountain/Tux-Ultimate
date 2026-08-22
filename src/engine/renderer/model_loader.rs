@@ -22,12 +22,11 @@ pub struct ModelVertex {
 
 impl ModelVertex {
     pub fn get_layout() -> wgpu::VertexBufferLayout<'static> {
-        const ATTRIBUTES: [wgpu::VertexAttribute; 3] = 
-            wgpu::vertex_attr_array![
-                0 => Float32x3, 
-                1 => Float32x2,
-                2 => Float32x3, 
-            ];
+        const ATTRIBUTES: [wgpu::VertexAttribute; 3] = wgpu::vertex_attr_array![
+            0 => Float32x3,
+            1 => Float32x2,
+            2 => Float32x3,
+        ];
 
         return wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<ModelVertex>() as u64,
@@ -71,11 +70,6 @@ impl Model {
         //     }
         // }
 
-        return Self {
-            index: 0,
-        };
+        return Self { index: 0 };
     }
-
-
 }
-

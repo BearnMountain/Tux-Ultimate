@@ -1,14 +1,14 @@
 use glam::{Vec2, Vec3Swizzles};
 
 use crate::engine::{
-    math::EngineMath, 
-    physics::{body::RigidBody, bounding_box::MTV, collider::Collider}, 
-    renderer::transform::{Transform, TransformStorage}
+    math::EngineMath,
+    physics::{body::RigidBody, bounding_box::MTV, collider::Collider},
+    renderer::transform::{Transform, TransformStorage},
 };
 
 pub mod body;
-pub mod collider;
 mod bounding_box;
+pub mod collider;
 
 pub struct PhysicsWorld {
     // cortessian based quadrant bounds
@@ -22,7 +22,7 @@ pub struct PhysicsWorld {
 
 impl Default for PhysicsWorld {
     fn default() -> Self {
-        return Self { 
+        return Self {
             bound_q1: Vec2::new(-1000.0, -1000.0),
             bound_q3: Vec2::new(1000.0, 1000.0),
             bodies: Vec::new(),
@@ -33,19 +33,14 @@ impl Default for PhysicsWorld {
 }
 
 impl PhysicsWorld {
-
-    pub fn update(
-        &mut self, 
-        dt: f32,
-        transform_storage: &mut TransformStorage,
-    ) {
+    pub fn update(&mut self, dt: f32, transform_storage: &mut TransformStorage) {
         // update bodies + colliders
         let n = self.bodies.len();
 
         for i in 0..n {
             let body = &mut self.bodies[i];
             let collider = &mut self.colliders[i];
-    
+
             let transform_ref = transform_storage
                 .get(body.transform_id)
                 .expect("rigid body created with incorrect transform id");
@@ -60,11 +55,11 @@ impl PhysicsWorld {
             }
 
             let pos_xy = transform_ref.position.xy();
-            if !(pos_xy.x >= self.bound_q1.x && 
-                 pos_xy.x <= self.bound_q3.x && 
-                 pos_xy.y >= self.bound_q1.y && 
-                 pos_xy.y <= self.bound_q3.y
-            ) {
+            if !(pos_xy.x >= self.bound_q1.x
+                && pos_xy.x <= self.bound_q3.x
+                && pos_xy.y >= self.bound_q1.y
+                && pos_xy.y <= self.bound_q3.y)
+            {
                 continue;
             }
 
@@ -95,17 +90,11 @@ impl PhysicsWorld {
                     .get2(body_i.transform_id, body_j.transform_id)
                     .expect("rigid body created with incorrect transform id: {i}");
 
-                Self::resolve_collision_position(
-                    mtv,
-                    body_i,
-                    body_j,
-                    tran_i,
-                    tran_j,
-                );
+                Self::resolve_collision_position(mtv, body_i, body_j, tran_i, tran_j);
 
                 coll_i.set_position(tran_i.position.xy());
                 coll_i.set_angle(EngineMath::quat_to_xy(tran_i.rotation));
-                
+
                 coll_j.set_position(tran_j.position.xy());
                 coll_j.set_angle(EngineMath::quat_to_xy(tran_j.rotation));
 

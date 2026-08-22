@@ -1,6 +1,7 @@
 use crate::engine::{
-    assets::types::texture::Texture, 
-    renderer::bind_group::{self, LayoutBuilder, LayoutInfo}};
+    assets::types::texture::Texture,
+    renderer::bind_group::{self, LayoutBuilder, LayoutInfo},
+};
 
 #[derive(PartialEq)]
 pub struct Material {
@@ -9,12 +10,11 @@ pub struct Material {
 
 impl Material {
     pub fn new(
-        label: &str, 
+        label: &str,
         texture: &Texture, // extract from server::get_texture
         device: &wgpu::Device,
         layout: &LayoutInfo,
     ) -> Self {
-
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::Repeat,
             address_mode_v: wgpu::AddressMode::Repeat,
@@ -26,12 +26,13 @@ impl Material {
         });
 
         let bind_group = bind_group::ResourceBuilder::new(device, layout)
-            .texture_view(&texture.view).unwrap()
-            .texture_sampler(&sampler).unwrap()
-            .build(label).expect("failed to create bind group for new material");
+            .texture_view(&texture.view)
+            .unwrap()
+            .texture_sampler(&sampler)
+            .unwrap()
+            .build(label)
+            .expect("failed to create bind group for new material");
 
-        return Self {
-            bind_group,
-        };
+        return Self { bind_group };
     }
 }

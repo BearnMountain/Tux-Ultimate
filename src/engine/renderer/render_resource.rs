@@ -7,10 +7,11 @@ use super::{
 };
 
 use crate::util::handle::Handle;
+use super::render_pass;
 
 #[derive(PartialEq, Eq)]
 pub struct RenderResources {
-    // pub render_pass: Handle<...>,
+    pub render_pass: render_pass::RenderPassStage,
     pub pipeline: Handle<wgpu::RenderPipeline>,
     pub material: Handle<Material>,
     pub transform: Handle<Transform>,

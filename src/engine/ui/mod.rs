@@ -21,11 +21,9 @@ impl UI {
         };
 
         // create instance
-        let mut platform = imgui_winit_support::WinitPlatform::new(
-            &mut ui.imgui_context
-        );
+        let mut platform = imgui_winit_support::WinitPlatform::new(&mut ui.imgui_context);
         platform.attach_window(
-            ui.imgui_context.io_mut(), 
+            ui.imgui_context.io_mut(),
             &window,
             imgui_winit_support::HiDpiMode::Default,
         );
@@ -33,8 +31,6 @@ impl UI {
 
         // setting default font
         ui.set_font(&Path::new("assets/fonts/JetBrainsMono-Regular.ttf"));
-
-
 
         return ui;
     }
@@ -45,13 +41,13 @@ impl UI {
     }
 
     pub fn set_font(&mut self, path: &Path) {
-        self.imgui_context.io_mut().font_global_scale = (
-            1.0 / self.window.scale_factor()
-        ) as f32;
-        self.imgui_context.fonts().add_font(&[imgui::FontSource::TtfData { 
-            data: &std::fs::read(path).expect("font path is incorrect"), 
-            size_pixels: self.font_size, 
-            config: None,
-        }]);
+        self.imgui_context.io_mut().font_global_scale = (1.0 / self.window.scale_factor()) as f32;
+        self.imgui_context
+            .fonts()
+            .add_font(&[imgui::FontSource::TtfData {
+                data: &std::fs::read(path).expect("font path is incorrect"),
+                size_pixels: self.font_size,
+                config: None,
+            }]);
     }
 }
