@@ -1,6 +1,7 @@
 mod engine;
 
-mod game;
+mod game_server;
+mod game_client;
 mod util;
 use util::config::Config;
 
@@ -16,7 +17,7 @@ use winit::{
     window::{Window, WindowAttributes, WindowId},
 };
 
-use crate::game::Game;
+use crate::game_client::Game;
 
 // max time that a frame isnt updated
 const MAXIMUM_ACCUMULATOR: Duration = Duration::from_millis(100);
