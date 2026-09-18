@@ -1,7 +1,6 @@
 mod engine;
 
-mod game_server;
-mod game_client;
+mod game;
 mod util;
 use util::config::Config;
 
