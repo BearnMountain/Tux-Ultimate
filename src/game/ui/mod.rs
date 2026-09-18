@@ -1,5 +1,3 @@
-use std::process::exit;
-
 use egui::Context;
 
 use crate::{
@@ -199,7 +197,7 @@ impl UI {
 
             let Some(stack_top) = self.stack.last() else {
                 log::error!("screen stack shouldnt be empty");
-                exit(1);
+                return vec![UiCommand::Quit];
             };
 
             match cmd {

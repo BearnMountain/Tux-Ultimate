@@ -20,7 +20,6 @@ use std::path::{Path, PathBuf};
 /*
 myapp server --host 0.0.0.0 --port 7777
 myapp server --headless --host 0.0.0.0 --port 7777
-
 myapp client --connect 192.168.1.10:7777
 */
 
