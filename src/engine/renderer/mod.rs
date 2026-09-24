@@ -11,6 +11,7 @@ pub mod transform;
 pub mod model_loader;
 pub mod render_resource;
 pub mod render_pass;
+pub mod ui;
 
 use glam::Vec3;
 use winit::dpi::PhysicalSize;

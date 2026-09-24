@@ -25,7 +25,7 @@ struct RequireUpload {
     camera: bool,
 }
 
-pub struct Game {
+pub struct GameClient {
     tick: u64,
     frames: u64,
 
@@ -35,7 +35,7 @@ pub struct Game {
     pub upload_list: RequireUpload,
 }
 
-impl Game {
+impl GameClient {
     pub fn init(window: Arc<Window>) -> Self {
         let mut engine = Engine::new(window.clone());
         let input_handler = Input::new();
