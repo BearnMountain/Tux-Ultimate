@@ -12,6 +12,7 @@ pub mod physics;
 pub mod ui;
 
 use std::sync::Arc;
+use egui::Context;
 use winit::{dpi::PhysicalSize, window::Window};
 
 use crate::engine::assets::server;
@@ -59,5 +60,35 @@ impl Engine {
         self.renderer.resize(PhysicalSize { width, height });
         self.renderer.camera.transform.aspect = width as f32 / height as f32;
         self.renderer.update_surface();
+    }
+
+    pub fn begin_ui(&mut self) {
+        let window = self.renderer.get_render_context().window.clone();
+
+        self.renderer.get_ui_mut().begin_frame(window.as_ref());
+    }
+
+    pub fn ui<F>(&mut self, f: F)
+    where
+        F: FnOnce(&egui::Context),
+    {
+        let ui = self.renderer.get_ui_mut();
+        f(&ui.context);
+    }
+
+    pub fn end_ui(&mut self) {
+        let context = self.renderer.get_render_context();
+
+        let device = context.device.clone();
+        let queue = context.queue.clone();
+        let window = context.window.clone();
+
+        self.renderer
+            .get_ui_mut()
+            .end_frame(
+                &device,
+                &queue,
+                window.as_ref(),
+            );
     }
 }

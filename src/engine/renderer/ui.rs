@@ -4,9 +4,7 @@ use egui_winit::State;
 use wgpu::{CommandEncoder, TextureView};
 use winit::{event::WindowEvent, window::Window};
 
-
-
-pub struct Egui {
+pub struct EguiRenderer {
     // fonts, styles, ui
     pub context: egui::Context, 
     // converts winit events to egui inputs
@@ -19,7 +17,7 @@ pub struct Egui {
     output: Option<egui::FullOutput>,
 }
 
-impl Egui {
+impl EguiRenderer {
     pub fn new (
         device: &wgpu::Device,
         window: &Window,
@@ -86,7 +84,7 @@ impl Egui {
         queue: &wgpu::Queue,
         window: &Window,
     ) {
-        let output = self.context.end_pass();
+        let mut output = self.context.end_pass();
 
         self.state.handle_platform_output(
             window, 
@@ -94,7 +92,7 @@ impl Egui {
         );
 
         let ppp = self.context.pixels_per_point();
-        let texture = self.context.tessellate(
+        self.texture = self.context.tessellate(
             output.shapes.clone(),
             ppp,
         );
@@ -115,6 +113,7 @@ impl Egui {
         for id in &output.textures_delta.free {
             self.renderer.free_texture(id);
         }
+        output.textures_delta.clear();
         self.output = Some(output);
     }
 

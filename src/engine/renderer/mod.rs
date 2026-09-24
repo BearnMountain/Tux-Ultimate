@@ -16,13 +16,13 @@ pub mod ui;
 use glam::Vec3;
 use winit::dpi::PhysicalSize;
 
-use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_pass::{RenderPassStage, RenderPassStorage}, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}, ui::Egui}, scene::camera}, util::handle::Handle};
+use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_pass::{RenderPassStage, RenderPassStorage}, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}, ui::EguiRenderer}, scene::camera}, util::handle::Handle};
 
 pub struct Renderer {
     graphics: context::RenderContext,
     pub camera: camera::Camera,
 
-    egui: ui::Egui, // does its own resource managment
+    egui: ui::EguiRenderer, // does its own resource managment
 
     renderables: Vec<RenderResources>,
 
@@ -51,7 +51,7 @@ impl Renderer {
             &graphics.config,
         );
 
-        let egui = ui::Egui::new(
+        let egui = ui::EguiRenderer::new(
             &graphics.device, 
             &graphics.window, 
             graphics.config.format,
@@ -237,7 +237,7 @@ impl Renderer {
     pub fn get_ui(&self) -> &egui::Context {
         return &self.egui.context;
     }
-    pub fn get_ui_mut(&mut self) -> &mut ui::Egui {
+    pub fn get_ui_mut(&mut self) -> &mut ui::EguiRenderer {
         return &mut self.egui;
     }
 }

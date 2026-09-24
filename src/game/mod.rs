@@ -1,12 +1,12 @@
-use std::{sync::Arc, time::{Duration, Instant}};
-use winit::{application::ApplicationHandler, dpi::LogicalSize, event::WindowEvent, event_loop::{ActiveEventLoop, ControlFlow}, window::{Window, WindowAttributes, WindowId}};
+use std::{sync::Arc};
+use winit::{window::{Window}};
 
 pub mod client;
 pub mod server;
 pub mod ui;
 pub mod input;
 
-use crate::{engine::Engine, game::{client::GameClient}, util::config::Config};
+use crate::{engine::Engine};
 
 // max time that a frame isnt updated
 
@@ -42,6 +42,19 @@ impl Game {
 
     /// called at monitor refresh rate(just for graphics)
     pub fn frame(&mut self) -> anyhow::Result<()> {
+
+
+        self.engine.begin_ui();
+
+        self.engine.ui(|context| {
+            // game HUD
+            egui::Window::new("Debug").show(context, |ui| {
+                ui.label("Health: 100");
+            });
+        });
+
+        self.engine.end_ui();
+
 
         self.engine.renderer.render()?;
 
