@@ -51,10 +51,10 @@ impl ApplicationHandler for App {
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
 
         // cursor
-        window
-            .set_cursor_grab(winit::window::CursorGrabMode::Locked)
-            .expect("cant take control of cursor");
-        window.set_cursor_visible(false);
+        // window
+        //     .set_cursor_grab(winit::window::CursorGrabMode::Locked)
+        //     .expect("cant take control of cursor");
+        // window.set_cursor_visible(false);
 
         let mut game = Game::init(window.clone());
 
@@ -78,6 +78,7 @@ impl ApplicationHandler for App {
         event: WindowEvent,
     ) {
         let Some(game) = &mut self.game else { return };
+        game.engine.handle_window_events(&event);
 
         match event {
             // WindowEvent::ActivationTokenDone { serial, token } => todo!(),

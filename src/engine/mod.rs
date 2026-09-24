@@ -13,7 +13,7 @@ pub mod ui;
 
 use std::sync::Arc;
 use egui::Context;
-use winit::{dpi::PhysicalSize, window::Window};
+use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
 
 use crate::engine::assets::server;
 
@@ -62,6 +62,14 @@ impl Engine {
         self.renderer.update_surface();
     }
 
+    pub fn handle_window_events(&mut self, window_event: &WindowEvent) {
+        let window = self.renderer.get_render_context().window.clone();
+        self.renderer.get_ui_mut().handle_event(
+            window.as_ref(), 
+            window_event,
+        );
+    }
+
     pub fn begin_ui(&mut self) {
         let window = self.renderer.get_render_context().window.clone();
 
@@ -74,6 +82,10 @@ impl Engine {
     {
         let ui = self.renderer.get_ui_mut();
         f(&ui.context);
+    }
+    
+    pub fn ui_context(&self) -> &egui::Context {
+        return &self.renderer.get_ui();
     }
 
     pub fn end_ui(&mut self) {

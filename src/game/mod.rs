@@ -20,6 +20,10 @@ use crate::{engine::Engine};
 pub struct Game {
     tick: u64,
 
+    // game specific
+    ui: ui::UI,
+
+    // general stuff
     pub engine: Engine,
     pub input_handler: input::GameInput,
 }
@@ -34,6 +38,7 @@ impl Game {
         let input_handler = input::GameInput::new();
 
         return Self {
+            ui: ui::UI::init(),
             tick: 0,
             engine,
             input_handler,
@@ -42,19 +47,9 @@ impl Game {
 
     /// called at monitor refresh rate(just for graphics)
     pub fn frame(&mut self) -> anyhow::Result<()> {
-
-
         self.engine.begin_ui();
-
-        self.engine.ui(|context| {
-            // game HUD
-            egui::Window::new("Debug").show(context, |ui| {
-                ui.label("Health: 100");
-            });
-        });
-
+        self.ui.frame(self.engine.ui_context());
         self.engine.end_ui();
-
 
         self.engine.renderer.render()?;
 
@@ -65,6 +60,7 @@ impl Game {
     pub fn update(&mut self) {
         self.tick += 1;
     }
+
 }
 
 // pub struct GameClient {
