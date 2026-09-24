@@ -1,12 +1,12 @@
 mod engine;
-
 mod game;
 mod util;
 mod headless;
+mod app;
 
 // internal libs
 use util::config::Config;
-use game::Game;
+use app::App;
 
 // external libs
 use env_logger::Env;
@@ -62,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         event_loop.set_control_flow(ControlFlow::Poll); // preferable for games
 
-        let mut app = Game::new();
+        let mut app = App::new();
         event_loop.run_app(&mut app)?;
     }
 

@@ -30,7 +30,7 @@ pub struct GameClient {
     frames: u64,
 
     pub engine: Engine,
-    pub input_handler: io::input::Input,
+    pub input_handler: Input,
 
     pub upload_list: RequireUpload,
 }

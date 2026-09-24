@@ -100,16 +100,21 @@ impl Egui {
         );
 
         // uploading to gpu
-        for (id, delta) in &output.textures_delta.set {
-            self.renderer.update_texture(
-                device,
-                queue,
-                *id,
-                &delta[0],
-            );
+        for (id, deltas) in &output.textures_delta.set {
+            for delta in deltas {
+                self.renderer.update_texture(
+                    device,
+                    queue,
+                    *id,
+                    delta,
+                );
+            }
         }
 
-        self.texture = texture;
+        // free useless textures
+        for id in &output.textures_delta.free {
+            self.renderer.free_texture(id);
+        }
         self.output = Some(output);
     }
 
@@ -126,6 +131,16 @@ impl Egui {
             pixels_per_point: self.context.pixels_per_point(),
         };
 
+        // upload buffers
+        self.renderer.update_buffers(
+            device, 
+            queue, 
+            encoder, 
+            &self.texture, 
+            &screen_descriptor
+        );
+
+        // render to surface
         let mut pass = encoder.begin_render_pass(
             &wgpu::RenderPassDescriptor {
                 label: Some("egui Render Pass"),
@@ -148,20 +163,13 @@ impl Egui {
         );
 
         // egui-wgpu requires a 'static render pass.
-        let pass = pass.forget_lifetime();
+        let mut pass = pass.forget_lifetime();
 
-        self.renderer.update_buffers(
-            device,
-            queue,
-            pass,
+        self.renderer.render(
+            &mut pass,
             &self.texture,
             &screen_descriptor,
         );
-
-        // `update_buffers` may need to operate on the render pass,
-        // so begin another pass for the actual draw is not appropriate.
-        //
-        // See the implementation below instead.
     }
 
     // ----- Configure -----
@@ -181,14 +189,3 @@ impl Egui {
         self.context.set_style_of(egui::Theme::Dark, style);
     }
 }
-
-
-
-
-
-
-
-
-
-
-

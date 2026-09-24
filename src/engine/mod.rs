@@ -20,8 +20,6 @@ pub struct Engine {
     pub renderer: renderer::Renderer,
     pub asset_server: assets::server::Server,
     pub physics_world: physics::PhysicsWorld,
-
-    pub ui: ui::UI,
 }
 
 impl Engine {
@@ -31,8 +29,6 @@ impl Engine {
 
             return (context,);
         });
-
-        let ui = ui::UI::init(&window, &graphics);
 
         let renderer = renderer::Renderer::new(
             graphics,
@@ -48,7 +44,6 @@ impl Engine {
             renderer,
             asset_server,
             physics_world: physics::PhysicsWorld::default(),
-            ui,
         };
     }
 

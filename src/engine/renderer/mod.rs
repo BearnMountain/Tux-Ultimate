@@ -16,11 +16,13 @@ pub mod ui;
 use glam::Vec3;
 use winit::dpi::PhysicalSize;
 
-use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_pass::{RenderPassStage, RenderPassStorage}, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}}, scene::camera}, util::handle::Handle};
+use crate::{engine::{renderer::{material::Material, mesh::Mesh, render_pass::{RenderPassStage, RenderPassStorage}, render_resource::{RenderResources, RenderStorage}, transform::{Transform, TransformStorage}, ui::Egui}, scene::camera}, util::handle::Handle};
 
 pub struct Renderer {
     graphics: context::RenderContext,
     pub camera: camera::Camera,
+
+    egui: ui::Egui, // does its own resource managment
 
     renderables: Vec<RenderResources>,
 
@@ -49,9 +51,16 @@ impl Renderer {
             &graphics.config,
         );
 
+        let egui = ui::Egui::new(
+            &graphics.device, 
+            &graphics.window, 
+            graphics.config.format,
+        );
+
         return Self {
             graphics,
             camera,
+            egui,
             renderables: Vec::new(),
             render_pass_cache,
             pipeline_cache: RenderStorage::new(),
@@ -144,6 +153,15 @@ impl Renderer {
         {
             // pass through each pipeline and render
             self.render_pass(&mut command_encoder, &image_view);
+
+            // renders ui
+            self.egui.render(
+                &self.graphics.device, 
+                &self.graphics.queue, 
+                &mut command_encoder, 
+                &image_view, 
+                [self.graphics.size.width, self.graphics.size.height],
+            );
         }
 
         self.graphics.queue.submit(std::iter::once(command_encoder.finish()));
@@ -215,5 +233,11 @@ impl Renderer {
 
     pub fn get_transform_cache(&mut self) -> &mut TransformStorage {
         return &mut self.transform_cache;
+    }
+    pub fn get_ui(&self) -> &egui::Context {
+        return &self.egui.context;
+    }
+    pub fn get_ui_mut(&mut self) -> &mut ui::Egui {
+        return &mut self.egui;
     }
 }

@@ -1,5 +1,3 @@
-
-
 enum UIMode {
     StartMenu,
     Server,

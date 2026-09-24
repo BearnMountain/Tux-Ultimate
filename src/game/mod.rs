@@ -4,218 +4,208 @@ use winit::{application::ApplicationHandler, dpi::LogicalSize, event::WindowEven
 pub mod client;
 pub mod server;
 pub mod ui;
+pub mod input;
 
-use crate::{game::client::GameClient, util::config::Config};
+use crate::{engine::Engine, game::{client::GameClient}, util::config::Config};
 
 // max time that a frame isnt updated
-const MAXIMUM_ACCUMULATOR: Duration = Duration::from_millis(100);
 
-
-
-pub enum GameState {
-
-}
-
+/// Game is the gui interface that encapsulates all
+/// rendered items + user inputs
+///
+/// Notes:
+/// - Client: game client is for rendering video game state and such
+/// - Server: game server is for the server interface, doesnt need
+///   heavy wgpu rendering, so under wgpu is live loaded from menu
 pub struct Game {
-    window: Option<Arc<Window>>,
-    game: Option<GameClient>,
-
-    last_time: Instant,
-    accumulator: Duration,
     tick: u64,
-    dt: Duration,
+
+    pub engine: Engine,
+    pub input_handler: input::GameInput,
 }
 
 impl Game {
-    pub fn new() -> Self {
-        let tick_rate = Config::get().read().unwrap().app.tick_rate as u64;
-        let dt = Duration::from_nanos(1_000_000_000 / tick_rate.max(1));
+    pub fn init(
+        window: Arc<Window>,
+    ) -> Self {
+        // creates everything needed to run a game
+        // graphics and ui created
+        let engine = Engine::new(window.clone());
+        let input_handler = input::GameInput::new();
 
         return Self {
-            window: None,
-            game: None,
-            last_time: Instant::now(),
-            accumulator: Duration::ZERO,
             tick: 0,
-            dt,
+            engine,
+            input_handler,
         };
     }
-}
 
-impl ApplicationHandler for Game {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let global_config = Config::get().read().unwrap();
+    /// called at monitor refresh rate(just for graphics)
+    pub fn frame(&mut self) -> anyhow::Result<()> {
 
-        // creating window
-        let attrs = WindowAttributes::default()
-            .with_title("Tux Ultimate")
-            .with_inner_size(LogicalSize::new(
-                global_config.window.width,
-                global_config.window.height,
-            ));
+        self.engine.renderer.render()?;
 
-        let window = Arc::new(event_loop.create_window(attrs).unwrap());
-
-        // cursor
-        window
-            .set_cursor_grab(winit::window::CursorGrabMode::Locked)
-            .expect("cant take control of cursor");
-        window.set_cursor_visible(false);
-
-        let mut game = GameClient::init(window.clone());
-
-        game.setup_game();
-
-        self.game = Some(game);
-        self.window = Some(window);
-        self.window.as_ref().unwrap().request_redraw();
-
-        // reset frame timer
-        self.last_time = Instant::now();
-        self.accumulator = Duration::ZERO;
-
-        event_loop.set_control_flow(ControlFlow::Poll);
+        return Ok(());
     }
 
-    fn window_event(
-        &mut self,
-        event_loop: &ActiveEventLoop,
-        _window_id: WindowId,
-        event: WindowEvent,
-    ) {
-        let Some(game) = &mut self.game else { return };
-
-        match event {
-            // WindowEvent::ActivationTokenDone { serial, token } => todo!(),
-            WindowEvent::Resized(physical_size) => {
-                game.engine.resize(Some(physical_size));
-            }
-            // WindowEvent::Moved(physical_position) => todo!(),
-            WindowEvent::CloseRequested => {
-                // save files etc in the future
-                event_loop.exit();
-            }
-            // WindowEvent::Destroyed => todo!(),
-            // WindowEvent::DroppedFile(path_buf) => todo!(),
-            // WindowEvent::HoveredFile(path_buf) => todo!(),
-            // WindowEvent::HoveredFileCancelled => todo!(),
-            // WindowEvent::Focused(_) => todo!(),
-            WindowEvent::KeyboardInput {
-                device_id: _,
-                event,
-                is_synthetic: _,
-            } => {
-                if let winit::keyboard::PhysicalKey::Code(key) = event.physical_key {
-                    if key == winit::keyboard::KeyCode::KeyQ {
-                        event_loop.exit();
-                    }
-                    game.input_handler.keyboard(&key, &event.state);
-                }
-            }
-            // WindowEvent::ModifiersChanged(modifiers) => todo!(),
-            // WindowEvent::Ime(ime) => todo!(),
-            // WindowEvent::CursorMoved {
-            //     device_id: _,
-            //     position
-            // } => game.input_handler.mouse_movement(position),
-            // WindowEvent::CursorEntered { device_id } => todo!(),
-            // WindowEvent::CursorLeft { device_id } => todo!(),
-            // WindowEvent::MouseWheel {
-            //     device_id: _,
-            //     delta,
-            //     phase
-            // } => game.input_handler.mouse_wheel(&delta, &phase),
-            WindowEvent::MouseInput {
-                device_id: _,
-                state,
-                button,
-            } => game.input_handler.mouse_button(&state, &button),
-            // WindowEvent::PinchGesture { device_id, delta, phase } => todo!(),
-            // WindowEvent::PanGesture { device_id, delta, phase } => todo!(),
-            // WindowEvent::DoubleTapGesture { device_id } => todo!(),
-            // WindowEvent::RotationGesture { device_id, delta, phase } => todo!(),
-            // WindowEvent::TouchpadPressure { device_id, pressure, stage } => todo!(),
-            // WindowEvent::AxisMotion { device_id, axis, value } => todo!(),
-            // WindowEvent::Touch(touch) => todo!(),
-            // WindowEvent::ScaleFactorChanged { scale_factor, inner_size_writer } => todo!(),
-            // WindowEvent::ThemeChanged(theme) => todo!(),
-            // WindowEvent::Occluded(_) => todo!(),
-            WindowEvent::RedrawRequested => {
-                // compute render interpolation
-                // let alpha = self.accumulator.as_secs_f32() / self.dt.as_secs_f32();
-                // game.engine.renderer.interpolation_alpha = alpha.clamp(0.0, 1.0);
-
-                // draw
-                if let Err(e) = game.frame(self.dt, self.tick) {
-                    eprintln!("render error: {e:?}");
-                    game.engine.renderer.update_surface();
-                    game.engine.resize(None);
-                }
-                // self.window.as_ref().unwrap().request_redraw();
-            }
-            _ => {}
-        }
-    }
-
-    fn device_event(
-        &mut self,
-        _event_loop: &ActiveEventLoop,
-        _device_id: winit::event::DeviceId,
-        event: winit::event::DeviceEvent,
-    ) {
-        let Some(game) = &mut self.game else { return };
-
-        match event {
-            winit::event::DeviceEvent::MouseMotion { delta } => {
-                game.input_handler
-                    .mouse_movement(delta.0 as f32, delta.1 as f32);
-            }
-            winit::event::DeviceEvent::MouseWheel { delta } => {
-                game.input_handler.mouse_wheel(
-                    &delta, 
-                    &winit::event::TouchPhase::Started
-                );
-            }
-            // DeviceEvent::Key(raw_key_event) => {
-            //     // usually ignore this because WindowEvent::KeyboardInput is easier
-            // },
-            // DeviceEvent::Motion { axis, value } => {
-            //     // joystick/raw axis events
-            // },
-            _ => {}
-        }
-    }
-
-    // sets tick intervals
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        let Some(game) = &mut self.game else { return };
-
-        let now = Instant::now();
-        let mut frame_time = now - self.last_time;
-        self.last_time = now;
-
-        if frame_time > MAXIMUM_ACCUMULATOR {
-            frame_time = MAXIMUM_ACCUMULATOR;
-        }
-        self.accumulator += frame_time;
-
-        // renders frame 1/tick freqency
-        let max_ticks_per_frame = 5;
-        let mut ticks = 0;
-        while self.accumulator >= self.dt && ticks < max_ticks_per_frame {
-            game.update(frame_time);
-
-            self.accumulator -= self.dt;
-            self.tick += 1;
-            ticks += 1;
-        }
-
-        if ticks >= max_ticks_per_frame {
-            self.accumulator = Duration::ZERO;
-        }
-
-        if let Some(window) = &self.window {
-            window.request_redraw();
-        }
+    /// called every tick(game updates, server, etc)
+    pub fn update(&mut self) {
+        self.tick += 1;
     }
 }
+
+// pub struct GameClient {
+//     tick: u64,
+//     frames: u64,
+//
+//     pub engine: Engine,
+//     pub input_handler: io::input::Input,
+//
+//     pub upload_list: RequireUpload,
+// }
+//
+// impl GameClient {
+//     pub fn init(window: Arc<Window>) -> Self {
+//         let mut engine = Engine::new(window.clone());
+//         let input_handler = Input::new();
+//
+//         // testing engine
+//         let device = engine.renderer.get_render_context().device.clone();
+//         let queue = engine.renderer.get_render_context().queue.clone();
+//
+//         // gather test data
+//         let (shader_text, texture_raw, gltf_json, gltf_bin) = pollster::block_on(async {
+//             tokio::try_join!(
+//                 Server::preload_text(Path::new("shaders/shader.wgsl")),
+//                 Server::preload_raw(Path::new("textures/brick-texture-54.png")),
+//                 Server::preload_text(Path::new("characters/test/tux/scene.gltf")),
+//                 Server::preload_raw(Path::new("characters/test/tux/scene.bin")),
+//             )
+//         }).expect("rip");
+//
+//         let shader_handle = engine
+//             .asset_server
+//             .load_shader(shader_text, None, None)
+//             .expect("failed to load shader source");
+//         let texture_handle = engine
+//             .asset_server
+//             .load_texture(texture_raw)
+//             .expect("failed to load texture source");
+//
+//         let material_layout = LayoutBuilder::new(&device)
+//             .add_texture_view(
+//                 wgpu::ShaderStages::FRAGMENT, 
+//                 wgpu::TextureSampleType::Float { filterable: true }, 
+//                 wgpu::TextureViewDimension::D2
+//             )
+//             .add_texture_sampler(
+//                 wgpu::ShaderStages::FRAGMENT, 
+//                 wgpu::SamplerBindingType::Filtering
+//             )
+//             .build("material bind group");
+//
+//         let pipeline = {
+//             let contex = engine.renderer.get_render_context();
+//             pipeline::Builder::new(&contex.device)
+//                 .set_shader(engine.asset_server.get_shader(shader_handle).unwrap())
+//                 .set_pixel_format(contex.config.format)
+//                 .add_buffer_layout(Some(mesh::Vertex::get_layout()))
+//                 .add_bind_group_layout(&material_layout.layout.clone()) // idx: 0
+//                 .add_bind_group_layout(&engine.renderer.get_transform_layout().layout.clone()) // idx: 1
+//                 .add_bind_group_layout(&engine.renderer.camera.uploader.layout.layout.clone()) // idx: 2
+//                 .set_depth(true, true)
+//                 .set_blend(None)
+//                 .set_depth_format(wgpu::TextureFormat::Depth32Float)
+//                 .build_pipeline("pipeline test")
+//         };
+//
+//         let material = Material::new(
+//             "test material", 
+//             engine.asset_server.get_texture(texture_handle).unwrap(), 
+//             &device, 
+//             &material_layout
+//         );
+//
+//         // get stuff renderable each loop
+//         let _material_id = engine.renderer.add_material(material);
+//         let _pipeline_id = engine.renderer.add_pipeline(pipeline);
+//
+//         // load models
+//         {
+//             let _model = Model::create_from_gltf(
+//                 &gltf_json,
+//                 &device,
+//                 &queue,
+//             );
+//         }
+//
+//         return Self {
+//             tick: 0,
+//             frames: 0,
+//             engine,
+//             input_handler,
+//             upload_list: RequireUpload { 
+//                 camera: false, 
+//             },
+//         };
+//     }
+//
+//     pub fn setup_game(&mut self) {
+//         let cube1 = self.create_cube(
+//             Handle::new(0), 
+//             Handle::new(0), 
+//             Vec3::new(0.0, 10.0, -8.0), 
+//             [1.0, 1.0, 1.0], 
+//             false
+//         );
+//
+//         let cube2 = self.create_cube(
+//             Handle::new(0), 
+//             Handle::new(0), 
+//             Vec3::new(-5.0, -5.0, -13.0), 
+//             [10.0, 1.0, 10.0], 
+//             true
+//         );
+//
+//         let renderer = &mut self.engine.renderer;
+//         renderer.add_render_resource(cube1);
+//         renderer.add_render_resource(cube2);
+//
+//         self.engine.renderer.update_transforms();
+//     }
+//
+//     /// called at monitor refresh rate
+//     pub fn frame(&mut self, _dt: Duration, _tick: u64) -> anyhow::Result<()> {
+//         // upload data to shaders 
+//         {
+//             let upload_list = &mut self.upload_list;
+//             if upload_list.camera {
+//                 self.engine.renderer.camera.uploader.upload(&self.engine.renderer.camera.transform);
+//                 upload_list.camera = false;
+//             }
+//         }
+//
+//         // update screen
+//         self.engine.renderer.render()?;
+//
+//         // ---- RESET ----
+//
+//         return Ok(());
+//     }
+//
+//     /// called every tick
+//     pub fn update(&mut self, _dt: Duration) {
+//         self.tick += 1;
+//
+//         self.update_from_input();
+//         self.engine.physics_world.update(
+//             1.0/60.0, 
+//             self.engine.renderer.get_transform_cache()
+//         );
+//
+//         // reseting inputs
+//         self.input_handler.mouse_delta = Vec2::ZERO;
+//         self.input_handler.mouse_scroll_delta = Vec2::ZERO;
+//     }
+//
+
