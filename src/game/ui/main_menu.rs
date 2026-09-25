@@ -1,5 +1,5 @@
 use egui::{
-    Align, Align2, Area, Button, CentralPanel, Color32, Context, Frame, Layout, Margin,
+    Align2, Area, Button, Color32, Context, Frame, Margin,
     RichText, Stroke, Vec2,
 };
 
@@ -8,7 +8,7 @@ use egui::{
 pub enum MainMenuAction {
     SINGLE_PLAYER,
     MULTIPLAYER,
-    OPTIONS,
+    SETTINGS,
     EXTRAS,
     QUIT,
     NONE,
@@ -136,10 +136,10 @@ impl MainMenu {
 
                             if Self::menu_button(
                                 ui,
-                                "OPTIONS",
+                                "SETTINGS",
                                 theme,
                             ) {
-                                action = MainMenuAction::OPTIONS;
+                                action = MainMenuAction::SETTINGS;
                             }
 
                             ui.add_space(theme.spacing);
