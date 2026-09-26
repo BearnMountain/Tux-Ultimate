@@ -2,6 +2,7 @@ use egui::{Color32, Vec2};
 
 pub mod main_menu;
 pub mod online_menu;
+pub mod server_browser;
 
 #[derive(Debug, Clone)]
 pub struct MenuTheme {

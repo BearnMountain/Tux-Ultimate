@@ -1,6 +1,6 @@
 use egui::Context;
 
-use crate::game::ui::screens::{main_menu::{MainMenu, MainMenuAction}, online_menu::OnlineMenu};
+use crate::game::ui::screens::{main_menu::{MainMenu, MainMenuAction}, online_menu::{OnlineMenu, OnlineMenuAction}};
 
 pub mod screens;
 
@@ -129,7 +129,10 @@ impl UI {
         let action = UIMenuAction::NONE;
 
         match self.online_menu.ui(ui) {
-            _ => {}
+            OnlineMenuAction::SERVER_BROWSER(_) => {},
+            OnlineMenuAction::DIRECT_CONNECT(_) => {},
+            OnlineMenuAction::HOST_SERVER(_) => {},
+            OnlineMenuAction::NONE => {},
         }
 
 		return action;
