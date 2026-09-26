@@ -1,8 +1,8 @@
 use egui::Context;
 
-use crate::game::ui::{UIMenuAction::MAIN_MENU, main_menu::{MainMenu, MainMenuAction}};
+use crate::game::ui::screens::{main_menu::{MainMenu, MainMenuAction}, online_menu::OnlineMenu};
 
-pub mod main_menu;
+pub mod screens;
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -24,11 +24,34 @@ pub enum UIMenuAction {
     NONE,
 }
 
+/*
+/// potential add to deal with state changes
+enum UiCommand {
+    Open(Screen),
+    Back,
+    Quit,
+
+    RefreshServers,
+    ConnectToServer(ServerAddress),
+    CancelConnection,
+
+    SelectCharacter(CharacterId),
+    SelectMap(MapId),
+
+    SetReady(bool),
+    StartMatch,
+    LeaveMatch,
+
+    UpdateSettings(SettingChange),
+}
+*/
+
 pub struct UI {
     info: String,
     menu_action: UIMenuAction,
 
     main_menu: MainMenu,
+    online_menu: OnlineMenu,
 }
 
 impl UI {
@@ -37,19 +60,22 @@ impl UI {
             info: "hello world".into(),
             menu_action: UIMenuAction::MAIN_MENU,
             main_menu: MainMenu::new("ULTIMATE"),
+            online_menu: OnlineMenu::new(),
         };
     }
      
     /// renders UI as a state machine
     pub fn frame(
         &mut self,
-        context: &Context,
+        ui: &mut egui::Ui,
     ) -> UIMenuAction {
         let menu_action;
 
         match self.menu_action {
             UIMenuAction::MAIN_MENU => 
-                menu_action = self.render_main_menu(context),
+                menu_action = self.render_main_menu(ui),
+            UIMenuAction::ONLINE_MENU => 
+                menu_action = self.render_online_menu(ui),
             _ => { menu_action = UIMenuAction::NONE },
         }
     
@@ -95,12 +121,20 @@ impl UI {
         return action;
 	}
 
-    fn render_single_player_menu(&mut self, context: &Context) -> UIMenuAction {
+    fn render_single_player_menu(&mut self, _context: &Context) -> UIMenuAction {
 		return UIMenuAction::MAIN_MENU;
 	}
-    fn render_online_menu(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+
+    fn render_online_menu(&mut self, ui: &mut egui::Ui) -> UIMenuAction {
+        let action = UIMenuAction::NONE;
+
+        match self.online_menu.ui(ui) {
+            _ => {}
+        }
+
+		return action;
 	}
+
     fn render_server_browser(&mut self, context: &Context) -> UIMenuAction {
 		return UIMenuAction::MAIN_MENU;
 	}

@@ -73,9 +73,22 @@ impl EguiRenderer {
 
     pub fn ui<F>(&mut self, f: F) 
     where
-        F: FnOnce(&Context),
+        F: FnOnce(&mut egui::Ui),
     {
-        f(&self.context);
+        let rect = self.context.content_rect();
+
+        let builder = egui::UiBuilder::new()
+            .max_rect(rect)
+            .layer_id(egui::LayerId::background());
+
+        // returns full screen ui of space to use
+        let mut root_ui = egui::Ui::new(
+            self.context.clone(),
+            egui::Id::new("root_ui"),
+            builder,
+        );
+
+        f(&mut root_ui);
     }
 
     pub fn end_frame(

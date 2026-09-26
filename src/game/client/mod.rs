@@ -1,4 +1,5 @@
-mod io;
+pub mod io;
+pub mod net;
 
 use std::{path::Path, sync::Arc, time::Duration};
 

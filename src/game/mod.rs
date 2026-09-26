@@ -48,7 +48,15 @@ impl Game {
     /// called at monitor refresh rate(just for graphics)
     pub fn frame(&mut self) -> anyhow::Result<()> {
         self.engine.begin_ui();
-        self.ui.frame(self.engine.ui_context());
+
+        let mut commands = ui::UIMenuAction::NONE;
+        self.engine.ui(|ui| {
+            commands = self.ui.frame(ui);
+        });
+
+        // handle commands
+
+
         self.engine.end_ui();
 
         self.engine.renderer.render()?;

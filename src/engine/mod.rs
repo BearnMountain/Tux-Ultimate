@@ -70,6 +70,15 @@ impl Engine {
         );
     }
 
+    // ----- UI -----
+    /// UI closure matters
+    ///
+    /// Examples:
+    ///     engine.begin_ui()
+    ///     engine.ui(<do all rendering>)
+    ///     // can also use context if need be
+    ///     engine.end_ui()
+
     pub fn begin_ui(&mut self) {
         let window = self.renderer.get_render_context().window.clone();
 
@@ -78,10 +87,9 @@ impl Engine {
 
     pub fn ui<F>(&mut self, f: F)
     where
-        F: FnOnce(&egui::Context),
+        F: FnOnce(&mut egui::Ui),
     {
-        let ui = self.renderer.get_ui_mut();
-        f(&ui.context);
+        self.renderer.get_ui_mut().ui(f);
     }
     
     pub fn ui_context(&self) -> &egui::Context {
