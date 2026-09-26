@@ -64,7 +64,9 @@ impl OnlineMenu {
                 action = OnlineMenuAction::SERVER_BROWSER(0);
             },
             OnlineTab::DIRECT_CONNECT => {},
-            OnlineTab::HOST_SERVER => {},
+            OnlineTab::HOST_SERVER => {
+                
+            },
         }
 
         return OnlineMenuAction::NONE;
