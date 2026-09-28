@@ -1,9 +1,7 @@
 use egui::{CentralPanel, Color32, Context, Frame, Margin, Panel};
 
 use super::MenuTheme;
-use crate::game::{client::net::server_entry::ServerEntry, ui::screens::server_browser::ServerBrowser};
-
-
+use crate::game::{client::net::server_entry::ServerEntry, ui::screens::{host_server::HostServer, server_browser::ServerBrowser}};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -29,13 +27,14 @@ pub struct OnlineMenu {
     pub active_online_tab: OnlineTab,
 
     pub server_browser: ServerBrowser,
+    pub host_server: HostServer,
 }
 
 impl Default for OnlineMenu {
     fn default() -> Self {
         return Self {
             title: "DEDICATED SERVER".into(),
-            theme: MenuTheme::default(),
+            theme: MenuTheme::dark(),
             online_tabs: vec![
                 "SERVER BROWSER".into(),
                 "DIRECT CONNECT".into(),
@@ -43,6 +42,7 @@ impl Default for OnlineMenu {
             ],
             active_online_tab: OnlineTab::SERVER_BROWSER,
             server_browser: ServerBrowser::new(),
+            host_server: HostServer::new(),
         };
     }
 }
@@ -65,7 +65,8 @@ impl OnlineMenu {
             },
             OnlineTab::DIRECT_CONNECT => {},
             OnlineTab::HOST_SERVER => {
-                
+                self.host_server.ui(ui);
+                action = OnlineMenuAction::HOST_SERVER(0);
             },
         }
 

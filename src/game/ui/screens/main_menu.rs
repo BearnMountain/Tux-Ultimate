@@ -30,7 +30,7 @@ impl Default for MainMenu {
             title: "ULTIMATE".into(),
             subtitle: "A Rust-powered fighting game".into(),
             version: "v0.1.0".into(),
-            theme: MenuTheme::default(),
+            theme: MenuTheme::dark(),
         }
     }
 }

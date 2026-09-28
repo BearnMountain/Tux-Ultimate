@@ -2,9 +2,6 @@ use egui::{CentralPanel, Color32, Panel};
 
 use crate::game::client::net::server_entry::ServerEntry;
 
-
-
-
 pub struct ServerBrowser {
     pub servers: Vec<ServerEntry>,
     pub active_server: u32,
