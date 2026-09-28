@@ -1,10 +1,11 @@
-use egui::{CentralPanel, Color32, Panel};
+use egui::{CentralPanel, Color32, Panel, accesskit::Role::Table};
+use egui_extras::{Column, TableBuilder};
 
 use crate::game::client::net::server_entry::ServerEntry;
 
 pub struct ServerBrowser {
     pub servers: Vec<ServerEntry>,
-    pub active_server: u32,
+    pub active_server: usize,
 }
 
 impl ServerBrowser {
@@ -94,25 +95,79 @@ impl ServerBrowser {
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) {
-        // CentralPanel::default().show(ui, |ui| {
+        // let size = ui.available_size();
+        // let table_width = size.x * 0.55;
+        // let detail_width = size.x - table_width;
         //
+        // let table_name = table_width * 0.35;
+        // let table_player_count = table_width * 0.35;
+        //
+        // ui.horizontal(|ui|{
+        //     ui.allocate_ui_with_layout(
+        //         egui::vec2(table_width, size.y),
+        //         egui::Layout::top_down(egui::Align::LEFT),
+        //         |ui| {
+        //             TableBuilder::new(ui)
+        //                 .striped(true)
+        //                 .resizable(false)
+        //                 .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+        //                 .column(Column::initial(table_name).resizable(true))
+        //                 .column(Column::initial(table_player_count).resizable(true))
+        //                 .column(Column::remainder())
+        //                 .header(30.0, |mut header| {
+        //                     header.col(|ui| {
+        //                         ui.strong("Server Name");
+        //                     });
+        //
+        //                     header.col(|ui| {
+        //                         ui.strong("Players");
+        //                     });
+        //
+        //                     header.col(|ui| {
+        //                         ui.strong("Ping");
+        //                     });
+        //                 })
+        //                 .body(|mut body| {
+        //                     for (index, server) in self.servers.iter().enumerate() {
+        //                         let selected = self.active_server == index;
+        //
+        //                         body.row(32.0, |mut row| {
+        //                             row.col(|ui| {
+        //                                 ui.label(&server.name);
+        //                             });
+        //
+        //                             row.col(|ui| {
+        //                                 ui.label(format!(
+        //                                     "{}/{}",
+        //                                     server.players,
+        //                                     server.max_players
+        //                                 ));
+        //                             });
+        //
+        //                             row.col(|ui| {
+        //                                 ui.label(format!("{} ms", server.ping));
+        //                             });
+        //
+        //                             if row.response().clicked() {
+        //                                 self.active_server = index;
+        //                             }
+        //                         });
+        //                     }
+        //                 });
+        //         },
+        //     );
+        //
+        //     ui.allocate_ui_with_layout(
+        //         egui::vec2(detail_width, size.y),
+        //         egui::Layout::top_down(egui::Align::LEFT),
+        //         |ui| {
+        //             ui.heading("Details");
+        //             ui.label("Nothing selected");
+        //         },
+        //     );
         // });
-        CentralPanel::default().show(ui, |ui| {
-            ui.columns(2, |columns| {
-                columns[0].heading("Entries");
-                columns[0].separator();
-
-                for entry in &self.servers {
-                    if columns[0].button(entry.name.clone()).clicked() {
-                        // Select entry later
-                    }
-                }
-
-                columns[1].heading("Details");
-                columns[1].label("Nothing selected");
-            });
-        });
-
-
+        //
+        //
+        //
     }
 }
