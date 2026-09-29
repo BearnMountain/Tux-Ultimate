@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 mod engine;
 mod game;
 mod util;

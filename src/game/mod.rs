@@ -51,6 +51,9 @@ impl Game {
 
         let mut commands = ui::UIMenuAction::NONE;
         self.engine.ui(|ui| {
+            #[cfg(debug_assertions)] {
+                ui.ctx().set_debug_on_hover(true);
+            }
             commands = self.ui.frame(ui);
         });
 
