@@ -16,6 +16,7 @@ pub struct HostServer {
     // helps with ui
     category_list: Vec<String>,
     active_category: u8, // relates to index in category_list
+    host_server_dialog: bool,
 }
 
 impl HostServer {
@@ -29,13 +30,16 @@ impl HostServer {
                 "Server Options".into(),
                 "Game Content".into(),
                 "Game Options".into(),
-                "Host".into(),
             ],
             active_category: 0,
+            host_server_dialog: false,
         }
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+    /// when it returns true, the server has been created
+    pub fn ui(&mut self, ui: &mut egui::Ui) -> bool {
+        let mut setup_server = false;
+
         // dividing area for each box
         egui::CentralPanel::default().show(ui, |ui| {
             StripBuilder::new(ui)
@@ -50,8 +54,18 @@ impl HostServer {
                             .size(Size::relative(0.4)) // 40% left
                             .size(Size::remainder()) // 60% right
                             .horizontal(|mut strip| {
-                                strip.cell(|ui| {
-                                    self.category_panel(ui);
+                                strip.strip(|builder| {
+                                    builder
+                                        .size(Size::relative(0.9))
+                                        .size(Size::remainder())
+                                        .vertical(|mut strip| {
+                                            strip.cell(|ui| {
+                                                self.category_panel(ui);
+                                            });
+                                            strip.cell(|ui| {
+                                                self.host_panel(ui);
+                                            });
+                                        });
                                 });
                                 strip.cell(|ui| {
                                     self.configuration_panel(ui);
@@ -60,6 +74,29 @@ impl HostServer {
                     })
                 });
         });
+
+        // start server
+        if self.host_server_dialog {
+            egui::Modal::new(egui::Id::new("host_dialog_popup"))
+                .show(ui, |ui| {
+                ui.heading("Confirm");
+
+                ui.label("Are you sure you want to continue?");
+
+                ui.horizontal(|ui| {
+                    if ui.button("Cancel").clicked() {
+                        self.host_server_dialog = false;
+                    }
+
+                    if ui.button("Confirm").clicked() {
+                        self.host_server_dialog = false;
+                        setup_server = true;
+                    }
+                });
+            });
+        }
+
+        return setup_server;
     }
 
     fn header_panel(&mut self, ui: &mut egui::Ui) {
@@ -121,16 +158,69 @@ impl HostServer {
         }
     }
 
+    fn host_panel(&mut self, ui: &mut egui::Ui) {
+        let size = ui.available_size();
+
+        if widgets::button(
+            ui, 
+            &self.theme, 
+            "Host Server", 
+            egui::vec2(size.x * 0.8, size.y * 0.8),
+        ) {
+            self.host_server_dialog = true;
+        }
+    }
+
     fn configuration_panel(&mut self, ui: &mut egui::Ui) {
         const entry_height: f32 = 60.0;
 
         ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-            let size = egui::vec2(ui.available_width(), 60.0);
+            let size = egui::vec2(ui.available_width(), 30.0);
             match self.active_category {
                 // ----- Server Options -----
                 // server name, port, lobby options, player count, etc
                 0 => {
-                    widgets::stepper(ui, &self.theme, "Test", &mut self.test);
+                    ui.allocate_ui(size, |ui| {
+                        widgets::input_field(
+                            ui, &self.theme, 
+                            "Server Name", &mut self.server_config.server_name, 
+                            Some(24),
+                        );
+                    });
+
+                    ui.allocate_ui(size, |ui| {
+                        let mut input: String = self.server_config.port.to_string();
+                        widgets::input_field(
+                            ui, &self.theme, 
+                            "Port", &mut input, 
+                            Some(24),
+                        );
+                        if let Ok(i) = input.parse::<u32>() {
+                            self.server_config.port = i;
+                        } else if input.len() == 0 {
+                            self.server_config.port = 0;
+                        }
+                    });
+                    ui.allocate_ui(size, |ui| {
+                        let mut input: i32 = self.server_config.max_players as i32;
+                        widgets::stepper(
+                            ui, &self.theme, 
+                            "Max Players", &mut input,
+                        );
+                        if input >= 0 && input <= 255 {
+                            self.server_config.max_players = input as u8;
+                        }
+                    });
+                    ui.allocate_ui(size, |ui| {
+                        let mut input: i32 = self.server_config.tick_rate as i32;
+                        widgets::stepper(
+                            ui, &self.theme, 
+                            "Tick Rate", &mut input,
+                        );
+                        if input >= 0 && input <= 255 {
+                            self.server_config.tick_rate = input as u16;
+                        }
+                    });
                 },
 
                 // ----- Game Content -----
@@ -145,12 +235,6 @@ impl HostServer {
 
                 },
 
-
-                // ----- Host -----
-                // new lobby window, ip:port exposed
-                3 => {
-
-                },
                 _ => { println!("error"); },
             }
 

@@ -4,8 +4,6 @@ use egui::{Align, Color32, CornerRadius, Layout, Pos2, Rect, Response, Shape, St
 
 use crate::game::ui::screens::MenuTheme;
 
-
-
 pub fn input_field(
     ui: &mut egui::Ui,
     theme: &MenuTheme,
@@ -15,15 +13,17 @@ pub fn input_field(
 ) -> Response {
     let mut response = None;
 
-    ui.horizontal(|ui| {
+    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
         ui.label(label);
 
-        let mut edit = egui::TextEdit::singleline(value);
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            let mut edit = egui::TextEdit::singleline(value);
 
-        if let Some(limit) = char_limit {
-            edit = edit.char_limit(limit);
-        }
-        response = Some(ui.add(edit));
+            if let Some(limit) = char_limit {
+                edit = edit.char_limit(limit);
+            }
+            response = Some(ui.add(edit));
+        });
     });
 
     return response.unwrap();
@@ -185,12 +185,53 @@ pub fn stepper(
             ui.text_edit_singleline(&mut input);
             if let Ok(i) = input.parse::<i32>() {
                 *value = i;
+            } else if input.len() == 0 {
+                *value = 0;
             }
             if button_left_arrow(ui, egui::vec2(10.0, 10.0)).clicked() {
                 *value = *value - 1;
             }
         });
     });
+}
+
+pub fn button(
+    ui: &mut egui::Ui, 
+    theme: &MenuTheme,
+    label: &str, 
+    size: egui::Vec2,
+) -> bool {
+    let available = ui.available_rect_before_wrap();
+    let pos = available.center() - size / 2.0;
+    let rect = egui::Rect::from_min_size(pos, size);
+
+    let response = ui.interact(
+        rect,
+        ui.make_persistent_id(label),
+        egui::Sense::click(),
+    );
+
+    let color = if response.hovered() {
+        egui::Color32::from_rgb(90, 110, 90)
+    } else {
+        egui::Color32::from_rgb(60, 75, 60)
+    };
+
+    ui.painter().rect_filled(
+        rect,
+        8.0,
+        color,
+    );
+
+    ui.painter().text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        label,
+        egui::FontId::proportional(16.0),
+        egui::Color32::WHITE,
+    );
+
+    return response.clicked();
 }
 
 pub fn slider_f32(

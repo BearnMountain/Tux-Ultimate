@@ -7,6 +7,7 @@ pub struct GameRules {
     pub round_length_sec: u16,
     pub sudden_death_sec: u16,
     pub damage_scalar: f32,
+    pub health_scalar: f32,
 }
 
 impl Default for GameRules {
@@ -17,6 +18,7 @@ impl Default for GameRules {
             round_length_sec: 180,
             sudden_death_sec: 60,
             damage_scalar: 1.0,
+            health_scalar: 1.0,
         };
     }
 }

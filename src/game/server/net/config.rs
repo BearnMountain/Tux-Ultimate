@@ -1,25 +1,26 @@
-use crate::game::{client::content::maps::GameMaps, server::{game_mode::GameMode, net::game_rules::GameRules}};
+use crate::game::{client::content::{characters::GameCharacters, maps::GameMaps::{self, BONGO_BAY}}, server::{game_mode::GameMode, net::game_rules::GameRules}};
 
 
 
 #[derive(Debug)]
 pub struct GameServerConfig {
+    // ----- Match Specifics -----
+    // server options
     pub server_name: String, // defaults to ip
     pub password: Option<String>,
     pub port: u32,
-
-    // ----- Match Specifics -----
     pub max_players: u8,
-    pub game_mode: GameMode,
-    pub game_map: GameMaps,
-    pub game_rules: GameRules,
     pub tick_rate: u16, // in hertz
 
+    // game content
+    pub game_map: Vec<(GameMaps, bool)>,
+    pub game_character: Vec<(GameCharacters, bool)>,
 
+    // game options
+    pub game_mode: GameMode,
+    pub game_rules: GameRules,
 
     /* Extension:
-        - Round time
-        - Lives
         - Respawn time
         - Multipliers: health, damage, etc
         - Teams enabled
@@ -36,14 +37,21 @@ pub struct GameServerConfig {
 impl Default for GameServerConfig {
     fn default() -> Self {
         return Self {
-            server_name: "MyGame".into(), // defaults to ip
+            server_name: "localhost".into(),
             password: None,
             port: 2048,
             max_players: 8,
-            game_mode: GameMode::FREE_FOR_ALL,
-            game_map: GameMaps::RANDOM,
-            game_rules: GameRules::default(),
             tick_rate: 60,
+            game_map: vec![
+                (GameMaps::BONGO_BAY, true),
+                (GameMaps::RANDOM, true),
+            ],
+            game_character: vec![
+                (GameCharacters::TUX, true),
+                (GameCharacters::RANDOM, true),
+            ],
+            game_mode: GameMode::RANDOM,
+            game_rules: GameRules::default(),
         };
     }
 }

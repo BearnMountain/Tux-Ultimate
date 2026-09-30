@@ -5,6 +5,7 @@ pub mod host_server;
 pub mod main_menu;
 pub mod online_menu;
 pub mod settings_menu;
+pub mod lobby_menu;
 
 #[derive(Clone, Debug)]
 pub struct MenuTheme {

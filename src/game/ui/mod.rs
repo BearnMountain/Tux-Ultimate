@@ -17,7 +17,10 @@ pub enum UIMenuAction {
     SERVER_BROWSER,
     DIRECT_CONNECT,
     CONNECTING,
-    LOBBY,
+
+    LOBBY, 
+    HOST_LOBBY, // provided different permissions
+
     CHARACTER_SELECT,
     MAP_SELECT,
     LOADING,
@@ -82,6 +85,10 @@ impl UI {
                 menu_action = self.render_main_menu(ui),
             UIMenuAction::ONLINE_MENU => 
                 menu_action = self.render_online_menu(ui),
+            UIMenuAction::LOBBY => 
+                menu_action = self.render_lobby(ui),
+            UIMenuAction::HOST_LOBBY => 
+                menu_action = self.render_lobby_host(ui),
             UIMenuAction::SETTINGS => 
                 menu_action = self.render_settings(ui),
             _ => { menu_action = UIMenuAction::NONE },
@@ -155,9 +162,18 @@ impl UI {
     fn render_connecting(&mut self, context: &Context) -> UIMenuAction {
 		return UIMenuAction::MAIN_MENU;
 	}
+
     fn render_lobby(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+        let mut action = UIMenuAction::NONE;
+
+		return action;
 	}
+    fn render_lobby_host(&mut self, context: &Context) -> UIMenuAction {
+        let mut action = UIMenuAction::NONE;
+
+		return action;
+	}
+
     fn render_character_select(&mut self, context: &Context) -> UIMenuAction {
 		return UIMenuAction::MAIN_MENU;
 	}
