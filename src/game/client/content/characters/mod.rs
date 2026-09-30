@@ -3,6 +3,7 @@
 #[repr(u8)]
 pub enum GameCharacters {
     TUX,
+    TEST,
     RANDOM,
 }
 
@@ -16,11 +17,14 @@ impl GameCharacters {
         }
     }
 
-
     pub fn to_list() -> &'static [&'static str] {
         return &[
             "Tux",
             "Random",
         ];
     }
+}
+
+pub trait CharacterInterface {
+
 }

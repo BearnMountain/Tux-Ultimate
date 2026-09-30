@@ -22,6 +22,7 @@ impl LobbyMenu {
 
         };
     }
+
+    pub fn ui(&mut self, ui: &egui::Ui) {
+    }
 }
-
-

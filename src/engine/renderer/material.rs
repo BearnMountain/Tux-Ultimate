@@ -1,5 +1,5 @@
 use crate::engine::{
-    assets::types::texture::Texture,
+    assets::types::wgpu_texture::WGPUTexture,
     renderer::bind_group::{self, LayoutBuilder, LayoutInfo},
 };
 
@@ -11,7 +11,7 @@ pub struct Material {
 impl Material {
     pub fn new(
         label: &str,
-        texture: &Texture, // extract from server::get_texture
+        texture: &WGPUTexture, // extract from server::get_texture
         device: &wgpu::Device,
         layout: &LayoutInfo,
     ) -> Self {

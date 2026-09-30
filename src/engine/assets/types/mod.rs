@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 // Sync: load to gpu sync
 pub mod shader;
-pub mod texture;
+pub mod wgpu_texture;
+pub mod egui_texture;
 
 // Async: all files here load async
 // - Reads file off disk, join all to finish loading

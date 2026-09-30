@@ -15,11 +15,11 @@ use std::sync::Arc;
 use egui::Context;
 use winit::{dpi::PhysicalSize, event::WindowEvent, window::Window};
 
-use crate::engine::assets::server;
+use crate::engine::assets::gpu_server;
 
 pub struct Engine {
     pub renderer: renderer::Renderer,
-    pub asset_server: assets::server::Server,
+    pub asset_server: assets::gpu_server::Server,
     pub physics_world: physics::PhysicsWorld,
 }
 
@@ -36,7 +36,7 @@ impl Engine {
             window.inner_size().width as f32,
             window.inner_size().height as f32,
         );
-        let asset_server = server::Server::new(
+        let asset_server = gpu_server::Server::new(
             &renderer.get_render_context().device,
             &renderer.get_render_context().queue,
         );

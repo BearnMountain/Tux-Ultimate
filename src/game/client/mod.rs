@@ -9,7 +9,7 @@ use winit::window::Window;
 
 use crate::{
     engine::{
-        Engine, assets::server::Server, physics::{
+        Engine, assets::gpu_server::Server, physics::{
             body::RigidBody, collider::Collider
         }, renderer::{
             bind_group::LayoutBuilder, 

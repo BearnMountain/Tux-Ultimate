@@ -1,10 +1,10 @@
 use egui::Context;
 
-use crate::game::ui::screens::{
+use crate::{engine::assets::{gpu_server::Server, ui_server::UiServer}, game::ui::screens::{
     main_menu::{MainMenu, MainMenuAction}, 
     online_menu::{OnlineMenu, OnlineMenuAction},
     settings_menu::{SettingsMenu, SettingsMenuAction},
-};
+}};
 
 pub mod screens;
 
@@ -60,16 +60,21 @@ pub struct UI {
     main_menu: MainMenu,
     online_menu: OnlineMenu,
     settings_menu: SettingsMenu,
+
+    asset_server: UiServer,
 }
 
 impl UI {
-    pub fn init() -> Self {
+    pub fn init(
+        context: &egui::Context,
+    ) -> Self {
         return Self {
             info: "hello world".into(),
             menu_action: UIMenuAction::MAIN_MENU,
             main_menu: MainMenu::new("ULTIMATE"),
             online_menu: OnlineMenu::new(),
             settings_menu: SettingsMenu::new(),
+            asset_server: UiServer::new(&context),
         };
     }
      
@@ -85,10 +90,8 @@ impl UI {
                 menu_action = self.render_main_menu(ui),
             UIMenuAction::ONLINE_MENU => 
                 menu_action = self.render_online_menu(ui),
-            UIMenuAction::LOBBY => 
-                menu_action = self.render_lobby(ui),
-            UIMenuAction::HOST_LOBBY => 
-                menu_action = self.render_lobby_host(ui),
+            UIMenuAction::IN_GAME =>
+                menu_action = self.render_in_game(ui),
             UIMenuAction::SETTINGS => 
                 menu_action = self.render_settings(ui),
             _ => { menu_action = UIMenuAction::NONE },
@@ -183,8 +186,12 @@ impl UI {
     fn render_loading(&mut self, context: &Context) -> UIMenuAction {
 		return UIMenuAction::MAIN_MENU;
 	}
+
+    /// game overlay ui
     fn render_in_game(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+        let mut action = UIMenuAction::NONE;
+
+		return action;
 	}
     fn render_settings(&mut self, ui: &egui::Ui) -> UIMenuAction {
         let action = UIMenuAction::NONE;

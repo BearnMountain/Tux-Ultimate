@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     engine::assets::{
         storage::Storage,
-        types::{RawSource, TextSource, shader::Shader, texture::Texture},
+        types::{RawSource, TextSource, shader::Shader, wgpu_texture::WGPUTexture},
     },
     util::handle::Handle,
 };
@@ -12,7 +12,7 @@ pub struct Server {
     device: wgpu::Device,
     queue: wgpu::Queue,
     shaders: Storage<Shader>,
-    textures: Storage<Texture>,
+    textures: Storage<WGPUTexture>,
 }
 
 impl Server {
@@ -63,8 +63,8 @@ impl Server {
         return Some(self.shaders.add(shader));
     }
 
-    pub fn load_texture(&mut self, source: RawSource) -> Option<Handle<Texture>> {
-        let texture = match Texture::D2("texture", &self.device, &self.queue, source) {
+    pub fn load_texture(&mut self, source: RawSource) -> Option<Handle<WGPUTexture>> {
+        let texture = match WGPUTexture::D2("texture", &self.device, &self.queue, source) {
             Ok(s) => s,
             Err(err) => {
                 log::error!("Server failed loading texture: {err}");
@@ -80,7 +80,7 @@ impl Server {
         return self.shaders.get(handle);
     }
 
-    pub fn get_texture(&self, handle: Handle<Texture>) -> Option<&Texture> {
+    pub fn get_texture(&self, handle: Handle<WGPUTexture>) -> Option<&WGPUTexture> {
         return self.textures.get(handle);
     }
 }

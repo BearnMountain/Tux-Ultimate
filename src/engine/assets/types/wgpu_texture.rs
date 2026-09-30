@@ -1,12 +1,12 @@
 use crate::engine::assets::types::RawSource;
 
 // raw data turned to gpu resource
-pub struct Texture {
+pub struct WGPUTexture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
 }
 
-impl Texture {
+impl WGPUTexture {
     // turns source code to gpu data
     #[allow(non_snake_case)]
     pub fn D2(
