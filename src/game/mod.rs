@@ -6,7 +6,7 @@ pub mod server;
 pub mod ui;
 pub mod input;
 
-use crate::{engine::Engine, game::client::GameClient};
+use crate::{engine::Engine, game::{client::GameClient, ui::command::UiCommand}};
 
 // max time that a frame isnt updated
 
@@ -53,7 +53,7 @@ impl Game {
     pub fn frame(&mut self) -> anyhow::Result<()> {
         self.engine.begin_ui();
 
-        let mut commands = ui::UIMenuState::NONE;
+        let mut commands: Vec<UiCommand> = Vec::new();
         self.engine.ui(|ui| {
             #[cfg(debug_assertions)] {
                 ui.ctx().set_debug_on_hover(true);

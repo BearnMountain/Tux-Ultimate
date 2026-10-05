@@ -3,6 +3,8 @@ use egui::{
     RichText, Stroke, Vec2,
 };
 
+use crate::game::ui::{command::UiCommand, screens::{Screen, ScreenId}};
+
 use super::MenuTheme;
 
 #[allow(non_camel_case_types)]
@@ -35,23 +37,16 @@ impl Default for MainMenu {
     }
 }
 
-impl MainMenu {
-    pub fn new(title: impl Into<String>) -> Self {
-        Self {
-            title: title.into(),
-            ..Default::default()
-        }
-    }
-
-    pub fn ui(&mut self, ctx: &Context) -> MainMenuAction {
+impl Screen for MainMenu {
+    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
         let theme = &self.theme;
 
-        let mut action = MainMenuAction::NONE;
+        let mut action = UiCommand::None;
 
         // Center menu
         Area::new("main_menu".into())
             .anchor(Align2::CENTER_CENTER, Vec2::ZERO)
-            .show(ctx, |ui| {
+            .show(ui, |ui| {
                 ui.set_width(360.0);
 
                 Frame::NONE
@@ -85,7 +80,7 @@ impl MainMenu {
                                 "SINGLE PLAYER",
                                 theme,
                             ) {
-                                action = MainMenuAction::SINGLE_PLAYER;
+                                action = UiCommand::Push(ScreenId::SINGLE_PLAYER);
                             }
 
                             ui.add_space(theme.spacing);
@@ -95,7 +90,8 @@ impl MainMenu {
                                 "MULTIPLAYER",
                                 theme,
                             ) {
-                                action = MainMenuAction::MULTIPLAYER;
+                                // set server browser as default entry
+                                action = UiCommand::Push(ScreenId::SERVER_BROWSER);
                             }
 
                             ui.add_space(theme.spacing);
@@ -105,7 +101,7 @@ impl MainMenu {
                                 "SETTINGS",
                                 theme,
                             ) {
-                                action = MainMenuAction::SETTINGS;
+                                action = UiCommand::Push(ScreenId::SETTINGS);
                             }
 
                             ui.add_space(theme.spacing);
@@ -115,7 +111,7 @@ impl MainMenu {
                                 "EXTRAS",
                                 theme,
                             ) {
-                                action = MainMenuAction::EXTRAS;
+                                action = UiCommand::Push(ScreenId::EXTRAS);
                             }
 
                             ui.add_space(theme.spacing);
@@ -125,7 +121,7 @@ impl MainMenu {
                                 "QUIT",
                                 theme,
                             ) {
-                                action = MainMenuAction::QUIT;
+                                action = UiCommand::Quit;
                             }
 
                             ui.add_space(30.0);
@@ -140,7 +136,16 @@ impl MainMenu {
                     });
             });
 
-        action
+        return vec![action];
+    }
+}
+
+impl MainMenu {
+    pub fn new(title: impl Into<String>) -> Self {
+        Self {
+            title: title.into(),
+            ..Default::default()
+        }
     }
 
     fn menu_button(

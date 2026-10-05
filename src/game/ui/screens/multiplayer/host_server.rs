@@ -4,7 +4,7 @@ use egui::{FontId, RichText, ScrollArea};
 use egui_extras::{Size, StripBuilder};
 use image::Frame;
 
-use crate::{engine::ui::{util, widgets}, game::{server::net::config::GameServerConfig, ui::screens::MenuTheme}};
+use crate::{engine::ui::{util, widgets}, game::{server::net::config::GameServerConfig, ui::{command::UiCommand, screens::{MenuTheme, Screen}}}};
 
 pub struct HostServer {
     pub lan_only: bool,
@@ -19,27 +19,8 @@ pub struct HostServer {
     host_server_dialog: bool,
 }
 
-impl HostServer {
-    pub fn new() -> Self {
-        return Self {
-            lan_only: false,
-            test: 0,
-            server_config: GameServerConfig::default(),
-            theme: MenuTheme::dark(),
-            category_list: vec![
-                "Server Options".into(),
-                "Game Content".into(),
-                "Game Options".into(),
-            ],
-            active_category: 0,
-            host_server_dialog: false,
-        }
-    }
-
-    /// when it returns true, the server has been created
-    pub fn ui(&mut self, ui: &mut egui::Ui) -> bool {
-        let mut setup_server = false;
-
+impl Screen for HostServer {
+    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
         // dividing area for each box
         egui::CentralPanel::default().show(ui, |ui| {
             StripBuilder::new(ui)
@@ -90,13 +71,30 @@ impl HostServer {
 
                     if ui.button("Confirm").clicked() {
                         self.host_server_dialog = false;
-                        setup_server = true;
                     }
                 });
             });
         }
 
-        return setup_server;
+        return vec![UiCommand::None];
+    }
+}
+
+impl HostServer {
+    pub fn new() -> Self {
+        return Self {
+            lan_only: false,
+            test: 0,
+            server_config: GameServerConfig::default(),
+            theme: MenuTheme::dark(),
+            category_list: vec![
+                "Server Options".into(),
+                "Game Content".into(),
+                "Game Options".into(),
+            ],
+            active_category: 0,
+            host_server_dialog: false,
+        }
     }
 
     fn header_panel(&mut self, ui: &mut egui::Ui) {

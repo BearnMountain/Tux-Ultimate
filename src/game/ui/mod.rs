@@ -1,82 +1,37 @@
+use std::process::exit;
+
 use egui::Context;
 
-use crate::{engine::assets::{gpu_server::Server, ui_server::UiServer}, game::ui::screens::{
-    main_menu::{MainMenu, MainMenuAction}, 
-    online_menu::{OnlineMenu, OnlineMenuAction},
-    settings_menu::{SettingsMenu, SettingsMenuAction},
-}};
+use crate::{
+    engine::assets::{gpu_server::Server, ui_server::UiServer}, game::ui::{command::UiCommand, screens::{
+        Screen, ScreenId, 
+        extras_screen::{ExtrasScreen}, 
+        game_overlay::GameOverlay, game_results::GameResults, 
+        loading_screen::LoadingScreen, 
+        lobby_menu::LobbyMenu, 
+        main_menu::{MainMenu, MainMenuAction}, 
+        map_selection_menu::MapSelectionMenu, 
+        multiplayer::{
+            OnlineMenu, 
+            direct_connect::DirectConnect, 
+            host_server::HostServer, 
+            server_browser::ServerBrowser
+        }, settings_menu::{SettingsMenu, SettingsMenuAction}, 
+        single_player::SinglePlayer,
+    }},
+};
 
 pub mod screens;
-
-pub trait Screen {
-    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand>;
-}
-
-#[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Eq, PartialEq)]
-pub enum UiCommand {
-    // Navigation
-    Push(ScreenId), 
-    Pop, // go back button
-    PopTo(ScreenId), // pop to n(usually to main menu root)
-
-    // Online
-    // ConnectToServer(ServerAddress),
-    // CancelConnection,
-    // HostServer(GameServerConfig),
-    // SelectCharacter/Map
-    // StartMatch
-
-    // System
-    Quit,
-    // UpdateSettings(SettingsConfig),
-}
-
-#[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Eq, PartialEq)]
-pub enum ScreenId {
-    MAIN_MENU,
-    GAME_OVERLAY,
-
-    // Single player
-    SINGLE_PLAYER,
-
-    // Online
-    ONLINE_MENU,
-    SERVER_BROWSER,
-    DIRECT_CONNECT,
-    CONNECTING,
-    LOBBY,
-    HOST_LOBBY, // advanced control + options
-    MAP_SELECTION,
-    LOADING,
-    GAME_RESULTS,
-
-    // General
-    SETTINGS,
-    EXTRAS,
-}
-
-pub struct ScreenStack {
-    stack: Vec<Box<dyn Screen>>,
-
-    // save all screen states to remain loaded
-    screen_cache: HashMap<ScreenId, Box<dyn Screen>>,
-}
-
-impl ScreenStack {
-    pub fn push(&mut self, id: ScreenId) {
-        self.stack.push(Box::new(id));
-    }
-}
+pub mod command;
 
 pub struct UI {
-    info: String,
-    menu_state: UIMenuState,
+    // all screens
+    screens: [Box<dyn Screen>; 13],
+    stack: Vec<ScreenId>,
 
-    main_menu: MainMenu,
-    online_menu: OnlineMenu,
-    settings_menu: SettingsMenu,
+    // main_menu: MainMenu,
+    // online_menu: OnlineMenu,
+    // settings_menu: SettingsMenu,
 
     asset_server: UiServer,
 }
@@ -86,131 +41,151 @@ impl UI {
         context: &egui::Context,
     ) -> Self {
         return Self {
-            info: "hello world".into(),
-            menu_state: UIMenuState::MAIN_MENU,
-            main_menu: MainMenu::new("ULTIMATE"),
-            online_menu: OnlineMenu::new(),
-            settings_menu: SettingsMenu::new(),
+            screens: [
+                Box::new(MainMenu::new("Test")),
+                Box::new(GameOverlay::new()),
+                Box::new(SinglePlayer::new()),
+
+                // multiplayer
+                Box::new(OnlineMenu::new()), 
+                Box::new(ServerBrowser::new()),
+                Box::new(DirectConnect::new()),
+                Box::new(HostServer::new()),
+
+                Box::new(LoadingScreen::new()),
+                Box::new(LobbyMenu::new()),
+                Box::new(MapSelectionMenu::new()),
+                Box::new(GameResults::new()),
+                Box::new(SettingsMenu::new()),
+                Box::new(ExtrasScreen::new()),
+            ],
+            stack: vec![ScreenId::MAIN_MENU],
+            // info: "hello world".into(),
+            // menu_state: UIMenuState::MAIN_MENU,
+            // main_menu: MainMenu::new("ULTIMATE"),
+            // online_menu: OnlineMenu::new(),
+            // settings_menu: SettingsMenu::new(),
             asset_server: UiServer::new(&context),
         };
     }
      
-    /// renders UI as a state machine
+    /// renders UI as a stack
+    /// - ui stack digested by game
     pub fn frame(
         &mut self,
         ui: &mut egui::Ui,
-    ) -> UIMenuState {
-        let menu_action;
+    ) -> Vec<UiCommand> {
+        let mut commands: Vec<UiCommand> = Vec::new();
+        let Some(stack) = self.stack.last() else {
+            return commands;
+        };
 
-        match self.menu_state {
-            UIMenuState::MAIN_MENU => 
-                menu_action = self.render_main_menu(ui),
-            UIMenuState::ONLINE_MENU => 
-                menu_action = self.render_online_menu(ui),
-            UIMenuState::IN_GAME =>
-                menu_action = self.render_in_game(ui),
-            UIMenuState::SETTINGS => 
-                menu_action = self.render_settings(ui),
-            _ => { menu_action = UIMenuState::NONE },
+        match stack {
+            ScreenId::MAIN_MENU => self.render_main_menu(ui),
+            ScreenId::GAME_OVERLAY => self.render_game_overlay(ui),
+            ScreenId::SINGLE_PLAYER => self.render_single_player(ui),
+
+            // online
+            ScreenId::MULTIPLAYER_MENU => { 
+                println!(" multiplayer shouldnt get here"); 
+            },
+            ScreenId::SERVER_BROWSER => 
+                self.render_multiplayer(ui, ScreenId::SERVER_BROWSER),
+            ScreenId::DIRECT_CONNECT => 
+                self.render_multiplayer(ui, ScreenId::DIRECT_CONNECT),
+            ScreenId::SERVER_HOST => 
+                self.render_multiplayer(ui, ScreenId::SERVER_HOST),
+
+            ScreenId::LOADING_SCREEN => self.render_loading_screen(ui),
+            ScreenId::HOST_LOBBY => self.render_lobby(ui),
+            ScreenId::CLIENT_LOBBY => self.render_lobby(ui),
+            ScreenId::MAP_SELECTION => self.render_map_selection(ui),
+            ScreenId::GAME_RESULTS => self.render_game_results(ui),
+
+            // general
+            ScreenId::SETTINGS => self.render_settings(ui),
+            ScreenId::EXTRAS => self.render_extras(ui),
+            ScreenId::QUIT => {},
         }
-    
-        if menu_action != UIMenuState::NONE {
-            self.menu_state = menu_action;
-        }
-        return menu_action;
+
+        return commands;
     }
 
-    fn render_main_menu(&mut self, context: &Context) -> UIMenuState {
-        let action;
-        match self.main_menu.ui(context) {
-            MainMenuAction::SINGLE_PLAYER => {
-                println!("Starting single player...");
-                action = UIMenuState::SINGLE_PLAYER;
-            }
+	fn render_main_menu(&mut self, ui: &mut egui::Ui) {
+        let main_menu = &mut self.screens[ScreenId::MAIN_MENU as usize];
+        let mut commands = main_menu.ui(ui);
 
-            MainMenuAction::MULTIPLAYER => {
-                println!("Starting multiplayer...");
-                action = UIMenuState::ONLINE_MENU;
+        for i in commands {
+            match i {
+                UiCommand::Push(screen_id) => self.stack.push(screen_id),
+                UiCommand::Quit => todo!(),
+                _ => {},
             }
+        }
+    }
+	fn render_game_overlay(&mut self, ui: &egui::Ui) {}
+	fn render_single_player(&mut self, ui: &egui::Ui) {}
 
-            MainMenuAction::SETTINGS => {
-                println!("Opening settings...");
-                action = UIMenuState::SETTINGS;
-            }
+    // rendering is nested 
+	fn render_multiplayer(&mut self, ui: &mut egui::Ui, nested: ScreenId) {
 
-            MainMenuAction::EXTRAS => {
-                println!("Opening extras...");
-                action = UIMenuState::EXTRAS;
-            }
+        let selection_command = 
+            self.screens[ScreenId::MULTIPLAYER_MENU as usize].ui(ui);
 
-            MainMenuAction::QUIT => {
-                println!("Quitting...");
-                action = UIMenuState::QUIT;
-            }
-
-            MainMenuAction::NONE => {
-                action = UIMenuState::NONE;
+        let online_commands = match nested {
+            ScreenId::SERVER_BROWSER
+            | ScreenId::DIRECT_CONNECT
+            | ScreenId::HOST_LOBBY => 
+                &mut self.screens[nested as usize].ui(ui),
+            _ => {
+                log::debug!("{:?} is not a nested screen", nested);
+                &mut vec![UiCommand::None]
             },
+        };
+
+        self.handle_commands(selection_command);
+    }
+	fn render_server_browser(&mut self, ui: &egui::Ui) {}
+	fn render_direct_connect(&mut self, ui: &egui::Ui) {}
+	fn render_host(&mut self, ui: &egui::Ui) {}
+	fn render_connecting(&mut self, ui: &egui::Ui) {}
+	fn render_lobby(&mut self, ui: &egui::Ui) {}
+	fn render_host_lobby(&mut self, ui: &egui::Ui) {}
+	fn render_map_selection(&mut self, ui: &egui::Ui) {}
+	fn render_loading_screen(&mut self, ui: &egui::Ui) {}
+	fn render_game_results(&mut self, ui: &egui::Ui) {}
+	fn render_settings(&mut self, ui: &egui::Ui) {}
+	fn render_extras(&mut self, ui: &egui::Ui) {}
+
+    // handling commands
+    fn handle_commands(&mut self, commands: Vec<UiCommand>) {
+        for cmd in commands {
+            let Some(stack_top) = self.stack.last() else {
+                log::error!("screen stack shouldnt be empty");
+                exit(1);
+            };
+
+            match cmd {
+                UiCommand::Push(screen_id) => {
+                    if *stack_top != screen_id { self.stack.push(screen_id); }
+                },
+                UiCommand::Pop => {
+                    self.stack.pop();
+                },
+                UiCommand::PopTo(screen_id) => {
+                    if let Some(i) = self.stack.iter().rposition(|&id|
+                        id == screen_id
+                    ) {
+                        if i > 0 {
+                            self.stack.truncate(i + 1);
+                        }
+                    }
+                },
+                UiCommand::Quit => todo!(),
+                UiCommand::None => {},
+            }
         }
-
-        return action;
-	}
-
-    fn render_single_player_menu(&mut self, _context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
-
-    fn render_online_menu(&mut self, ui: &mut egui::Ui) -> UIMenuState {
-        let action = UIMenuState::NONE;
-
-        // match self.online_menu.ui(ui) {
-        //
-        // }
-
-		return action;
-	}
-
-    fn render_server_browser(&mut self, context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
-    fn render_direct_connect(&mut self, context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
-    fn render_connecting(&mut self, context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
-
-    fn render_character_select(&mut self, context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
-    fn render_map_select(&mut self, context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
-    fn render_loading(&mut self, context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
-
-    /// game overlay ui
-    fn render_in_game(&mut self, context: &Context) -> UIMenuState {
-        let mut action = UIMenuState::NONE;
-
-		return action;
-	}
-    fn render_settings(&mut self, ui: &egui::Ui) -> UIMenuState {
-        let action = UIMenuState::NONE;
-
-        match self.settings_menu.ui(ui) {
-            SettingsMenuAction::SAVE => {},
-            SettingsMenuAction::RESET => {},
-            SettingsMenuAction::EXIT => {},
-            SettingsMenuAction::NONE => {},
-        }
-
-		return action;
-	}
-    fn render_extras(&mut self, context: &Context) -> UIMenuState {
-		return UIMenuState::MAIN_MENU;
-	}
+    }
 }
 
 

@@ -1,20 +1,20 @@
 use crate::game::ui::{command::UiCommand, screens::Screen};
 
-pub struct GameOverlay {
-    
+
+
+pub struct LoadingScreen {
+
 }
 
-impl Screen for GameOverlay {
+impl Screen for LoadingScreen {
     fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
-        println!("game overlay not impl yet");  
+        println!("map selection menu not impl");
         return vec![UiCommand::None];
     }
 }
 
-impl GameOverlay {
+impl LoadingScreen {
     pub fn new() -> Self {
-
-
         return Self {
 
         };

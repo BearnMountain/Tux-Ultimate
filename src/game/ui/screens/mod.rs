@@ -1,13 +1,51 @@
 use egui::{Color32, CornerRadius, Stroke, Vec2};
 
-pub mod server_browser;
-pub mod host_server;
+use crate::game::ui::command::UiCommand;
+
 pub mod main_menu;
-pub mod online_menu;
-pub mod settings_menu;
-pub mod lobby_menu;
 pub mod game_overlay;
-pub mod server;
+
+pub mod single_player;
+
+pub mod multiplayer; // covers: server_browser, direct_connect, host
+pub mod lobby_menu; // covers host + client
+pub mod map_selection_menu;
+pub mod loading_screen;
+pub mod game_results;
+pub mod extras_screen;
+pub mod settings_menu;
+
+
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ScreenId {
+    MAIN_MENU,
+    GAME_OVERLAY,
+
+    // Single player
+    SINGLE_PLAYER,
+
+    // Online/Multiplayer
+    MULTIPLAYER_MENU,
+    SERVER_BROWSER, 
+    DIRECT_CONNECT,
+    SERVER_HOST, // all screens to connect
+    LOADING_SCREEN,
+    CLIENT_LOBBY,
+    HOST_LOBBY, // advanced control + options
+    MAP_SELECTION,
+    GAME_RESULTS,
+
+    // General
+    SETTINGS,
+    EXTRAS,
+    QUIT,
+}
+
+pub trait Screen {
+    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand>;
+}
 
 #[derive(Clone, Debug)]
 pub struct MenuTheme {

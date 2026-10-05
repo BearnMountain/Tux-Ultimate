@@ -1,11 +1,19 @@
 use egui::{CentralPanel, Color32, Panel, accesskit::Role::Table};
 use egui_extras::{Column, TableBuilder};
 
-use crate::game::client::net::server_entry::ServerEntry;
+use crate::game::{client::net::server_entry::ServerEntry, ui::{command::UiCommand, screens::Screen}};
 
 pub struct ServerBrowser {
     pub servers: Vec<ServerEntry>,
     pub active_server: usize,
+}
+
+impl Screen for ServerBrowser {
+    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
+
+
+        return vec![UiCommand::None];
+    }
 }
 
 impl ServerBrowser {
@@ -94,7 +102,7 @@ impl ServerBrowser {
         };
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+    // pub fn ui(&mut self, ui: &mut egui::Ui) {
         // let size = ui.available_size();
         // let table_width = size.x * 0.55;
         // let detail_width = size.x - table_width;
@@ -169,5 +177,5 @@ impl ServerBrowser {
         //
         //
         //
-    }
+    // }
 }

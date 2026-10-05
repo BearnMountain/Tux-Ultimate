@@ -1,6 +1,6 @@
 use egui_extras::{Size, StripBuilder};
 
-use crate::game::server::net::config::GameServerConfig;
+use crate::game::{server::net::config::GameServerConfig, ui::{command::UiCommand, screens::{Screen, ScreenId}}};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -12,18 +12,8 @@ pub struct LobbyMenu {
     game_server_config: GameServerConfig,
 }
 
-impl LobbyMenu {
-    pub fn new() -> Self {
-        return Self {
-            game_server_config: GameServerConfig::default(),
-        };
-    }
-
-    pub fn set_game_server_config(&mut self, config: &GameServerConfig) {
-        self.game_server_config = config.clone();
-    }
-
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+impl Screen for LobbyMenu {
+    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
         StripBuilder::new(ui)
             .size(Size::relative(0.7)) // top 70%
             .size(Size::remainder()) // bottom 30%
@@ -49,6 +39,20 @@ impl LobbyMenu {
                         });
                 });
             });
+
+        return vec![UiCommand::None];
+    }
+}
+
+impl LobbyMenu {
+    pub fn new() -> Self {
+        return Self {
+            game_server_config: GameServerConfig::default(),
+        };
+    }
+
+    pub fn set_game_server_config(&mut self, config: &GameServerConfig) {
+        self.game_server_config = config.clone();
     }
 
     fn lobby_info_panel(&mut self, ui: &mut egui::Ui) {
@@ -56,18 +60,14 @@ impl LobbyMenu {
     }
     fn character_selection_panel(&mut self, ui: &mut egui::Ui) {
         ui.label("character selection");
-
     }
     fn player_info_panel(&mut self, ui: &mut egui::Ui) {
         ui.label("player info");
-
     }
     fn chat_panel(&mut self, ui: &mut egui::Ui) {
         ui.label("chat");
-
     }
     fn lobby_action_panel(&mut self, ui: &mut egui::Ui) {
         ui.label("lobby action");
-
     }
 }

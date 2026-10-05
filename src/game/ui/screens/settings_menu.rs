@@ -1,6 +1,4 @@
-use egui::Key::A;
-
-use crate::game::ui::screens::MenuTheme;
+use crate::game::ui::{command::UiCommand, screens::{MenuTheme, Screen}};
 
 
 #[allow(non_camel_case_types)]
@@ -17,19 +15,18 @@ pub struct SettingsMenu {
     pub theme: MenuTheme,
 }
 
+impl Screen for SettingsMenu {
+    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
+
+        return vec![UiCommand::None];
+    }
+}
+
 impl SettingsMenu {
     pub fn new() -> Self {
         return Self {
             theme: MenuTheme::dark(),
         }
-    }
-
-    pub fn ui(&mut self, ui: &egui::Ui) -> SettingsMenuAction {
-        let mut action = SettingsMenuAction::NONE;
-
-
-
-        return action;
     }
 }
 
