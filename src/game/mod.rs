@@ -53,7 +53,7 @@ impl Game {
     pub fn frame(&mut self) -> anyhow::Result<()> {
         self.engine.begin_ui();
 
-        let mut commands = ui::UIMenuAction::NONE;
+        let mut commands = ui::UIMenuState::NONE;
         self.engine.ui(|ui| {
             #[cfg(debug_assertions)] {
                 ui.ctx().set_debug_on_hover(true);

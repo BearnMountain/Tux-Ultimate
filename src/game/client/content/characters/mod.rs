@@ -1,6 +1,6 @@
 #[allow(non_camel_case_types)]
-#[derive(Debug)]
 #[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GameCharacters {
     TUX,
     TEST,

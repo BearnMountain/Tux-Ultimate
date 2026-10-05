@@ -2,7 +2,7 @@ use crate::game::{client::content::{characters::GameCharacters, maps::GameMaps::
 
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GameServerConfig {
     // ----- Match Specifics -----
     // server options

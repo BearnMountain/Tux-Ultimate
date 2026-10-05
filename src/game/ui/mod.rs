@@ -8,54 +8,71 @@ use crate::{engine::assets::{gpu_server::Server, ui_server::UiServer}, game::ui:
 
 pub mod screens;
 
+pub trait Screen {
+    fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand>;
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq)]
-pub enum UIMenuAction {
+pub enum UiCommand {
+    // Navigation
+    Push(ScreenId), 
+    Pop, // go back button
+    PopTo(ScreenId), // pop to n(usually to main menu root)
+
+    // Online
+    // ConnectToServer(ServerAddress),
+    // CancelConnection,
+    // HostServer(GameServerConfig),
+    // SelectCharacter/Map
+    // StartMatch
+
+    // System
+    Quit,
+    // UpdateSettings(SettingsConfig),
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum ScreenId {
     MAIN_MENU,
+    GAME_OVERLAY,
+
+    // Single player
     SINGLE_PLAYER,
+
+    // Online
     ONLINE_MENU,
     SERVER_BROWSER,
     DIRECT_CONNECT,
     CONNECTING,
-
-    LOBBY, 
-    HOST_LOBBY, // provided different permissions
-
-    CHARACTER_SELECT,
-    MAP_SELECT,
+    LOBBY,
+    HOST_LOBBY, // advanced control + options
+    MAP_SELECTION,
     LOADING,
-    IN_GAME,
+    GAME_RESULTS,
+
+    // General
     SETTINGS,
     EXTRAS,
-    QUIT,
-    NONE,
 }
 
-/*
-/// potential add to deal with state changes
-enum UiCommand {
-    Open(Screen),
-    Back,
-    Quit,
+pub struct ScreenStack {
+    stack: Vec<Box<dyn Screen>>,
 
-    RefreshServers,
-    ConnectToServer(ServerAddress),
-    CancelConnection,
-
-    SelectCharacter(CharacterId),
-    SelectMap(MapId),
-
-    SetReady(bool),
-    StartMatch,
-    LeaveMatch,
-
-    UpdateSettings(SettingChange),
+    // save all screen states to remain loaded
+    screen_cache: HashMap<ScreenId, Box<dyn Screen>>,
 }
-*/
+
+impl ScreenStack {
+    pub fn push(&mut self, id: ScreenId) {
+        self.stack.push(Box::new(id));
+    }
+}
 
 pub struct UI {
     info: String,
-    menu_action: UIMenuAction,
+    menu_state: UIMenuState,
 
     main_menu: MainMenu,
     online_menu: OnlineMenu,
@@ -70,7 +87,7 @@ impl UI {
     ) -> Self {
         return Self {
             info: "hello world".into(),
-            menu_action: UIMenuAction::MAIN_MENU,
+            menu_state: UIMenuState::MAIN_MENU,
             main_menu: MainMenu::new("ULTIMATE"),
             online_menu: OnlineMenu::new(),
             settings_menu: SettingsMenu::new(),
@@ -82,119 +99,105 @@ impl UI {
     pub fn frame(
         &mut self,
         ui: &mut egui::Ui,
-    ) -> UIMenuAction {
+    ) -> UIMenuState {
         let menu_action;
 
-        match self.menu_action {
-            UIMenuAction::MAIN_MENU => 
+        match self.menu_state {
+            UIMenuState::MAIN_MENU => 
                 menu_action = self.render_main_menu(ui),
-            UIMenuAction::ONLINE_MENU => 
+            UIMenuState::ONLINE_MENU => 
                 menu_action = self.render_online_menu(ui),
-            UIMenuAction::IN_GAME =>
+            UIMenuState::IN_GAME =>
                 menu_action = self.render_in_game(ui),
-            UIMenuAction::SETTINGS => 
+            UIMenuState::SETTINGS => 
                 menu_action = self.render_settings(ui),
-            _ => { menu_action = UIMenuAction::NONE },
+            _ => { menu_action = UIMenuState::NONE },
         }
     
-        if menu_action != UIMenuAction::NONE {
-            self.menu_action = menu_action;
+        if menu_action != UIMenuState::NONE {
+            self.menu_state = menu_action;
         }
         return menu_action;
     }
 
-    fn render_main_menu(&mut self, context: &Context) -> UIMenuAction {
+    fn render_main_menu(&mut self, context: &Context) -> UIMenuState {
         let action;
         match self.main_menu.ui(context) {
             MainMenuAction::SINGLE_PLAYER => {
                 println!("Starting single player...");
-                action = UIMenuAction::SINGLE_PLAYER;
+                action = UIMenuState::SINGLE_PLAYER;
             }
 
             MainMenuAction::MULTIPLAYER => {
                 println!("Starting multiplayer...");
-                action = UIMenuAction::ONLINE_MENU;
+                action = UIMenuState::ONLINE_MENU;
             }
 
             MainMenuAction::SETTINGS => {
                 println!("Opening settings...");
-                action = UIMenuAction::SETTINGS;
+                action = UIMenuState::SETTINGS;
             }
 
             MainMenuAction::EXTRAS => {
                 println!("Opening extras...");
-                action = UIMenuAction::EXTRAS;
+                action = UIMenuState::EXTRAS;
             }
 
             MainMenuAction::QUIT => {
                 println!("Quitting...");
-                action = UIMenuAction::QUIT;
+                action = UIMenuState::QUIT;
             }
 
             MainMenuAction::NONE => {
-                action = UIMenuAction::NONE;
+                action = UIMenuState::NONE;
             },
         }
 
         return action;
 	}
 
-    fn render_single_player_menu(&mut self, _context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+    fn render_single_player_menu(&mut self, _context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
 
-    fn render_online_menu(&mut self, ui: &mut egui::Ui) -> UIMenuAction {
-        let action = UIMenuAction::NONE;
+    fn render_online_menu(&mut self, ui: &mut egui::Ui) -> UIMenuState {
+        let action = UIMenuState::NONE;
 
-        match self.online_menu.ui(ui) {
-            OnlineMenuAction::SERVER_BROWSER(_) => {},
-            OnlineMenuAction::DIRECT_CONNECT(_) => {},
-            OnlineMenuAction::HOST_SERVER(_) => {},
-            OnlineMenuAction::NONE => {},
-        }
+        // match self.online_menu.ui(ui) {
+        //
+        // }
 
 		return action;
 	}
 
-    fn render_server_browser(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+    fn render_server_browser(&mut self, context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
-    fn render_direct_connect(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+    fn render_direct_connect(&mut self, context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
-    fn render_connecting(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
-	}
-
-    fn render_lobby(&mut self, context: &Context) -> UIMenuAction {
-        let mut action = UIMenuAction::NONE;
-
-		return action;
-	}
-    fn render_lobby_host(&mut self, context: &Context) -> UIMenuAction {
-        let mut action = UIMenuAction::NONE;
-
-		return action;
+    fn render_connecting(&mut self, context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
 
-    fn render_character_select(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+    fn render_character_select(&mut self, context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
-    fn render_map_select(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+    fn render_map_select(&mut self, context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
-    fn render_loading(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+    fn render_loading(&mut self, context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
 
     /// game overlay ui
-    fn render_in_game(&mut self, context: &Context) -> UIMenuAction {
-        let mut action = UIMenuAction::NONE;
+    fn render_in_game(&mut self, context: &Context) -> UIMenuState {
+        let mut action = UIMenuState::NONE;
 
 		return action;
 	}
-    fn render_settings(&mut self, ui: &egui::Ui) -> UIMenuAction {
-        let action = UIMenuAction::NONE;
+    fn render_settings(&mut self, ui: &egui::Ui) -> UIMenuState {
+        let action = UIMenuState::NONE;
 
         match self.settings_menu.ui(ui) {
             SettingsMenuAction::SAVE => {},
@@ -205,8 +208,8 @@ impl UI {
 
 		return action;
 	}
-    fn render_extras(&mut self, context: &Context) -> UIMenuAction {
-		return UIMenuAction::MAIN_MENU;
+    fn render_extras(&mut self, context: &Context) -> UIMenuState {
+		return UIMenuState::MAIN_MENU;
 	}
 }
 

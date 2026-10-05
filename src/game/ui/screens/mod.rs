@@ -7,6 +7,7 @@ pub mod online_menu;
 pub mod settings_menu;
 pub mod lobby_menu;
 pub mod game_overlay;
+pub mod server;
 
 #[derive(Clone, Debug)]
 pub struct MenuTheme {
