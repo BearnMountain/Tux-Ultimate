@@ -80,6 +80,8 @@ impl UI {
             return commands;
         };
 
+        println!("{:?}", stack);
+
         match stack {
             ScreenId::MAIN_MENU => self.render_main_menu(ui),
             ScreenId::GAME_OVERLAY => self.render_game_overlay(ui),
@@ -93,8 +95,8 @@ impl UI {
                 self.render_multiplayer(ui, ScreenId::SERVER_BROWSER),
             ScreenId::DIRECT_CONNECT => 
                 self.render_multiplayer(ui, ScreenId::DIRECT_CONNECT),
-            ScreenId::SERVER_HOST => 
-                self.render_multiplayer(ui, ScreenId::SERVER_HOST),
+            ScreenId::HOST_SERVER => 
+                self.render_multiplayer(ui, ScreenId::HOST_SERVER),
 
             ScreenId::LOADING_SCREEN => self.render_loading_screen(ui),
             ScreenId::HOST_LOBBY => self.render_lobby(ui),
@@ -110,6 +112,26 @@ impl UI {
 
         return commands;
     }
+
+    // fn get_screen(&mut self, id: ScreenId) -> &dyn Screen {
+    //     match id {
+    //         ScreenId::MAIN_MENU => &*self.screens[id as usize],
+    //         ScreenId::GAME_OVERLAY => &*self.screens[id as usize],
+    //         ScreenId::SINGLE_PLAYER => &*self.screens[id as usize],
+    //         ScreenId::MULTIPLAYER_MENU => &*self.screens[id as usize],
+    //         ScreenId::SERVER_BROWSER => &*self.screens[id as usize],
+    //         ScreenId::DIRECT_CONNECT => &*self.screens[id as usize],
+    //         ScreenId::HOST_SERVER => &*self.screens[id as usize],
+    //         ScreenId::LOADING_SCREEN => &*self.screens[id as usize],
+    //         ScreenId::CLIENT_LOBBY => &*self.screens[id as usize],
+    //         ScreenId::HOST_LOBBY => &*self.screens[id as usize],
+    //         ScreenId::MAP_SELECTION => &*self.screens[id as usize],
+    //         ScreenId::GAME_RESULTS => &*self.screens[id as usize],
+    //         ScreenId::SETTINGS => &*self.screens[id as usize],
+    //         ScreenId::EXTRAS => &*self.screens[id as usize],
+    //         ScreenId::QUIT => &*self.screens[id as usize],
+    //     }
+    // }
 
 	fn render_main_menu(&mut self, ui: &mut egui::Ui) {
         let main_menu = &mut self.screens[ScreenId::MAIN_MENU as usize];
@@ -128,14 +150,13 @@ impl UI {
 
     // rendering is nested 
 	fn render_multiplayer(&mut self, ui: &mut egui::Ui, nested: ScreenId) {
-
         let selection_command = 
             self.screens[ScreenId::MULTIPLAYER_MENU as usize].ui(ui);
 
         let online_commands = match nested {
             ScreenId::SERVER_BROWSER
             | ScreenId::DIRECT_CONNECT
-            | ScreenId::HOST_LOBBY => 
+            | ScreenId::HOST_SERVER => 
                 &mut self.screens[nested as usize].ui(ui),
             _ => {
                 log::debug!("{:?} is not a nested screen", nested);

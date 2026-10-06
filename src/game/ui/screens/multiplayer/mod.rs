@@ -9,30 +9,20 @@ pub mod server_browser;
 pub mod direct_connect;
 pub mod host_server;
 
-#[allow(non_camel_case_types)]
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum OnlineTab {
-    SERVER_BROWSER,
-    DIRECT_CONNECT,
-    HOST_SERVER,
-}
-
 pub struct OnlineMenu {
     pub title: String,    
     pub theme: MenuTheme,
     pub online_tabs: Vec<String>,
-    pub active_online_tab: OnlineTab,
+    pub active_online_tab: ScreenId,
 }
 
 impl Screen for OnlineMenu {
     fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
-
-        self.menu_selector(ui);
-        let command = match self.active_online_tab {
-            OnlineTab::SERVER_BROWSER => UiCommand::Push(ScreenId::SERVER_BROWSER),
-            OnlineTab::DIRECT_CONNECT => UiCommand::Push(ScreenId::DIRECT_CONNECT),
-            OnlineTab::HOST_SERVER => UiCommand::Push(ScreenId::HOST_LOBBY),
-        };
+        let command = self.menu_selector(ui);
+        match command {
+            UiCommand::Push(screen_id) => self.active_online_tab = screen_id,
+            _ => {},
+        }
 
         return vec![command];
     }
@@ -48,7 +38,7 @@ impl Default for OnlineMenu {
                 "DIRECT CONNECT".into(),
                 "HOST SERVER".into(),
             ],
-            active_online_tab: OnlineTab::SERVER_BROWSER,
+            active_online_tab: ScreenId::SERVER_BROWSER,
         };
     }
 }
@@ -60,36 +50,40 @@ impl OnlineMenu {
         };
     }
 
-    fn menu_selector(&mut self, ui: &mut egui::Ui) {
+    fn menu_selector(&mut self, ui: &mut egui::Ui) -> UiCommand {
+        let mut tab = UiCommand::None;
+
         Panel::top("top_bar").resizable(false).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("My Game");
                 ui.separator();
 
                 if ui.selectable_label(
-                        self.active_online_tab == OnlineTab::SERVER_BROWSER, 
+                        self.active_online_tab == ScreenId::SERVER_BROWSER, 
                         "Server Browser"
                     ).clicked()
                 {
-                    self.active_online_tab = OnlineTab::SERVER_BROWSER;
+                    tab = UiCommand::Push(ScreenId::SERVER_BROWSER);
                 }
 
                 if ui.selectable_label(
-                        self.active_online_tab == OnlineTab::DIRECT_CONNECT, 
+                        self.active_online_tab == ScreenId::DIRECT_CONNECT, 
                         "Direct Connect"
                     ).clicked()
                 {
-                    self.active_online_tab = OnlineTab::DIRECT_CONNECT;
+                    tab = UiCommand::Push(ScreenId::DIRECT_CONNECT);
                 }
 
                 if ui.selectable_label(
-                        self.active_online_tab == OnlineTab::HOST_SERVER, 
+                        self.active_online_tab == ScreenId::HOST_SERVER, 
                         "Host Server"
                     ).clicked()
                 {
-                    self.active_online_tab = OnlineTab::HOST_SERVER;
+                    tab = UiCommand::Push(ScreenId::HOST_SERVER);
                 }
             });
         });
+
+        return tab;
     }
 }

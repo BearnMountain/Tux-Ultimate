@@ -30,7 +30,7 @@ pub enum ScreenId {
     MULTIPLAYER_MENU,
     SERVER_BROWSER, 
     DIRECT_CONNECT,
-    SERVER_HOST, // all screens to connect
+    HOST_SERVER, // all screens to connect
     LOADING_SCREEN,
     CLIENT_LOBBY,
     HOST_LOBBY, // advanced control + options
