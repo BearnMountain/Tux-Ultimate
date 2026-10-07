@@ -9,14 +9,14 @@ pub mod server_browser;
 pub mod direct_connect;
 pub mod host_server;
 
-pub struct OnlineMenu {
+pub struct MultiplayerMenu {
     pub title: String,    
     pub theme: MenuTheme,
     pub online_tabs: Vec<String>,
     pub active_online_tab: ScreenId,
 }
 
-impl Screen for OnlineMenu {
+impl Screen for MultiplayerMenu {
     fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
         let command = self.menu_selector(ui);
         match command {
@@ -28,7 +28,7 @@ impl Screen for OnlineMenu {
     }
 }
 
-impl Default for OnlineMenu {
+impl Default for MultiplayerMenu {
     fn default() -> Self {
         return Self {
             title: "DEDICATED SERVER".into(),
@@ -43,7 +43,7 @@ impl Default for OnlineMenu {
     }
 }
 
-impl OnlineMenu {
+impl MultiplayerMenu {
     pub fn new() -> Self {
         return Self {
             ..Default::default()

@@ -12,7 +12,7 @@ use crate::{
         main_menu::{MainMenu, MainMenuAction}, 
         map_selection_menu::MapSelectionMenu, 
         multiplayer::{
-            OnlineMenu, 
+            MultiplayerMenu, 
             direct_connect::DirectConnect, 
             host_server::HostServer, 
             server_browser::ServerBrowser
@@ -26,13 +26,8 @@ pub mod command;
 
 pub struct UI {
     // all screens
-    screens: [Box<dyn Screen>; 13],
+    screens: [Box<dyn Screen>; ScreenId::EXTRAS as usize],
     stack: Vec<ScreenId>,
-
-    // main_menu: MainMenu,
-    // online_menu: OnlineMenu,
-    // settings_menu: SettingsMenu,
-
     asset_server: UiServer,
 }
 
@@ -47,7 +42,7 @@ impl UI {
                 Box::new(SinglePlayer::new()),
 
                 // multiplayer
-                Box::new(OnlineMenu::new()), 
+                Box::new(MultiplayerMenu::new()), 
                 Box::new(ServerBrowser::new()),
                 Box::new(DirectConnect::new()),
                 Box::new(HostServer::new()),
@@ -60,11 +55,6 @@ impl UI {
                 Box::new(ExtrasScreen::new()),
             ],
             stack: vec![ScreenId::MAIN_MENU],
-            // info: "hello world".into(),
-            // menu_state: UIMenuState::MAIN_MENU,
-            // main_menu: MainMenu::new("ULTIMATE"),
-            // online_menu: OnlineMenu::new(),
-            // settings_menu: SettingsMenu::new(),
             asset_server: UiServer::new(&context),
         };
     }
@@ -75,14 +65,11 @@ impl UI {
         &mut self,
         ui: &mut egui::Ui,
     ) -> Vec<UiCommand> {
-        let mut commands: Vec<UiCommand> = Vec::new();
         let Some(stack) = self.stack.last() else {
-            return commands;
+            return Vec::new();
         };
 
-        println!("{:?}", stack);
-
-        match stack {
+        let commands = match stack {
             ScreenId::MAIN_MENU => self.render_main_menu(ui),
             ScreenId::GAME_OVERLAY => self.render_game_overlay(ui),
             ScreenId::SINGLE_PLAYER => self.render_single_player(ui),
@@ -90,6 +77,7 @@ impl UI {
             // online
             ScreenId::MULTIPLAYER_MENU => { 
                 println!(" multiplayer shouldnt get here"); 
+                Vec::new()
             },
             ScreenId::SERVER_BROWSER => 
                 self.render_multiplayer(ui, ScreenId::SERVER_BROWSER),
@@ -107,49 +95,33 @@ impl UI {
             // general
             ScreenId::SETTINGS => self.render_settings(ui),
             ScreenId::EXTRAS => self.render_extras(ui),
-            ScreenId::QUIT => {},
-        }
+            ScreenId::QUIT => vec![UiCommand::Quit],
+        };
 
         return commands;
     }
 
-    // fn get_screen(&mut self, id: ScreenId) -> &dyn Screen {
-    //     match id {
-    //         ScreenId::MAIN_MENU => &*self.screens[id as usize],
-    //         ScreenId::GAME_OVERLAY => &*self.screens[id as usize],
-    //         ScreenId::SINGLE_PLAYER => &*self.screens[id as usize],
-    //         ScreenId::MULTIPLAYER_MENU => &*self.screens[id as usize],
-    //         ScreenId::SERVER_BROWSER => &*self.screens[id as usize],
-    //         ScreenId::DIRECT_CONNECT => &*self.screens[id as usize],
-    //         ScreenId::HOST_SERVER => &*self.screens[id as usize],
-    //         ScreenId::LOADING_SCREEN => &*self.screens[id as usize],
-    //         ScreenId::CLIENT_LOBBY => &*self.screens[id as usize],
-    //         ScreenId::HOST_LOBBY => &*self.screens[id as usize],
-    //         ScreenId::MAP_SELECTION => &*self.screens[id as usize],
-    //         ScreenId::GAME_RESULTS => &*self.screens[id as usize],
-    //         ScreenId::SETTINGS => &*self.screens[id as usize],
-    //         ScreenId::EXTRAS => &*self.screens[id as usize],
-    //         ScreenId::QUIT => &*self.screens[id as usize],
-    //     }
-    // }
-
-	fn render_main_menu(&mut self, ui: &mut egui::Ui) {
+	fn render_main_menu(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
         let main_menu = &mut self.screens[ScreenId::MAIN_MENU as usize];
-        let mut commands = main_menu.ui(ui);
-
-        for i in commands {
-            match i {
-                UiCommand::Push(screen_id) => self.stack.push(screen_id),
-                UiCommand::Quit => todo!(),
-                _ => {},
-            }
-        }
+        let commands = main_menu.ui(ui);
+        return self.handle_commands(commands);
     }
-	fn render_game_overlay(&mut self, ui: &egui::Ui) {}
-	fn render_single_player(&mut self, ui: &egui::Ui) {}
+
+	fn render_game_overlay(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+    }
+	fn render_single_player(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+    }
 
     // rendering is nested 
-	fn render_multiplayer(&mut self, ui: &mut egui::Ui, nested: ScreenId) {
+	fn render_multiplayer(
+        &mut self, ui: 
+        &mut egui::Ui, 
+        nested: ScreenId
+    ) -> Vec<UiCommand> {
         let selection_command = 
             self.screens[ScreenId::MULTIPLAYER_MENU as usize].ui(ui);
 
@@ -157,30 +129,74 @@ impl UI {
             ScreenId::SERVER_BROWSER
             | ScreenId::DIRECT_CONNECT
             | ScreenId::HOST_SERVER => 
-                &mut self.screens[nested as usize].ui(ui),
+                self.screens[nested as usize].ui(ui),
             _ => {
                 log::debug!("{:?} is not a nested screen", nested);
-                &mut vec![UiCommand::None]
+                vec![UiCommand::None]
             },
         };
 
-        self.handle_commands(selection_command);
+        let mut a = self.handle_commands(selection_command);
+        a.append(&mut self.handle_commands(online_commands));
+        return a;
     }
-	fn render_server_browser(&mut self, ui: &egui::Ui) {}
-	fn render_direct_connect(&mut self, ui: &egui::Ui) {}
-	fn render_host(&mut self, ui: &egui::Ui) {}
-	fn render_connecting(&mut self, ui: &egui::Ui) {}
-	fn render_lobby(&mut self, ui: &egui::Ui) {}
-	fn render_host_lobby(&mut self, ui: &egui::Ui) {}
-	fn render_map_selection(&mut self, ui: &egui::Ui) {}
-	fn render_loading_screen(&mut self, ui: &egui::Ui) {}
-	fn render_game_results(&mut self, ui: &egui::Ui) {}
-	fn render_settings(&mut self, ui: &egui::Ui) {}
-	fn render_extras(&mut self, ui: &egui::Ui) {}
+	fn render_server_browser(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+    }
+	fn render_direct_connect(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_host(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_connecting(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_lobby(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_host_lobby(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_map_selection(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_loading_screen(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_game_results(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_settings(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
+	fn render_extras(&mut self, ui: &egui::Ui) -> Vec<UiCommand> {
+        let mut commands = Vec::new();
+        return self.handle_commands(commands);
+	}
 
     // handling commands
-    fn handle_commands(&mut self, commands: Vec<UiCommand>) {
+    fn handle_commands(&mut self, commands: Vec<UiCommand>) -> Vec<UiCommand> {
+        if commands.is_empty() {
+            return Vec::new();
+        }
+
+        let mut game_commands = Vec::new(); // leftover that wont be handled by ui
         for cmd in commands {
+            if cmd == UiCommand::None {
+                continue;
+            }
+
             let Some(stack_top) = self.stack.last() else {
                 log::error!("screen stack shouldnt be empty");
                 exit(1);
@@ -202,10 +218,15 @@ impl UI {
                         }
                     }
                 },
-                UiCommand::Quit => todo!(),
-                UiCommand::None => {},
+
+                // residual commands to be handled by the game
+                _ => {
+                    game_commands.push(cmd);
+                },
             }
         }
+
+        return game_commands;
     }
 }
 

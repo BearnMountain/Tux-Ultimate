@@ -16,11 +16,13 @@ pub struct HostServer {
     // helps with ui
     category_list: Vec<String>,
     active_category: u8, // relates to index in category_list
-    host_server_dialog: bool,
+    want_to_host: bool,
 }
 
 impl Screen for HostServer {
     fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
+        let mut host_server = Vec::new();
+
         // dividing area for each box
         egui::CentralPanel::default().show(ui, |ui| {
             StripBuilder::new(ui)
@@ -57,26 +59,32 @@ impl Screen for HostServer {
         });
 
         // start server
-        if self.host_server_dialog {
+        if self.want_to_host {
             egui::Modal::new(egui::Id::new("host_dialog_popup"))
                 .show(ui, |ui| {
-                ui.heading("Confirm");
+                    ui.heading("Confirm");
 
-                ui.label("Are you sure you want to continue?");
+                    ui.label("Are you sure you want to continue?");
 
-                ui.horizontal(|ui| {
-                    if ui.button("Cancel").clicked() {
-                        self.host_server_dialog = false;
-                    }
+                    ui.horizontal(|ui| {
+                        if ui.button("Cancel").clicked() {
+                            self.want_to_host = false;
+                        }
 
-                    if ui.button("Confirm").clicked() {
-                        self.host_server_dialog = false;
-                    }
+                        if ui.button("Confirm").clicked() {
+                            host_server.push(UiCommand::HostServer(
+                                self.server_config.clone()
+                            ));
+                            host_server.push(UiCommand::ConnectToServer(
+                                "127.0.0.1:2048".parse().unwrap()
+                            ));
+                            self.want_to_host = false;
+                        }
+                    });
                 });
-            });
         }
 
-        return vec![UiCommand::None];
+        return host_server;
     }
 }
 
@@ -93,7 +101,7 @@ impl HostServer {
                 "Game Options".into(),
             ],
             active_category: 0,
-            host_server_dialog: false,
+            want_to_host: false,
         }
     }
 
@@ -165,7 +173,7 @@ impl HostServer {
             "Host Server", 
             egui::vec2(size.x * 0.8, size.y * 0.8),
         ) {
-            self.host_server_dialog = true;
+            self.want_to_host = true;
         }
     }
 

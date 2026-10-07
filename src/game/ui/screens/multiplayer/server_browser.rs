@@ -1,5 +1,5 @@
 use egui::{CentralPanel, Color32, Panel, accesskit::Role::Table};
-use egui_extras::{Column, TableBuilder};
+use egui_extras::{Column, Size, StripBuilder, TableBuilder};
 
 use crate::game::{client::net::server_entry::ServerEntry, ui::{command::UiCommand, screens::Screen}};
 
@@ -10,8 +10,14 @@ pub struct ServerBrowser {
 
 impl Screen for ServerBrowser {
     fn ui(&mut self, ui: &mut egui::Ui) -> Vec<UiCommand> {
-
-
+        StripBuilder::new(ui)
+            .size(Size::relative(0.7)) // browser gets 70% 
+            .size(Size::remainder())
+            .horizontal(|mut strip| {
+                strip.cell(|ui| { self.browser_panel(ui); });
+                strip.cell(|ui| { self.info_panel(ui); });
+            });
+       
         return vec![UiCommand::None];
     }
 }
@@ -102,80 +108,82 @@ impl ServerBrowser {
         };
     }
 
-    // pub fn ui(&mut self, ui: &mut egui::Ui) {
-        // let size = ui.available_size();
-        // let table_width = size.x * 0.55;
-        // let detail_width = size.x - table_width;
-        //
-        // let table_name = table_width * 0.35;
-        // let table_player_count = table_width * 0.35;
-        //
-        // ui.horizontal(|ui|{
-        //     ui.allocate_ui_with_layout(
-        //         egui::vec2(table_width, size.y),
-        //         egui::Layout::top_down(egui::Align::LEFT),
-        //         |ui| {
-        //             TableBuilder::new(ui)
-        //                 .striped(true)
-        //                 .resizable(false)
-        //                 .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-        //                 .column(Column::initial(table_name).resizable(true))
-        //                 .column(Column::initial(table_player_count).resizable(true))
-        //                 .column(Column::remainder())
-        //                 .header(30.0, |mut header| {
-        //                     header.col(|ui| {
-        //                         ui.strong("Server Name");
-        //                     });
-        //
-        //                     header.col(|ui| {
-        //                         ui.strong("Players");
-        //                     });
-        //
-        //                     header.col(|ui| {
-        //                         ui.strong("Ping");
-        //                     });
-        //                 })
-        //                 .body(|mut body| {
-        //                     for (index, server) in self.servers.iter().enumerate() {
-        //                         let selected = self.active_server == index;
-        //
-        //                         body.row(32.0, |mut row| {
-        //                             row.col(|ui| {
-        //                                 ui.label(&server.name);
-        //                             });
-        //
-        //                             row.col(|ui| {
-        //                                 ui.label(format!(
-        //                                     "{}/{}",
-        //                                     server.players,
-        //                                     server.max_players
-        //                                 ));
-        //                             });
-        //
-        //                             row.col(|ui| {
-        //                                 ui.label(format!("{} ms", server.ping));
-        //                             });
-        //
-        //                             if row.response().clicked() {
-        //                                 self.active_server = index;
-        //                             }
-        //                         });
-        //                     }
-        //                 });
-        //         },
-        //     );
-        //
-        //     ui.allocate_ui_with_layout(
-        //         egui::vec2(detail_width, size.y),
-        //         egui::Layout::top_down(egui::Align::LEFT),
-        //         |ui| {
-        //             ui.heading("Details");
-        //             ui.label("Nothing selected");
-        //         },
-        //     );
-        // });
-        //
-        //
-        //
-    // }
+    fn browser_panel(&mut self, ui: &mut egui::Ui) {
+        TableBuilder::new(ui)
+            .striped(true)
+            .resizable(false)
+            .sense(egui::Sense::click())
+            .column(Column::remainder())
+            .column(Column::auto())
+            .column(Column::auto())
+            .header(25.0, |mut header| {
+                header.col(|ui| {
+                    ui.strong("Server Name");
+                });
+                header.col(|ui| {
+                    ui.strong("Players");
+                });
+                header.col(|ui| {
+                    ui.strong("Ping");
+                });
+            })
+            .body(|mut body| {
+                for (i, server) in self.servers.iter().enumerate() {
+                    body.row(30.0, |mut row| {
+                        // Make the whole row clickable.
+                        row.set_selected(self.active_server == i);
+
+                        row.col(|ui| {
+                            if ui.label(&server.name).clicked() {
+                                self.active_server = i;
+                            }
+                        });
+
+                        row.col(|ui| {
+                            if ui.label(
+                                format!("{}/{}", 
+                                    server.players, 
+                                    server.max_players)
+                                ).clicked()
+                            {
+                                self.active_server = i;
+                            }
+                        });
+
+                        row.col(|ui| {
+                            if ui.label(format!("{} ms", server.ping)).clicked() {
+                                self.active_server = i;
+                            }
+                        });
+
+                        if row.response().clicked() {
+                            self.active_server = i;
+                        }
+                    });
+                }
+            });
+    }
+
+    fn info_panel(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Details");
+
+        let server_info = &self.servers[self.active_server];
+        ui.label(format!("{}", server_info.map));
+
+
+    // pub thumb_color: Color32, // placeholder swap-in for a TextureHandle
+    // pub name: String,
+    // pub map: String,
+    // pub mode: String,
+    // pub players: u32,
+    // pub max_players: u32,
+    // pub ping: u8, // 1..=4 bars
+    // pub host: String,
+    // pub subtitle: String,
+    // pub tags: Vec<(&'static str, &'static str)>, // (left col, right col)
+    // pub map_preview_color: Color32,
+    // pub next_map: String,
+
+
+    }
 }

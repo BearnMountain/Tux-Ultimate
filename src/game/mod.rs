@@ -62,6 +62,9 @@ impl Game {
         });
 
         // handle commands
+        if !commands.is_empty() {
+            println!("{:#?}", commands);
+        }
 
 
         self.engine.end_ui();

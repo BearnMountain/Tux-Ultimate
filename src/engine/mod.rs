@@ -8,7 +8,7 @@ pub mod math;
 pub mod physics;
 // pub mod animation;
 // pub mod audio;
-// pub mod net;
+pub mod net;
 pub mod ui;
 
 use std::sync::Arc;
