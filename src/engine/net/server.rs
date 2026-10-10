@@ -1,3 +1,14 @@
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+use tokio::net::UdpSocket;
+use tokio::sync::RwLock;
+use tokio::time::interval;
+
+use crate::engine::net::packet::{ClientId, RawPacket};
+
 /*
 Server paradigm: based on Gafferon Games
 - Authenticate: 
@@ -13,20 +24,17 @@ Network -> Packet decoder -> session manager -> matchmaking ->
 game simulation -> state replication
 */
 
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Duration;
+const MAX_INBOX: usize = 4096; // 2^12 packets max
+const MAX_CLIENT_REGISTRY: usize = 256;
 
-use tokio::net::UdpSocket;
-use tokio::sync::RwLock;
-use tokio::time::interval;
-
-/// Connected Clients Information
-pub struct ClientState {
-    addr: SocketAddr,
-    encryption_key: [u8; 256],
-    last_input_sequence: u32,
+/// Client tracking info for holding connections
+#[derive(Clone, Debug)]
+pub struct ClientInfo {
+    pub id: ClientId,
+    pub addr: SocketAddr,
+    pub last_packet: Instant, // time out/lose connection
+    // registered_at 
+    // recv_packets
 }
 
 /// Usage:
@@ -36,9 +44,8 @@ pub struct ClientState {
 /// '''
 pub struct NetworkServer {
     socket: Arc<UdpSocket>,
-    clients: Arc<RwLock<HashMap<u64, ClientState>>>,
-    next_client_id: u64,
-    tick: u64,
+    inbox: Arc<Mutex<Vec<RawPacket>>>,
+
 }
 
 impl NetworkServer {
@@ -52,13 +59,11 @@ impl NetworkServer {
 
         return Ok(Self {
             socket,
-            clients: Arc::new(RwLock::new(HashMap::new())),
-            next_client_id: 1,
-            tick: 0,
+            inbox: Arc::new(Mutex::new(Vec::new())),
         });
     }
 
-
+    /// server packet reciever in the background
     pub async fn run(&self) {
 
     }

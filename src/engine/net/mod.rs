@@ -14,6 +14,7 @@ impl FromStr for ServerAddress {
 pub mod server;
 pub mod client;
 pub mod protocol;
+pub mod packet;
 
 // pub mod server;
 // pub mod client;
