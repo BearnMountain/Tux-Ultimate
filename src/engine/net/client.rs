@@ -21,6 +21,7 @@ pub struct NetworkClient {
 }
 
 impl NetworkClient {
+    /// connects to server + multi try
     pub async fn connect(server: &str) -> anyhow::Result<Self> {
         let server: SocketAddr = tokio::net::lookup_host(server)
             .await?

@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use tokio::net::UdpSocket;
 use tokio::sync::RwLock;
+use tokio::task::JoinHandle;
 use tokio::time::interval;
 use wgpu::wgc::registry;
 
@@ -48,13 +49,55 @@ struct Registry {
 }
 
 impl Registry {
-    // return new slot or existing id if already registered
-    // fn register(&mut self, addr: SocketAddr) -> Option<ClientId> {
-    //     if let Some(&id) = self.addr_to_client.get(&addr) {
-    //     }
-    // }
-}
+    /// Registers new client unless already registered
+    fn register(&mut self, addr: SocketAddr) -> Option<ClientId> {
+        // already registered
+        if let Some(&id) = self.addr_to_client.get(&addr) {
+            self.touch(id);
+            return Some(id);
+        }
 
+        if self.clients.len() >= MAX_CLIENT_REGISTRY {
+            return None;
+        }
+
+        // inits client info
+        self.next_id += 1;
+        let id = self.next_id;
+        self.addr_to_client.insert(addr, id);
+        self.clients.insert(id, ClientInfo {
+            id,
+            addr,
+            last_packet: Instant::now(),
+        });
+
+        log::info!("[server] client({id}) connected from: {addr}");
+        return Some(id);
+    }
+
+    fn touch(&mut self, id: ClientId) {
+        // inits client info
+        if let Some(client) = self.clients.get_mut(&id) {
+            client.last_packet = Instant::now();
+        }
+    }
+
+
+    /// check if addr is known
+    fn touch_addr(&mut self, addr: &SocketAddr) -> Option<ClientId> {
+        let id = *self.by_addr.get(addr)?;
+        self.touch(id);
+        return Some(id);
+    }
+
+    fn remove(&mut self, id: ClientId) -> Option<ClientInfo> {
+        let client = self.clients.remove(&id)?;
+        self.addr_to_client.remove(&client.addr);
+        log::info!("[server] removed client({id})");
+
+        return Some(client);
+    }
+}
 
 /// Server is a background task manager for handling incoming and outgoing
 /// packets and information. Thin layer that:
@@ -71,7 +114,8 @@ impl Registry {
 pub struct NetworkServer {
     socket: Arc<UdpSocket>,
     inbox: Arc<Mutex<Vec<RawPacket>>>,
-
+    registry: Arc<Mutex<Registry>>,
+    tasks: Vec<JoinHandle<()>>,
 }
 
 impl NetworkServer {
@@ -99,12 +143,68 @@ impl NetworkServer {
         return Ok(Self {
             socket,
             inbox: Arc::new(Mutex::new(Vec::new())),
+            registry,
+            tasks: vec![recv, kick],
         });
     }
 
-    /// server packet reciever in the background
-    pub async fn run(&self) {
+    pub fn send(&self, id: ClientId, data: &[u8]) -> anyhow::Result<()> {
+        anyhow::ensure!(data.len() <= MAX_PACKET_SIZE, "payload too large");
+        let addr = self // wtf rust
+            .registry
+            .lock()
+            .unwrap()
+            .clients
+            .get(&id)
+            .map(|c| c.addr)
+            .ok_or_else(|| anyhow::anyhow!("unknown client {id}"))?;
+        self.socket.try_send_to(&protocol::encode(PacketType::DATA, data), addr)?;
+        return Ok(());
+    }
 
+    pub fn broadcast(&self, data: &[u8]) {
+        if data.len() > MAX_PACKET_SIZE {
+            return;
+        }
+
+        let packet = protocol::encode(PacketType::DATA, data);
+        let addrs: Vec<SocketAddr> = self
+            .registry
+            .lock()
+            .unwrap()
+            .clients
+            .values()
+            .map(|c| c.addr)
+            .collect();
+
+        for a in addrs {
+            let _ = self.socket.try_send_to(&packet, a);
+        }
+    }
+
+    pub fn kick(&self, id: ClientId) {
+        if let Some(c) = self.registry.lock().unwrap().remove(id) {
+            let _ = self.socket.try_send_to(
+                &protocol::encode(PacketType::DISCONNECT, &[]), c.addr
+            );
+        }
+    }
+
+    // ----- Getters -----
+    pub fn local_addr(&self) -> std::io::Result<SocketAddr> {
+        return self.socket.local_addr();
+    }
+
+    pub fn poll(&self) -> Vec<RawPacket> {
+        return std::mem::take(&mut *self.inbox.lock().unwrap());
+    }
+
+    pub fn client_list(&self) -> Vec<ClientInfo> {
+        return self.registry.lock().unwrap().clients.values().cloned().collect();
+    }
+
+    pub fn client_count(&self) -> usize {
+        return self.registry.lock().unwrap().clients.len();
     }
 
 
@@ -135,11 +235,39 @@ impl NetworkServer {
             };
 
             match kind { // todo change to work for encrypted packets
-                PacketType::CONNECT => {}
+                PacketType::CONNECT => {
+                    let id = registry.lock().unwrap().register(addr);
+                    if let Some(id) = id {
+                        let reply = protocol::encode(
+                            PacketType::ACCEPT, 
+                            &id.to_le_bytes(),
+                        );
+
+                        let _ = socket.send_to(&reply, addr).await;
+                    }
+                },
                 PacketType::ACCEPT => {},
-                PacketType::DATA => {},
-                PacketType::DISCONNECT => {},
-                PacketType::KEEP_ALIVE => {},
+                PacketType::DATA => {
+                    let id = registry.lock().unwrap().touch_addr(&addr);
+                    if let Some(id) = id {
+                        let mut q = inbox.lock().unwrap();
+                        if q.len() < MAX_INBOX {
+                            q.push(RawPacket {
+                                client_id: id,
+                                data: body.to_vec(),
+                            });
+                        }
+                    }
+                },
+                PacketType::DISCONNECT => {
+                    let mut registry = registry.lock().unwrap();
+                    if let Some(&id) = registry.addr_to_client.get(&addr) {
+                        registry.remove(id);
+                    }
+                },
+                PacketType::KEEP_ALIVE => {
+                    registry.lock().unwrap().touch_addr(&addr);
+                },
             }
         }
     }
@@ -149,132 +277,39 @@ impl NetworkServer {
         socket: Arc<UdpSocket>, 
         registry: Arc<Mutex<Registry>>,
     ) {
+        let mut tick = tokio::time::interval(Duration::from_secs(1));
+        loop {
+            tick.tick().await;
+            let dead_conn: Vec<ClientInfo> = {
+                let mut r = registry.lock().unwrap();
+                let ids: Vec<ClientId> = r
+                    .clients
+                    .values()
+                    .filter(|c| c.last_packet.elapsed() > CLIENT_TIMEOUT)
+                    .map(|c| c.id)
+                    .collect();
+                ids.into_iter().filter_map(|id| r.remove(id)).collect()
+            };
 
+            for conn in dead_conn {
+                let _ = socket.try_send_to(
+                    &protocol::encode(PacketType::DISCONNECT, &[]), 
+                    conn.addr,
+                );
+            }
+        }
     }
-
 }
 
 
-// mod client_data;
-//
-// use std::{collections::HashMap, net::{SocketAddr, UdpSocket}, sync::Arc};
-//
-// use tokio::sync::{RwLock, mpsc};
-//
-// use crate::engine::net::packet::{IncomingPacket, OutgoingPacket};
-//
-// pub enum PacketTarget {
-//     Client(ClientId),
-//     Broadcast,
-// }
-//
-// pub struct ServerPacket {
-//     pub data: Vec<u8>,
-// }
-//
-// pub struct ServerClient {
-//     pub addr: SocketAddr,
-// }
-//
-// pub struct Server {
-//     // private_key: String, // unecrypts all incoming packets
-//     // public_key: String, // sent to all connected clients
-//
-//     // connected: [Client; 8], // all connected clients + open slots
-//
-//     socket: Arc<UdpSocket>,
-//
-//     incoming: mpsc::Receiver<(SocketAddr, Packet)>,
-//     outgoing: mpsc::Sender<(SocketAddr, Packet)>,
-//
-//     clients: Arc<RwLock<HashMap<SocketAddr, Client>>>,
-// }
-//
-// impl Server {
-//     pub async fn create(
-//         addr: &str
-//     ) -> io::Result<Self> {
-//         let socket = Arc::new(UdpSocket::bind(addr).await?);
-//         let (incoming_sender, incoming_reciever) = mpsc::channel(1024);
-//         let (outgoing_sender, mut outgoing_reciever) = mpsc::channel(1024);
-//
-//         let clients = Arc::new(RwLock::new(HashMap::new()));
-//
-//         // recieving packets
-//         {
-//             let socket = Arc::clone(&socket);
-//             let incoming_sender = incoming_sender.clone();
-//             let clients = Arc::clone(&clients);
-//
-//             tokio::spawn(async move {
-//                 let mut buffer = [0u8; 65535];
-//
-//                 loop {
-//                     let result = socket.recv_from(&mut buffer).await;
-//
-//                     let (len, addr) = match result {
-//                         Ok(result) => result,
-//                         Err(e) => {
-//                             eprintln!("UDP receive error: {e}");
-//                             break;
-//                         }
-//                     };
-//
-//                     // registers new client
-//                     {
-//                         let mut clients = clients.write().await;
-//                         clients.entry(addr).or_insert(|| Client {
-//                             addr,
-//                         });
-//                     }
-//
-//                     // server shutdown
-//                     if incoming_sender.send((addr, packet).await.is_err()) {
-//                         break; 
-//                     }
-//
-//
-//                 }
-//             });
-//         }
-//
-//         // sending packets
-//         {
-//             let socket = Arc::clone(&socket);
-//
-//             tokio::spawn(async move {
-//                 while let Some((addr, packet)) = outgoing_reciever.recv().await {
-//                     if let Err(e) = socket.send_to(&packet.data, addr).await {
-//                         eprintln!("UDP send error to {addr}: {e}");
-//                     }
-//                 }
-//             });
-//         }
-//
-//         return Ok(Self {
-//             socket,
-//             incoming: incoming_reciever,
-//             outgoing: outgoing_sender,
-//             clients,
-//         });
-//     }
-//
-//     pub fn try_recv(
-//         &mut self,
-//     ) -> Option<(SocketAddr, Packet)> {
-//         return self.incoming.try_recv().ok();
-//     }
-//
-//     pub async fn send_to(&self, addr: SocketAddr, packet: Packet) {
-//
-//     }
-//
-//     pub fn broadcast(&self, packet: Packet) {
-//
-//     }
-//
-//     pub async fn clients(&self) -> Vec<SocketAddr> {
-//         self.clients.read().await.keys().copied().collect(); 
-//     }
-//
-// }
+impl Drop for NetworkServer {
+    fn drop(&mut self) {
+        let packet = protocol::encode(PacketType::DISCONNECT, &[]);
+        for client in self.registry.lock().unwrap().clients.values() {
+            let _ = self.socket.try_send_to(&packet, client.addr);
+        }
+        for t in &self.tasks {
+            t.abort();
+        }
+    }
+}
