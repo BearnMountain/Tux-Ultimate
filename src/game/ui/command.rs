@@ -1,4 +1,4 @@
-use crate::{engine::net::ServerAddress, game::{server::net::config::GameServerConfig, ui::screens::ScreenId}};
+use crate::{engine::net::ServerAddress, game::{server::config::GameServerConfig, ui::screens::ScreenId}};
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq)]

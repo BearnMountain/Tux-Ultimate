@@ -2,7 +2,8 @@ use egui::{CentralPanel, Color32, Context, Frame, Margin, Panel};
 
 use super::MenuTheme;
 use crate::game::{
-    client::net::server_entry::ServerEntry, server::net::config::GameServerConfig, ui::{command::UiCommand, screens::{Screen, ScreenId}}, 
+    client::net::server_entry::ServerEntry, 
+    ui::{command::UiCommand, screens::{Screen, ScreenId}}, 
 };
 
 pub mod server_browser;

@@ -85,7 +85,7 @@ impl Registry {
 
     /// check if addr is known
     fn touch_addr(&mut self, addr: &SocketAddr) -> Option<ClientId> {
-        let id = *self.by_addr.get(addr)?;
+        let id = *self.addr_to_client.get(addr)?;
         self.touch(id);
         return Some(id);
     }
@@ -120,7 +120,8 @@ pub struct NetworkServer {
 
 impl NetworkServer {
     /// bind server on host computer
-    pub async fn cjeate(lan: bool, port: u16) -> anyhow::Result<Self> {
+    /// - testing: lan = false
+    pub async fn create(lan: bool, port: u16) -> anyhow::Result<Self> {
         let host = if lan { "0.0.0.0" } else { "127.0.0.1" };
         let socket = Arc::new(UdpSocket::bind((host, port)).await?);
         log::info!("[server] listening on {:?}", socket.local_addr());

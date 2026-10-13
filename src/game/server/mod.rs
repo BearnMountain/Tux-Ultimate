@@ -1,133 +1,127 @@
-use std::{sync::{Arc, mpsc}, thread::JoinHandle, time::{Duration, Instant}};
+use std::{io, sync::Arc, thread::JoinHandle, time::Duration};
+use tokio::{
+    runtime::Builder,
+    sync::{mpsc, oneshot},
+    time::{interval, MissedTickBehavior},
+};
 
-use tokio::runtime::Runtime;
+use crate::{engine::net::server::NetworkServer, game::server::{config::GameServerConfig, simulation::GameSimulation}};
 
-use crate::{engine::net::{protocol::InputFrame, server::NetworkServer}, game::server::simulation::GameSimulation};
-
-pub mod net;
-pub mod game_mode;
 pub mod simulation;
+pub mod config;
+pub mod game_mode;
+pub mod game_rules;
 
-// MTU is 1500 bytes
-#[derive(Clone)]
-pub struct ServerConfig {
-    pub bind_addr: String,
-    pub tick_rate: u16, // Hz
-    pub max_players: u8,
-}
-
-impl Default for ServerConfig {
-    fn default() -> Self {
-        return Self { 
-            bind_addr: "0.0.0.0".to_string(), 
-            tick_rate: 60, 
-            max_players: 8,
-        };
-    }
-}
-
-/// Game Server runs on its own thread
+/// Game server running on its own thread.
 ///
-/// Usage: 
+/// ```ignore
+/// let mut server = GameServer::new(ServerConfig::default());
+/// server.startup()?;
+/// // ...
+/// server.shutdown(); // also called on drop
 /// ```
-/// let server = GameServer::new(ServerConfig::default());
-/// server.spawn(); // and thats it, runs in background
-/// server.shutdown(); // at end
-/// ```
-#[derive(Clone)]
 pub struct GameServer {
-    config: ServerConfig,
-    shutdown_tx: Option<mpsc::Sender<()>>, // transmit shutdown req
+    config: GameServerConfig,
+    shutdown_tx: Option<oneshot::Sender<()>>, // tunnel to shutdown thread
+    handle: Option<JoinHandle<()>>, 
 }
 
 impl GameServer {
-    pub fn new(config: ServerConfig) -> Self {
-        return Self {
-            config,
-            shutdown_tx: None,
-        };
+    pub fn new(config: GameServerConfig) -> Self {
+        Self { config, shutdown_tx: None, handle: None }
     }
 
-    /// thread in background
-    pub fn spawn(&mut self) -> io::Result<JoinHandle<()>> {
-        let runtime = Runtime::new()?;
+    pub fn startup(&mut self) -> io::Result<()> {
+        if self.handle.is_some() {
+            return Err(io::Error::new(io::ErrorKind::AlreadyExists, "server already running"));
+        }
+        if self.config.tick_rate == 0 {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "tick_rate must be > 0"));
+        }
 
-        let (shutdown_tx, shutdown_rx) = mpsc::channel();
+        let runtime = Builder::new_multi_thread().enable_all().build()?;
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let config = self.config.clone();
 
-        // spawn thread
         let handle = std::thread::Builder::new()
             .name("game-server".into())
             .spawn(move || {
                 runtime.block_on(async move {
                     if let Err(e) = run_server(config, shutdown_rx).await {
-                        log::error!("[game-server] fatal error: {}", e);
+                        log::error!("[game-server] fatal error: {e}");
                     }
                 });
-            })?; // fails if os cant create thread
+            })?;
 
         self.shutdown_tx = Some(shutdown_tx);
+        self.handle = Some(handle);
         log::info!("[game-server] spawned on background thread");
-        return Ok(handle);
+        Ok(())
     }
 
-    pub fn shutdown(&self) {
-        if let Some(tx) = &self.shutdown_tx {
-            let _ = tx.try_send(());
+    pub fn shutdown(&mut self) {
+        if let Some(tx) = self.shutdown_tx.take() {
+            let _ = tx.send(());
+        }
+        if let Some(h) = self.handle.take() {
+            let _ = h.join();
         }
     }
 }
 
-/// main server loop
+impl Drop for GameServer {
+    fn drop(&mut self) {
+        self.shutdown();
+    }
+}
+
 async fn run_server(
-    config: ServerConfig,
-    mut shutdown_rx: mpsc::Receiver<()>,
+    config: GameServerConfig,
+    mut shutdown_rx: oneshot::Receiver<()>,
 ) -> anyhow::Result<()> {
-    // init net layer
-    let network = Arc::new(NetworkServer::bind(&config.bind_addr).await?);
-    let mut game_world = GameSimulation::init();
+    let network = Arc::new(NetworkServer::create(
+        false,
+        config.port,
+    ).await?);
 
-    // channel to obtain input frames from the network layer
-    let (input_tx, mut input_rx) = mpsc::channel::<(u64, InputFrame)>();
+    let mut ticker = interval(Duration::from_secs_f64(1.0 / config.tick_rate as f64));
+    ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
-    // handles handshake + input packets
-    let network_clone = Arc::clone(&network);
-    tokio::spawn(async move {
-        network_clone.run().await;
-    });
+    log::info!(
+        "[game-server] game loop starting at {} Hz on {:?}",
+        config.tick_rate,
+        network.local_addr(),
+    );
 
-    // game loop
-    let tick_duration = Duration::from_millis(1000 / config.tick_rate as u64);
-    let mut last_tick = Instant::now();
-    let mut tick: u64 = 0;
-
-    log::info!("[game-server] game loop starting at {} Hz", config.tick_rate);
+    let mut total_packets: u64 = 0;
 
     loop {
-        if shutdown_rx.try_recv().is_ok() {
-            log::info!("[game-server] shutting down");
-            break;
+        // checks if server has shutdown
+        tokio::select! {
+            _ = &mut shutdown_rx => {
+                log::info!("[game-server] shutting down");
+            }
+            _ = ticker.tick() => {}
         }
 
-        // wait for tick
-        let elapsed = last_tick.elapsed();
-        if elapsed < tick_duration {
-            tokio::time::sleep(tick_duration - elapsed).await;
-        }
-        last_tick = Instant::now();
-        tick += 1;
-
-        // 1. process inputs
-        while let Ok((client_id, frame)) = input_rx.try_recv() {
-            // process inputs: game_world, client_id, frame
+        let packets = network.poll();
+        if packets.is_empty() {
+            continue;
         }
 
-        // 2. physics sim
-        // 3. update game state
-        // 4. broadcast state to all clients
-        // 5. cleanup
+        for packet in &packets {
+            total_packets += 1;
+            println!(
+                "[recv] client({}) {} bytes: {:?}",
+                packet.client_id,
+                packet.data.len(),
+                packet.data,
+            );
+        }
+
+        network.broadcast(&total_packets.to_le_bytes());
     }
 
+    drop(network);
     return Ok(());
 }
-

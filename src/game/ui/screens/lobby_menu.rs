@@ -1,6 +1,6 @@
 use egui_extras::{Size, StripBuilder};
 
-use crate::game::{server::net::config::GameServerConfig, ui::{command::UiCommand, screens::{Screen, ScreenId}}};
+use crate::game::{server::config::GameServerConfig, ui::{command::UiCommand, screens::{Screen, ScreenId}}};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, PartialEq, Eq)]

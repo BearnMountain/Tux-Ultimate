@@ -1,6 +1,4 @@
-use crate::game::{client::content::{characters::GameCharacters, maps::GameMaps::{self, BONGO_BAY}}, server::{game_mode::GameMode, net::game_rules::GameRules}};
-
-
+use crate::game::{client::content::{characters::GameCharacters, maps::GameMaps}, server::{game_mode::GameMode, game_rules::GameRules}};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct GameServerConfig {
@@ -8,7 +6,7 @@ pub struct GameServerConfig {
     // server options
     pub server_name: String, // defaults to ip
     pub password: Option<String>,
-    pub port: u32,
+    pub port: u16,
     pub max_players: u8,
     pub tick_rate: u16, // in hertz
 
@@ -55,5 +53,3 @@ impl Default for GameServerConfig {
         };
     }
 }
-
-

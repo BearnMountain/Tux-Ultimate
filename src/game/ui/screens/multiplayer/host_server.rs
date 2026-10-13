@@ -4,7 +4,7 @@ use egui::{FontId, RichText, ScrollArea};
 use egui_extras::{Size, StripBuilder};
 use image::Frame;
 
-use crate::{engine::ui::{util, widgets}, game::{server::net::config::GameServerConfig, ui::{command::UiCommand, screens::{MenuTheme, Screen}}}};
+use crate::{engine::ui::{util, widgets}, game::{server::config::GameServerConfig, ui::{command::UiCommand, screens::{MenuTheme, Screen}}}};
 
 pub struct HostServer {
     pub lan_only: bool,
@@ -201,7 +201,7 @@ impl HostServer {
                             "Port", &mut input, 
                             Some(24),
                         );
-                        if let Ok(i) = input.parse::<u32>() {
+                        if let Ok(i) = input.parse::<u16>() {
                             self.server_config.port = i;
                         } else if input.len() == 0 {
                             self.server_config.port = 0;

@@ -1,12 +1,25 @@
 use std::{sync::Arc};
 use winit::{window::{Window}};
 
-pub mod client;
+pub mod single_player;
+pub mod multiplayer;
 pub mod server;
 pub mod ui;
-pub mod input;
+pub mod game_session;
 
-use crate::{engine::Engine, game::{client::GameClient, ui::command::UiCommand}};
+use crate::{
+    engine::Engine, game::{multiplayer::MultiplayerSession, single_player::SinglePlayerSession, ui::command::UiCommand}, 
+};
+
+#[allow(non_camel_case_types)]
+pub enum ActiveGameSession {
+    /// game simulation hosted locally
+    SINGLE_PLAYER(SinglePlayerSession),
+    /// connect to server you host or remotely
+    MULTIPLAYER(MultiplayerSession),
+    /// preview hosting server
+    HOSTING,
+}
 
 // max time that a frame isnt updated
 
@@ -22,11 +35,11 @@ pub struct Game {
 
     // game specific
     ui: ui::UI,
-    game_client: GameClient,
+    session: Option<ActiveGameSession>,
 
     // general stuff
     pub engine: Engine,
-    pub input_handler: input::GameInput,
+    // pub input_handler: input::GameInput,
 }
 
 impl Game {
@@ -36,16 +49,16 @@ impl Game {
         // creates everything needed to run a game
         // graphics and ui created
         let engine = Engine::new(window.clone());
-        let input_handler = input::GameInput::new();
+        // let input_handler = input::GameInput::new();
 
         return Self {
             ui: ui::UI::init(
                 &engine.renderer.get_ui()
             ),
             tick: 0,
-            game_client: GameClient::init(window),
+            session: None,
             engine,
-            input_handler,
+            // input_handler,
         };
     }
 
@@ -65,7 +78,6 @@ impl Game {
         if !commands.is_empty() {
             println!("{:#?}", commands);
         }
-
 
         self.engine.end_ui();
 
