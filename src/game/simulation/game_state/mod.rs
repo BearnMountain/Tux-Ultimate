@@ -5,3 +5,13 @@ pub struct GameState {
 
     entities: Vec<entity_snapshot::EntitySnapshot>,
 }
+
+impl GameState {
+
+    pub fn test() -> Self {
+        return Self {
+            server_tick: 0,
+            entities: Vec::new(),
+        };
+    }
+}

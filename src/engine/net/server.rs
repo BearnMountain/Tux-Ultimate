@@ -121,7 +121,7 @@ pub struct NetworkServer {
 impl NetworkServer {
     /// bind server on host computer
     /// - testing: lan = false
-    pub async fn create(lan: bool, port: u16) -> anyhow::Result<Self> {
+    pub async fn host(lan: bool, port: u16) -> anyhow::Result<Self> {
         let host = if lan { "0.0.0.0" } else { "127.0.0.1" };
         let socket = Arc::new(UdpSocket::bind((host, port)).await?);
         log::info!("[server] listening on {:?}", socket.local_addr());

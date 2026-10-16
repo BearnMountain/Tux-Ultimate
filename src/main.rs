@@ -56,7 +56,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if !args.headless && args.headed {
-        let rt = tokio::runtime::Runtime::new().expect("failed to start app");
+        let rt = tokio::runtime::Runtime::new()
+            .expect("failed to start app");
         let _guard = rt.enter();
 
         let event_loop = EventLoop::new()?;

@@ -4,12 +4,13 @@ pub mod content;
 
 use std::{ops::Mul, path::Path, sync::Arc, time::Duration};
 
+use anyhow::Context;
 use glam::{Vec2, Vec3};
 use winit::window::Window;
 
 use crate::{
     engine::{
-        Engine, assets::gpu_server::Server, physics::{
+        Engine, assets::gpu_server::Server, net::{client::NetworkClient, server::NetworkServer}, physics::{
             body::RigidBody, collider::Collider
         }, renderer::{
             bind_group::LayoutBuilder, 
@@ -20,19 +21,23 @@ use crate::{
             render_pass::RenderPassStage, 
             render_resource::RenderResources, transform::Transform
         }, scene::camera::CameraAction
-    }, game::game_session::GameSession,
+    }, game::{game_session::{self, GameSession}, simulation::game_state::GameState},
 };
 
 pub struct MultiplayerSession {
+    // networking
+    game_client: Option<NetworkClient>,
+    game_server: Option<NetworkServer>,
 
+    
 }
 
 impl GameSession for MultiplayerSession {
-    fn tick(&mut self, dt: f32) {
+    fn tick(&mut self) {
         todo!()
     }
 
-    fn update(&mut self, dt: f32) {
+    fn frame(&mut self) {
         todo!()
     }
 
@@ -46,8 +51,19 @@ impl MultiplayerSession {
 
 
         return Self {
-
+            game_client: None,
+            game_server: None,
         };
+    }
+
+    pub fn connect(&mut self, addr: &str) -> anyhow::Result<()> {
+        if self.game_client.is_some() {
+            anyhow::bail!("already connected to a network");
+        }
+
+        let client = NetworkClient::connect(addr)
+            .await
+            .context("Failed to connect to server");
     }
 }
 

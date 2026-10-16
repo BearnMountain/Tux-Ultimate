@@ -79,7 +79,7 @@ async fn run_server(
     config: GameServerConfig,
     mut shutdown_rx: oneshot::Receiver<()>,
 ) -> anyhow::Result<()> {
-    let network = Arc::new(NetworkServer::create(
+    let network = Arc::new(NetworkServer::host(
         false,
         config.port,
     ).await?);

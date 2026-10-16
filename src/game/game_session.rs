@@ -4,11 +4,12 @@
 /// - Multi: connect to server + hosting options(play w/ friends)
 /// - Hosting: full server handling + commentator viewport
 pub trait GameSession {
-    /// advance gameplay a timestep
-    fn tick(&mut self, dt: f32);
+    /// advance gameplay a timestep + backend processing
+    /// - multi: reconcilliation + blending
+    fn tick(&mut self);
 
-    /// process incoming input and network(if multi) updates
-    fn update(&mut self, dt: f32);
+    /// Monitor refresh rate
+    fn frame(&mut self);
 
     /// cleanly shutdown session own resources
     fn shutdown(&mut self);

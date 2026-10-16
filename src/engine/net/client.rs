@@ -20,6 +20,16 @@ pub struct NetworkClient {
     tasks: Vec<JoinHandle<()>>,
 }
 
+/// Handlings continous connection + packet inbox(async recv packets)
+/// 
+/// Usage:
+/// ```
+/// 
+///
+///
+///
+///
+/// ```
 impl NetworkClient {
     /// connects to server + multi try
     pub async fn connect(server: &str) -> anyhow::Result<Self> {

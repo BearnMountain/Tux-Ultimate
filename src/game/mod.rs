@@ -6,9 +6,11 @@ pub mod multiplayer;
 pub mod server;
 pub mod ui;
 pub mod game_session;
+pub mod simulation;
+pub mod spector;
 
 use crate::{
-    engine::Engine, game::{multiplayer::MultiplayerSession, single_player::SinglePlayerSession, ui::command::UiCommand}, 
+    engine::Engine, game::{game_session::GameSession, multiplayer::MultiplayerSession, simulation::game_state::GameState, single_player::SinglePlayerSession, spector::SpectorSession, ui::command::UiCommand}, 
 };
 
 #[allow(non_camel_case_types)]
@@ -18,7 +20,7 @@ pub enum ActiveGameSession {
     /// connect to server you host or remotely
     MULTIPLAYER(MultiplayerSession),
     /// preview hosting server
-    HOSTING,
+    SPECTOR(SpectorSession),
 }
 
 // max time that a frame isnt updated
@@ -47,6 +49,8 @@ impl Game {
         window: Arc<Window>,
     ) -> Self {
         // creates everything needed to run a game
+
+
         // graphics and ui created
         let engine = Engine::new(window.clone());
         // let input_handler = input::GameInput::new();
@@ -60,6 +64,25 @@ impl Game {
             engine,
             // input_handler,
         };
+    }
+
+    pub fn init_single_player_session(&mut self) {
+        self.shutdown_session();
+        self.session = Some(ActiveGameSession::SINGLE_PLAYER(
+            SinglePlayerSession::init()
+        ));
+    }
+    pub fn init_multiplayer_session(&mut self) {
+        self.shutdown_session();
+        self.session = Some(ActiveGameSession::MULTIPLAYER(
+            MultiplayerSession::init()
+        ));
+    }
+    pub fn init_spector_session(&mut self) {
+        self.shutdown_session();
+        self.session = Some(ActiveGameSession::SPECTOR(
+            SpectorSession::init()
+        ));
     }
 
     /// called at monitor refresh rate(just for graphics)
@@ -81,14 +104,50 @@ impl Game {
 
         self.engine.end_ui();
 
+        if let Some(session) = &mut self.session {
+            match session {
+                ActiveGameSession::SINGLE_PLAYER(single_player_session) =>
+                    single_player_session.frame(),
+                ActiveGameSession::MULTIPLAYER(multiplayer_session) =>
+                    multiplayer_session.frame(),
+                ActiveGameSession::SPECTOR(spector_session) =>
+                    spector_session.frame(),
+            }
+        }
+
         self.engine.renderer.render()?;
 
         return Ok(());
     }
 
     /// called every tick(game updates, server, etc)
-    pub fn update(&mut self) {
+    pub fn tick(&mut self) {
         self.tick += 1;
+
+        if let Some(session) = &mut self.session {
+            match session {
+                ActiveGameSession::SINGLE_PLAYER(single_player_session) =>
+                    single_player_session.tick(),
+                ActiveGameSession::MULTIPLAYER(multiplayer_session) =>
+                    multiplayer_session.tick(),
+                ActiveGameSession::SPECTOR(spector_session) =>
+                    spector_session.tick(),
+            }
+        }
     }
 
+    fn shutdown_session(&mut self) {
+        if let Some(session) = &mut self.session {
+            match session {
+                ActiveGameSession::SINGLE_PLAYER(single_player_session) => 
+                    single_player_session.shutdown(),
+                ActiveGameSession::MULTIPLAYER(multiplayer_session) =>
+                    multiplayer_session.shutdown(),
+                ActiveGameSession::SPECTOR(spector_session) =>
+                    spector_session.shutdown(),
+            }
+        }
+
+        self.session = None;
+    }
 }

@@ -104,7 +104,7 @@ impl ApplicationHandler for App {
                     if key == winit::keyboard::KeyCode::KeyQ {
                         event_loop.exit();
                     }
-                    game.input_handler.keyboard(&key, &event.state);
+                    // game.input_handler.keyboard(&key, &event.state);
                 }
             },
             // WindowEvent::ModifiersChanged(modifiers) => todo!(),
@@ -124,7 +124,7 @@ impl ApplicationHandler for App {
                 device_id: _,
                 state,
                 button,
-            } => game.input_handler.mouse_button(&state, &button),
+            } => {}, //game.input_handler.mouse_button(&state, &button),
             // WindowEvent::PinchGesture { device_id, delta, phase } => todo!(),
             // WindowEvent::PanGesture { device_id, delta, phase } => todo!(),
             // WindowEvent::DoubleTapGesture { device_id } => todo!(),
@@ -160,17 +160,17 @@ impl ApplicationHandler for App {
         let Some(game) = &mut self.game else { return };
 
         match event {
-            winit::event::DeviceEvent::MouseMotion { delta } => {
-                game.input_handler
-                    .mouse_movement(delta.0 as f32, delta.1 as f32);
-            }
-            winit::event::DeviceEvent::MouseWheel { delta } => {
-                game.input_handler.mouse_wheel(
-                    &delta, 
-                    &winit::event::TouchPhase::Started
-                );
-            }
-            
+            // winit::event::DeviceEvent::MouseMotion { delta } => {
+            //     game.input_handler
+            //         .mouse_movement(delta.0 as f32, delta.1 as f32);
+            // }
+            // winit::event::DeviceEvent::MouseWheel { delta } => {
+            //     game.input_handler.mouse_wheel(
+            //         &delta, 
+            //         &winit::event::TouchPhase::Started
+            //     );
+            // }
+            //
             // usually ignore this because WindowEvent::KeyboardInput is easier
             // DeviceEvent::Key(raw_key_event) => {},
 
@@ -195,7 +195,7 @@ impl ApplicationHandler for App {
         // renders frame 1/tick freqency
         let mut ticks = 0;
         while self.accumulator >= self.dt && ticks < MAX_TICKS_PER_FRAME {
-            game.update();
+            game.tick();
 
             self.accumulator -= self.dt;
             ticks += 1;

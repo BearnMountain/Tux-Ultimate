@@ -1,4 +1,26 @@
+# Tux Ultimate
+Tux Ultimate is an open source game inspired by 
+[Super Tux Kart](https://github.com/supertuxkart/stk-code) - "a free kart racing 
+game". This project started as a collaboration myself and 
+[JackJ30](https://github.com/JackJ30) as an RCOS project at RPI. The game has 
+expanded as a solo indie project in rust utilizing:
+- WGPU for GPU-accerated rendering
+- WInit for cross platfoorm windowing
+- Glam for 3D mathematics
+- egui for UI
+- GLTF for 3D model and scene loading
+- Tokio for custom async multiplayer networking
 
+# Installation
+Download the repository as a .zip, unzip it then:
+`cargo run --release`
+From the terminal it supports:
+``` bash
+cargo run -- --headed
+cargo run -- --headless # not impl yet
+```
+
+# Features
 
 
 
@@ -33,6 +55,3 @@
 
 retro futurism design look
 
-
-## Sources
-https://www.youtube.com/watch?v=gOqXsxi3hJY
